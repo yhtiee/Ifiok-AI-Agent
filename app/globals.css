@@ -1,26 +1,118 @@
 @import "tailwindcss";
 
+/* Design tokens: specifications/07-brand-ui-ux.md §3.3. Never hard-code colours elsewhere. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Page (light) */
+  --paper: #F2F4F7;      /* cool paper, not cream */
+  --surface: #FBFCFD;
+  --ink: #131B26;        /* text and lines */
+  --ink-2: #4A5563;      /* secondary text */
+  --ink-3: #5D6876;      /* tertiary; check AA on surface before use */
+  --line: #DDE2E8;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Role colours */
+  --quantity: #2650B8;       /* blue: the thing itself */
+  --quantity-soft: #E2EAFB;
+  --change: #B0500F;         /* camwood: rate, change, action, primary CTA (white text 5.25:1) */
+  --change-soft: #F8E8DB;
+  --built: #1C7A5A;          /* green: accumulated, mastered, earned */
+  --built-soft: #DDF2E9;
+  --on-change: #FFFFFF;      /* text on the primary button */
+
+  /* Status (never the only signal; always paired with text/icon) */
+  --ok: #23824F; --warn: #8F5A00; --bad: #B8382B;
+
+  /* Bench (dark doing surface, same in both themes) */
+  --bench: #131B26; --bench-2: #1D2733; --bench-line: #2C3848; --bench-ink: #EEF1F5;
+  --bench-quantity: #7FA2F0; --bench-change: #F08A45; --bench-built: #4FBF96;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --paper: #0E1318; --surface: #161D25; --ink: #E5EBF1; --ink-2: #A9B4C2; --ink-3: #97A4B2; --line: #2A3542;
+    --quantity: #7FA2F0; --quantity-soft: #17243B; --change: #F08A45; --change-soft: #3A2616;
+    --built: #4FBF96; --built-soft: #132E24;
+    --on-change: var(--paper);  /* 07 §3.3: paper text on camwood in dark (7.5:1) */
+    --ok: #4FBF7A; --warn: #E0A040; --bad: #F07A6A;
+    color-scheme: dark;
   }
 }
 
+/* Manual toggle mirrors the dark block */
+:root[data-theme="dark"] {
+  --paper: #0E1318; --surface: #161D25; --ink: #E5EBF1; --ink-2: #A9B4C2; --ink-3: #97A4B2; --line: #2A3542;
+  --quantity: #7FA2F0; --quantity-soft: #17243B; --change: #F08A45; --change-soft: #3A2616;
+  --built: #4FBF96; --built-soft: #132E24;
+  --on-change: var(--paper);
+  --ok: #4FBF7A; --warn: #E0A040; --bad: #F07A6A;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-quantity: var(--quantity);
+  --color-quantity-soft: var(--quantity-soft);
+  --color-change: var(--change);
+  --color-change-soft: var(--change-soft);
+  --color-built: var(--built);
+  --color-built-soft: var(--built-soft);
+  --color-on-change: var(--on-change);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-bench: var(--bench);
+  --color-bench-2: var(--bench-2);
+  --color-bench-line: var(--bench-line);
+  --color-bench-ink: var(--bench-ink);
+  --color-bench-quantity: var(--bench-quantity);
+  --color-bench-change: var(--bench-change);
+  --color-bench-built: var(--bench-built);
+
+  --font-display: var(--font-bricolage);
+  --font-sans: var(--font-atkinson);
+  --font-mono: var(--font-jetbrains);
+
+  /* Type scale (mobile): 13 / 15 / 17 body / 20 / 24 / 32 / 44 */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+
+  /* Radius by role: 6 inputs, 8 Bench, 12 cards, 999 chips and primary button */
+  --radius-input: 6px;
+  --radius-bench: 8px;
+  --radius-card: 12px;
+}
+
+html {
+  background: var(--paper);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-atkinson), system-ui, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--quantity);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
