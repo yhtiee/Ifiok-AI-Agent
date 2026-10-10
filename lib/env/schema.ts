@@ -35,6 +35,8 @@ export const serverEnvSchema = publicEnvSchema.extend({
   TURNSTILE_SITE_KEY: nonEmpty.optional(), // P0-04
   TURNSTILE_SECRET_KEY: nonEmpty.optional(), // P0-04
   GROQ_API_KEY: nonEmpty.optional(), // P3
+  /** Shared secret for server-to-server Edge Function calls (embed). Also set in Supabase secrets. */
+  INTERNAL_FUNCTION_SECRET: nonEmpty.optional(), // P1-01
   /** "true" once an email provider (Resend SMTP) is connected: turns on email sign-in codes. */
   AUTH_EMAIL_CODES: z.enum(["true", "false"]).optional(),
   /** "true" lets `next dev` sign in without email. Ignored in production builds. */

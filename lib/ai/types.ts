@@ -31,7 +31,8 @@ export type SkillName = (typeof SKILLS)[number];
 export type ProviderName = z.infer<typeof providerNameSchema>;
 export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>;
 
-export type ImageInput = { mime: "image/jpeg" | "image/png" | "image/webp"; data: Uint8Array };
+/** An image or PDF sent with a prompt (vision skills: scheme_extract, transcribe_working, ocr_pages). */
+export type ImageInput = { mime: "image/jpeg" | "image/png" | "image/webp" | "application/pdf"; data: Uint8Array };
 
 /** One model call, provider-neutral. */
 export type ProviderRequest = {

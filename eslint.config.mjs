@@ -25,6 +25,8 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "lib/supabase/types.ts",
+    // Deno code (Edge Functions) is checked by Deno, not the Next.js toolchain.
+    "supabase/functions/**",
   ]),
 ]);
 

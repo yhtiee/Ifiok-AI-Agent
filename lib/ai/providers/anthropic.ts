@@ -16,10 +16,12 @@ export function createAnthropicProvider(apiKey: string | undefined): Provider {
       if (!client) throw new ProviderError("ANTHROPIC_API_KEY is not set", "config");
 
       const content: Anthropic.ContentBlockParam[] = [
-        ...(req.images ?? []).map((img): Anthropic.ImageBlockParam => ({
-          type: "image",
-          source: { type: "base64", media_type: img.mime, data: Buffer.from(img.data).toString("base64") },
-        })),
+        ...(req.images ?? []).map((img): Anthropic.ContentBlockParam => {
+          const data = Buffer.from(img.data).toString("base64");
+          return img.mime === "application/pdf"
+            ? { type: "document", source: { type: "base64", media_type: "application/pdf", data } }
+            : { type: "image", source: { type: "base64", media_type: img.mime, data } };
+        }),
         { type: "text", text: req.user },
       ];
 

@@ -6,9 +6,9 @@ export type FeatureKey =
   "course" | "topic" | "outline" | "upload" | "textbook" | "goal" | "tutor" | "labs" | "snap" | "library";
 
 export const FEATURES: Record<FeatureKey, { href: string; open: boolean; spec: string }> = {
-  course: { href: "/courses/find", open: false, spec: "F2 · P1-01" },
-  topic: { href: "/learn", open: false, spec: "F2 · P1-01" },
-  outline: { href: "/courses/find?outline=1", open: false, spec: "F2-FR2 · P1-01" },
+  course: { href: "/courses", open: true, spec: "F2 · P1-01" },
+  topic: { href: "/courses", open: true, spec: "F2 · P1-01" },
+  outline: { href: "/courses", open: true, spec: "F2-FR2 · P1-01" },
   upload: { href: "/library/upload", open: false, spec: "F11 · P1-03b" },
   textbook: { href: "/library/textbook", open: false, spec: "F3 · P1-16" },
   goal: { href: "/goals/new", open: false, spec: "F6 · P1-06" },

@@ -62,3 +62,33 @@ export function birthMonthTurning18Now(now = new Date()) {
     .reduce<Record<string, string>>((acc, p) => ({ ...acc, [p.type]: p.value }), {});
   return { year: Number(lagos.year) - 18, month: Number(lagos.month) };
 }
+
+/**
+ * A test user who has finished onboarding: adult, consented (current version), at a university
+ * (by short name, e.g. "UNIUYO"), at a level. Skips the onboarding screens for feature tests.
+ */
+export async function createOnboardedUser(opts: { university: string; level: number }) {
+  const user = await createTestUser();
+  const db = adminClient();
+  const { data: uni } = await db.from("universities").select("id").eq("short_name", opts.university).single();
+  await db
+    .from("profiles")
+    .update({
+      is_adult: true,
+      birth_year: 1999,
+      birth_month: 4,
+      university_id: uni!.id,
+      level: opts.level,
+      daily_minutes: 30,
+      onboarded_at: new Date().toISOString(),
+      display_name: `Test ${opts.university}`,
+    })
+    .eq("id", user.id);
+  const { CONSENT_VERSION } = await import("../../lib/auth/consent");
+  await db
+    .from("consents")
+    .insert(
+      ["terms", "privacy", "ai_disclosure"].map((kind) => ({ user_id: user.id, kind, version: CONSENT_VERSION })),
+    );
+  return user;
+}

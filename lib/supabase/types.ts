@@ -1485,26 +1485,35 @@ export type Database = {
         Row: {
           course_id: string
           created_at: string
+          decided_at: string | null
+          decided_by: string | null
           editor_id: string | null
           id: number
           outline: Json
           source: string
+          status: string
         }
         Insert: {
           course_id: string
           created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
           editor_id?: string | null
           id?: never
           outline: Json
           source: string
+          status?: string
         }
         Update: {
           course_id?: string
           created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
           editor_id?: string | null
           id?: never
           outline?: Json
           source?: string
+          status?: string
         }
         Relationships: [
           {
@@ -1512,6 +1521,20 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outline_revisions_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outline_revisions_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2344,9 +2367,27 @@ export type Database = {
         Args: { p_features?: string[]; p_since: string; p_user?: string }
         Returns: number
       }
+      apply_outline: {
+        Args: { p_course: string; p_topics: Json }
+        Returns: undefined
+      }
       consume_quota: {
         Args: { p_feature: string; p_limit: number; p_user: string }
         Returns: boolean
+      }
+      create_concept: {
+        Args: {
+          p_created_by: string
+          p_description: string
+          p_embedding: string
+          p_level_band: Database["public"]["Enums"]["level_band"]
+          p_micro_skills: string[]
+          p_prerequisite_hints: string[]
+          p_slug: string
+          p_subject: string
+          p_title: string
+        }
+        Returns: string
       }
       enqueue_job: {
         Args: {
@@ -2379,6 +2420,22 @@ export type Database = {
           source_id: string
         }[]
       }
+      match_concepts: {
+        Args: {
+          p_embedding: string
+          p_level_band: Database["public"]["Enums"]["level_band"]
+          p_limit?: number
+          p_subject: string
+        }
+        Returns: {
+          description: string
+          id: string
+          similarity: number
+          slug: string
+          subject: string
+          title: string
+        }[]
+      }
       merge_concepts: {
         Args: { p_admin: string; p_loser: string; p_survivor: string }
         Returns: undefined
@@ -2386,6 +2443,18 @@ export type Database = {
       refund_quota: {
         Args: { p_feature: string; p_user: string }
         Returns: undefined
+      }
+      search_courses: {
+        Args: { p_limit?: number; p_query: string; p_university: string }
+        Returns: {
+          code: string
+          id: string
+          level: number
+          members: number
+          score: number
+          subject: string
+          title: string
+        }[]
       }
       shared_lesson_sources: {
         Args: { p_concept: string; p_limit?: number }
