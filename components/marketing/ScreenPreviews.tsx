@@ -29,7 +29,7 @@ export function LessonPreview() {
         </div>
       </div>
       <div className="flex-1 px-4 pt-5">
-        <p className="font-display text-lg font-semibold leading-tight">Why the slope is 2x</p>
+        <p className="font-display text-lg leading-tight font-semibold">Why the slope is 2x</p>
         <ol className="mt-4 grid gap-3 text-sm">
           <li className="rounded-[var(--radius-input)] border border-line bg-surface px-3 py-2">
             <p className="font-semibold">((x + h)² − x²) / h</p>
@@ -45,7 +45,7 @@ export function LessonPreview() {
           </li>
         </ol>
       </div>
-      <div className="rounded-t-[20px] border-t border-line bg-surface px-4 pb-4 pt-3">
+      <div className="rounded-t-[20px] border-t border-line bg-surface px-4 pt-3 pb-4">
         <p className="font-display text-lg font-semibold text-ok">Correct</p>
         <p className="mt-1 text-sm text-ink-2">The slope is 2x, and 2 × 1.5 = 3.</p>
         <div className="mt-3 flex gap-2">
@@ -98,15 +98,36 @@ export function LabPreview() {
           <line x1="30" y1="100" x2="50" y2="100" strokeWidth="4" />
         </g>
         {/* resistor */}
-        <rect x="115" y="40" width="50" height="20" rx="3" fill="var(--bench)" stroke="var(--bench-change)" strokeWidth="2.5" />
-        <text x="140" y="34" textAnchor="middle" fontSize="11" fill="var(--bench-change)">R</text>
+        <rect
+          x="115"
+          y="40"
+          width="50"
+          height="20"
+          rx="3"
+          fill="var(--bench)"
+          stroke="var(--bench-change)"
+          strokeWidth="2.5"
+        />
+        <text x="140" y="34" textAnchor="middle" fontSize="11" fill="var(--bench-change)">
+          R
+        </text>
         {/* ammeter */}
         <circle cx="240" cy="100" r="17" fill="var(--bench)" stroke="var(--bench-quantity)" strokeWidth="2.5" />
-        <text x="240" y="105" textAnchor="middle" fontSize="13" fontWeight="600" fill="var(--bench-quantity)">A</text>
+        <text x="240" y="105" textAnchor="middle" fontSize="13" fontWeight="600" fill="var(--bench-quantity)">
+          A
+        </text>
         {/* voltmeter across R */}
-        <path d="M115 50 V20 H130 M150 20 H165 V50" fill="none" stroke="var(--bench-ink)" strokeWidth="1.5" strokeDasharray="3 3" />
+        <path
+          d="M115 50 V20 H130 M150 20 H165 V50"
+          fill="none"
+          stroke="var(--bench-ink)"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
+        />
         <circle cx="140" cy="20" r="11" fill="var(--bench)" stroke="var(--bench-quantity)" strokeWidth="2" />
-        <text x="140" y="24" textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--bench-quantity)">V</text>
+        <text x="140" y="24" textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--bench-quantity)">
+          V
+        </text>
         {/* current arrows */}
         <path d="M80 150 l-8 -5 v10 z M200 50 l8 -5 v10 z" fill="var(--bench-built)" />
       </svg>
@@ -157,7 +178,9 @@ export function SnapPreview() {
             }`}
           >
             <span className={l.state === "after" ? "text-ink-3" : ""}>{l.text}</span>
-            <span className={`text-xs ${l.state === "ok" ? "text-ok" : l.state === "wrong" ? "font-semibold text-change" : "text-ink-3"}`}>
+            <span
+              className={`text-xs ${l.state === "ok" ? "text-ok" : l.state === "wrong" ? "font-semibold text-change" : "text-ink-3"}`}
+            >
               {l.state === "ok" ? "✓ ok" : l.state === "wrong" ? "Check this" : "—"}
             </span>
           </li>

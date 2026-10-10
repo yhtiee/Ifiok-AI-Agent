@@ -11,11 +11,12 @@ Lessons you can move, labs you can run and practice that adapts, for Nigerian un
 
 ## Run locally
 
-```bash
-npm install
-npm run dev     # http://localhost:3000
-npm run build && npm run start
-npm run lint
-```
+Needs Node 22+ and pnpm 11 (`corepack enable`).
 
-P0-01 moves the repo to pnpm and adds `pnpm check`, Vitest, Playwright and Supabase (see `CLAUDE.md` → Repository status).
+```bash
+pnpm install
+cp .env.example .env.local   # fill in the Supabase URL and publishable key
+pnpm dev                     # http://localhost:3000
+pnpm check                   # typecheck + lint + unit tests + format check
+pnpm test:e2e                # Playwright (PW_CHANNEL=chrome to use installed Chrome)
+```

@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Atkinson_Hyperlegible_Next,
-  Bricolage_Grotesque,
-  JetBrains_Mono,
-} from "next/font/google";
+import { Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 // specifications/07-brand-ui-ux.md §3.3 typography: display, text, instrument readings only.
@@ -14,13 +11,15 @@ const bricolage = Bricolage_Grotesque({
   display: "swap",
 });
 
-const atkinson = Atkinson_Hyperlegible_Next({
+// Self-hosted from app/fonts (Latin, from Fontsource, SIL OFL 1.1). next/font/google's version of
+// this family crashes the Turbopack dev server in Next 16.3.8 ("queries have exactly one entry").
+const atkinson = localFont({
   variable: "--font-atkinson",
-  subsets: ["latin"],
-  weight: ["400", "600"],
+  src: [
+    { path: "./fonts/atkinson-hyperlegible-next-latin-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/atkinson-hyperlegible-next-latin-600.woff2", weight: "600", style: "normal" },
+  ],
   display: "swap",
-  // next/font has no metric overrides for this face yet; fall back to system UI fonts.
-  adjustFontFallback: false,
   fallback: ["system-ui", "Segoe UI", "Roboto", "sans-serif"],
 });
 
@@ -87,11 +86,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en-NG"
-      className={`${bricolage.variable} ${atkinson.variable} ${jetbrains.variable} h-full`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en-NG" className={`${bricolage.variable} ${atkinson.variable} ${jetbrains.variable} h-full`}>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

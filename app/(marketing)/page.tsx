@@ -6,8 +6,8 @@ import { TangentHero } from "@/components/marketing/TangentHero";
 // Landing page: specifications/07-brand-ui-ux.md §5.11 and §3.4 (anti-slop rules).
 // Facts and numbers come from 00-product, 01-features (P1 quotas), 06-economy and 08-security-privacy.
 
-// The pilot is invite-only (00 §5 P1a). Point this at sign-up once P0-04 ships.
-const START_HREF = "#pilot";
+// Sign-in also creates the account (P0-04).
+const START_HREF = "/sign-in";
 
 function Section({
   id,
@@ -23,7 +23,7 @@ function Section({
   return (
     <section id={id} className="scroll-mt-20 border-t border-line">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-        <h2 className="max-w-[22ch] font-display text-2xl font-semibold leading-[1.15] sm:text-[2.5rem]">{title}</h2>
+        <h2 className="max-w-[22ch] font-display text-2xl leading-[1.15] font-semibold sm:text-[2.5rem]">{title}</h2>
         {intro ? <div className="mt-3 max-w-[62ch] text-base text-ink-2 sm:text-lg">{intro}</div> : null}
         <div className="mt-10">{children}</div>
       </div>
@@ -140,18 +140,24 @@ export default function LandingPage() {
             <span className="hidden text-sm text-ink-2 sm:inline">the AI learning agent</span>
           </a>
           <nav aria-label="Page sections" className="hidden gap-6 text-sm text-ink-2 md:flex">
-            <a className="hover:text-ink" href="#how">How it works</a>
-            <a className="hover:text-ink" href="#contributors">Contributors</a>
-            <a className="hover:text-ink" href="#faq">Questions</a>
+            <a className="hover:text-ink" href="#how">
+              How it works
+            </a>
+            <a className="hover:text-ink" href="#contributors">
+              Contributors
+            </a>
+            <a className="hover:text-ink" href="#faq">
+              Questions
+            </a>
           </nav>
         </div>
       </header>
 
       <main id="top" className="flex-1">
         {/* Hero: a live mini-lesson, not a centred two-button hero (07 §3.4 rule 7). */}
-        <section className="mx-auto grid max-w-6xl gap-8 px-4 pb-14 pt-8 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-14 lg:pb-20 lg:pt-14">
+        <section className="mx-auto grid max-w-6xl gap-8 px-4 pt-8 pb-14 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-center lg:gap-14 lg:pt-14 lg:pb-20">
           <div className="lg:order-1">
-            <h1 className="font-display text-[2.75rem] font-extrabold leading-[1.02] tracking-tight sm:text-6xl">
+            <h1 className="font-display text-[2.75rem] leading-[1.02] font-extrabold tracking-tight sm:text-6xl">
               See it.
               <br />
               Try it.
@@ -179,10 +185,7 @@ export default function LandingPage() {
         >
           <ul className="grid gap-16">
             {SCREENS.map((s, i) => (
-              <li
-                key={s.title}
-                className="grid items-center gap-6 md:grid-cols-2 md:gap-12"
-              >
+              <li key={s.title} className="grid items-center gap-6 md:grid-cols-2 md:gap-12">
                 <div className={i % 2 === 1 ? "md:order-2" : ""}>{s.preview}</div>
                 <div className={i % 2 === 1 ? "md:order-1" : ""}>
                   <h3 className="font-display text-xl font-semibold sm:text-2xl">{s.title}</h3>
@@ -208,7 +211,7 @@ export default function LandingPage() {
                   {i < LOOP.length - 1 ? <InkStroke state={step.state === "next" ? "ink" : step.state} /> : null}
                   <span
                     aria-hidden="true"
-                    className={`absolute left-0 top-0.5 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-semibold tabular-nums ${
+                    className={`absolute top-0.5 left-0 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-semibold tabular-nums ${
                       step.state === "built"
                         ? "border-built bg-built text-surface"
                         : step.state === "next"
@@ -264,7 +267,9 @@ export default function LandingPage() {
             </ol>
             <div className="grid content-start gap-4 text-base text-ink-2">
               <p>
-                <span className="font-semibold text-ink">Learning earns credits. Contributions others use earn cash.</span>{" "}
+                <span className="font-semibold text-ink">
+                  Learning earns credits. Contributions others use earn cash.
+                </span>{" "}
                 Keeping the two apart means nobody can cash out by grinding lessons.
               </p>
               <p>
@@ -285,7 +290,10 @@ export default function LandingPage() {
               <details key={item.q} className="group border-b border-line">
                 <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 text-lg font-semibold [&::-webkit-details-marker]:hidden">
                   {item.q}
-                  <span aria-hidden="true" className="text-2xl font-normal leading-none text-ink-2 group-open:rotate-45">
+                  <span
+                    aria-hidden="true"
+                    className="text-2xl leading-none font-normal text-ink-2 group-open:rotate-45"
+                  >
                     +
                   </span>
                 </summary>
@@ -305,14 +313,18 @@ export default function LandingPage() {
               <span aria-hidden="true" className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-change" />
               <span>
                 <span className="font-semibold">Students:</span>{" "}
-                <span className="text-ink-2">ask your course rep for your course&apos;s Ifiok invite link. It opens straight into your course.</span>
+                <span className="text-ink-2">
+                  ask your course rep for your course&apos;s Ifiok invite link. It opens straight into your course.
+                </span>
               </span>
             </li>
             <li className="flex gap-3">
               <span aria-hidden="true" className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-change" />
               <span>
                 <span className="font-semibold">Course reps:</span>{" "}
-                <span className="text-ink-2">one link in your class WhatsApp group brings everyone into the same course, outline and plan.</span>
+                <span className="text-ink-2">
+                  one link in your class WhatsApp group brings everyone into the same course, outline and plan.
+                </span>
               </span>
             </li>
             <li className="flex gap-3">
@@ -334,6 +346,17 @@ export default function LandingPage() {
           </div>
           <div className="grid gap-2 md:justify-self-end md:text-right">
             <p>Ifiok is an AI and it can be wrong. Maths is checked by an engine; marks are estimates.</p>
+            <nav aria-label="Legal" className="flex flex-wrap gap-x-5 md:justify-end">
+              <a className="inline-flex min-h-11 items-center hover:text-ink" href="/terms">
+                Terms of use
+              </a>
+              <a className="inline-flex min-h-11 items-center hover:text-ink" href="/privacy">
+                Privacy notice
+              </a>
+              <a className="inline-flex min-h-11 items-center hover:text-ink" href="/ai">
+                How Ifiok uses AI
+              </a>
+            </nav>
             <p>© 2026 Ifiok</p>
           </div>
         </div>

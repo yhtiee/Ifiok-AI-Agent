@@ -6,11 +6,11 @@ export function Wordmark({ className = "" }: { className?: string }) {
     <span
       role="img"
       aria-label="Ifiok"
-      className={`inline-flex items-baseline font-display font-extrabold leading-none tracking-tight ${className}`}
+      className={`inline-flex items-baseline font-display leading-none font-extrabold tracking-tight ${className}`}
     >
       <span aria-hidden="true" className="relative inline-block">
         {"ı"}
-        <span className="absolute left-1/2 top-[0.02em] h-[0.2em] w-[0.2em] -translate-x-1/2 rounded-full bg-change" />
+        <span className="absolute top-[0.02em] left-1/2 h-[0.2em] w-[0.2em] -translate-x-1/2 rounded-full bg-change" />
       </span>
       <span aria-hidden="true">fiok</span>
     </span>
@@ -60,7 +60,7 @@ export function InkStroke({ state = "ink" }: { state?: "built" | "next" | "ink" 
     <svg
       viewBox="0 0 12 100"
       preserveAspectRatio="none"
-      className="absolute left-[11px] top-7 h-[calc(100%-4px)] w-3"
+      className="absolute top-7 left-[11px] h-[calc(100%-4px)] w-3"
       aria-hidden="true"
     >
       <path

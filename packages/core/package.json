@@ -1,0 +1,11 @@
+{
+  "name": "@ifiok/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure TypeScript shared by the Next app and Supabase Edge Functions (specifications/02-architecture.md §3). No Node or browser APIs.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  }
+}

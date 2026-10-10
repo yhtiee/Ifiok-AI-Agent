@@ -226,12 +226,12 @@ export function TangentHero() {
           </g>
         </svg>
 
-        <figcaption className="px-2 pb-1 pt-2 text-sm text-ink-2 sm:px-2">
+        <figcaption className="px-2 pt-2 pb-1 text-sm text-ink-2 sm:px-2">
           The orange line touches the curve at one point: the tangent. Its slope is the slope of the curve there.
         </figcaption>
       </figure>
 
-      <div className="grid gap-3 px-4 pb-4 pt-2 sm:px-5">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 px-4 pt-2 pb-4 sm:px-5">
         <dl
           id={summaryId}
           aria-live="polite"
@@ -270,7 +270,11 @@ export function TangentHero() {
         {!touched ? (
           <p className="text-sm text-ink-2">Drag the point to see what happens.</p>
         ) : (
-          <form onSubmit={onCheck} className="grid gap-2 border-t border-line pt-3" noValidate>
+          <form
+            onSubmit={onCheck}
+            className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 border-t border-line pt-3"
+            noValidate
+          >
             <label htmlFor={`${ids}-answer`} className="text-base">
               Check yourself: what is the slope of y = x² at x = {CHECK_X}?
             </label>
@@ -284,7 +288,7 @@ export function TangentHero() {
                   setAnswer(e.target.value);
                   setVerdict(null);
                 }}
-                className="h-11 min-w-0 flex-1 rounded-[var(--radius-input)] border border-line bg-paper px-3 text-base tabular-nums"
+                className="h-11 w-0 min-w-0 flex-1 rounded-[var(--radius-input)] border border-line bg-paper px-3 text-base tabular-nums"
                 aria-describedby={`${ids}-verdict`}
               />
               <button
@@ -298,11 +302,7 @@ export function TangentHero() {
               id={`${ids}-verdict`}
               aria-live="polite"
               className={
-                verdict?.kind === "correct"
-                  ? "text-sm font-semibold text-ok"
-                  : verdict
-                    ? "text-sm text-bad"
-                    : "sr-only"
+                verdict?.kind === "correct" ? "text-sm font-semibold text-ok" : verdict ? "text-sm text-bad" : "sr-only"
               }
             >
               {verdict?.text ?? ""}

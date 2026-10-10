@@ -1,0 +1,90 @@
+import "server-only";
+import { ProviderError, type Provider, type ProviderRequest, type ProviderResponse } from "../types";
+
+// Google Gemini via the REST API (generateContent). Paid tier only with real user content
+// (04 §3 hard rules); the free tier is for development with synthetic data.
+
+const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
+
+type GeminiPart = { text?: string; thought?: boolean };
+type GeminiResponse = {
+  candidates?: { content?: { parts?: GeminiPart[] }; finishReason?: string }[];
+  promptFeedback?: { blockReason?: string };
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number };
+  error?: { message?: string };
+};
+
+export function createGeminiProvider(apiKey: string | undefined): Provider {
+  return {
+    name: "gemini",
+    available: () => Boolean(apiKey),
+    async generate(req: ProviderRequest): Promise<ProviderResponse> {
+      if (!apiKey) throw new ProviderError("GEMINI_API_KEY is not set", "config");
+
+      const body = {
+        systemInstruction: { parts: [{ text: req.system }] },
+        contents: [
+          {
+            role: "user",
+            parts: [
+              ...(req.images ?? []).map((img) => ({
+                inlineData: { mimeType: img.mime, data: Buffer.from(img.data).toString("base64") },
+              })),
+              { text: req.user },
+            ],
+          },
+        ],
+        generationConfig: {
+          maxOutputTokens: req.maxOutputTokens,
+          ...(req.json ? { responseMimeType: "application/json" } : {}),
+          ...(req.thinking ? { thinkingConfig: { thinkingLevel: req.thinking } } : {}),
+        },
+      };
+
+      let res: Response;
+      try {
+        res = await fetch(`${ENDPOINT}/${encodeURIComponent(req.model)}:generateContent`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(req.timeoutMs),
+        });
+      } catch (err) {
+        const timedOut = err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError");
+        throw new ProviderError(timedOut ? "Gemini timed out" : "Gemini unreachable", timedOut ? "timeout" : "network");
+      }
+
+      const json = (await res.json().catch(() => ({}))) as GeminiResponse;
+      if (!res.ok) {
+        // The message is Google's error text; never the prompt (04 §2.7).
+        throw new ProviderError(`Gemini ${res.status}: ${json.error?.message ?? "error"}`, "http", res.status);
+      }
+
+      const meta = json.usageMetadata ?? {};
+      const usage = {
+        input: meta.promptTokenCount ?? 0,
+        output: meta.candidatesTokenCount ?? 0,
+        thinking: meta.thoughtsTokenCount ?? 0,
+      };
+      if (json.promptFeedback?.blockReason) {
+        throw new ProviderError(`Gemini blocked the prompt: ${json.promptFeedback.blockReason}`, "blocked", 200, usage);
+      }
+
+      const candidate = json.candidates?.[0];
+      const text = (candidate?.content?.parts ?? [])
+        .filter((p) => !p.thought && typeof p.text === "string")
+        .map((p) => p.text)
+        .join("");
+      const reason = candidate?.finishReason;
+      const finish =
+        reason === "STOP"
+          ? "stop"
+          : reason === "MAX_TOKENS"
+            ? "length"
+            : reason === "SAFETY" || reason === "PROHIBITED_CONTENT" || reason === "BLOCKLIST"
+              ? "blocked"
+              : "other";
+      return { text, usage, finish };
+    },
+  };
+}

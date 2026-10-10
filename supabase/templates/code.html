@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <body
+    style="
+      margin: 0;
+      padding: 24px 16px;
+      background: #f2f4f7;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #131b26;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="max-width: 480px; margin: 0 auto; background: #fbfcfd; border: 1px solid #dde2e8; border-radius: 12px"
+    >
+      <tr>
+        <td style="padding: 28px 24px">
+          <p style="margin: 0 0 20px; font-size: 24px; font-weight: 800; letter-spacing: -0.5px">ifiok</p>
+          <p style="margin: 0 0 12px; font-size: 17px; line-height: 1.5">Your sign-in code is:</p>
+          <p style="margin: 0 0 20px; font-size: 34px; font-weight: 700; letter-spacing: 6px; color: #131b26">
+            {{ .Token }}
+          </p>
+          <p style="margin: 0 0 8px; font-size: 15px; line-height: 1.5; color: #4a5563">
+            Type it into Ifiok to continue. It works once and expires in 1 hour.
+          </p>
+          <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #4a5563">
+            Didn't ask for this? Ignore this email. Nobody can sign in without the code.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

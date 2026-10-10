@@ -1,0 +1,90 @@
+name: CI
+
+# specifications/02-architecture.md §10. Path filters keep runs inside GitHub's free minutes.
+# P0-02 adds the bundle-size check, P0-05 check-ui, P0-07 DSL validation, P0-10 AI evals.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 2 * * *" # nightly full Playwright run (03:00 WAT)
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Placeholder values so env validation passes; nothing in CI talks to a real project.
+  NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+  NEXT_PUBLIC_SITE_URL: http://localhost:3100
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      db: ${{ steps.filter.outputs.db }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            app:
+              - 'app/**'
+              - 'components/**'
+              - 'lib/**'
+              - 'packages/**'
+              - 'e2e/**'
+              - 'middleware.ts'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+            db:
+              - 'supabase/**'
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+
+  e2e:
+    needs: [changes, check]
+    if: needs.changes.outputs.app == 'true' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  db:
+    needs: changes
+    if: needs.changes.outputs.db == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - run: supabase db start
+      - run: supabase test db

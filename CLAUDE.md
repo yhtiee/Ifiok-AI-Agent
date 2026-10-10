@@ -14,17 +14,23 @@ Next.js App Router + TypeScript strict (version pinned to what `@opennextjs/clou
 
 ## Commands
 ```
-pnpm dev                 # Next dev server (needs `supabase start`)
-pnpm check               # typecheck + lint + unit tests + DSL validation + check-ui
+pnpm dev                 # Next dev server against the hosted dev project (`supabase start` needs Docker, 12 §4 Q13)
+pnpm check               # typecheck + lint + unit tests + local DB tests + format check (DSL validation lands in P0-07, check-ui in P0-05)
+pnpm typecheck | pnpm lint | pnpm format
+PW_CHANNEL=chrome pnpm test:e2e   # use the installed Chrome instead of downloading Playwright's Chromium
 pnpm test                # Vitest
 pnpm test:e2e            # Playwright
-pnpm test:db             # supabase test db (pgTAP)
+pnpm test:integration    # real Supabase + Gemini (quota race, live gateway); costs a fraction of a cent
+pnpm test:db:local       # migrations + seed + pgTAP in PGlite (no Docker; runs in pnpm check)
+pnpm test:db:remote      # the same pgTAP files on the linked hosted project, always rolled back
+pnpm test:db             # supabase test db (pgTAP; Docker, used in CI)
+pnpm db:push             # apply new migrations to the linked project (run test:db:local first)
 pnpm evals -- <skill>    # AI evals against staging ($2 cap)
 pnpm build:cf            # OpenNext build for Cloudflare
-supabase db reset        # rebuild local DB from migrations + seed
 supabase migration new <name>
-supabase gen types typescript --local > lib/supabase/types.ts
+pnpm db:types           # regenerate lib/supabase/types.ts from the linked project after every migration
 ```
+The Supabase CLI is a dev dependency: run it as `pnpm exec supabase …`.
 
 ## Structure
 `app/` routes (`(marketing)`, `(auth)`, `(app)`, `(teach)`, `(admin)`, `api/`) · `components/ui` design system · `components/lesson` one renderer per DSL block · `components/labs/<slug>/{model.ts,Lab.tsx,TextMode.tsx}` · `lib/ai` gateway, providers, skills, prompts, budgets · `lib/agent` planner, mastery, FSRS · `lib/verify` → re-exports `packages/core/verify` · `lib/offline` · `packages/core` pure TS shared with Edge Functions · `supabase/{migrations,functions,seed,tests}` · `content/` seed lessons · `evals/` · `e2e/`.
@@ -57,6 +63,17 @@ Ifiok is **student-led**: no hard-coded or admin-curated courses. Students creat
 - Names: "Units" (never coins/tokens/gems), "Earnings", "Bench", "Path", mastery levels "Not started · Familiar · Proficient · Mastered".
 - Commits reference spec IDs, e.g. `feat(F5-FR4): mastery update on sync`.
 
+## Data access (Supabase + TanStack Query)
+- **Supabase clients** (`lib/supabase/`): `client.ts` for client components, `server.ts` for server components, actions and route handlers (both act as the user under RLS); `admin.ts` service role, server only, only where the spec says so; `middleware.ts` refreshes the session (root `middleware.ts`). Generated types live in `lib/supabase/types.ts`; never hand-edit them.
+- **Env** via `@/lib/env` (public) and `@/lib/env/server` (secrets, `server-only`). Never read `process.env` elsewhere. A var that later tickets need is optional in `lib/env/schema.ts`; read it with `requireServerEnv()` and make it required when its ticket lands.
+- **TanStack Query** (`lib/query/`) for all client-side server state, no ad-hoc `useEffect` fetching:
+  - Keys come only from `queryKeys` in `lib/query/keys.ts` (hierarchical; invalidating a prefix covers everything under it). Add a domain there with its ticket.
+  - Put each domain's `queryOptions(...)` factories and `useXxxMutation` hooks in `lib/queries/<domain>.ts`, shared by server prefetch and client `useQuery`.
+  - Mutations declare what they invalidate: `useMutation({ mutationFn, meta: { invalidates: [queryKeys.courses.all()] } })`. The `MutationCache` in `lib/query/client.ts` invalidates on settle (success or error). Only write `onMutate`/`onError` for optimistic updates.
+  - Calls to our `/api/*` handlers go through `apiFetch(path, { schema })` (validates the response; throws `ApiError` with a user-facing message). Route handlers return `{ error: { message, code? } }` on failure. RLS-safe reads may use the browser Supabase client directly inside a `queryFn`.
+  - Server prefetch: `getServerQueryClient()` (`lib/query/server.ts`), `prefetchQuery`, then `<HydrationBoundary state={dehydrate(qc)}>`.
+  - `QueryProvider` is mounted in route-group layouts that need it (`app/(app)/layout.tsx` now), never on the landing page.
+
 ## UI rules (from `specifications/07-brand-ui-ux.md` §3.4; `pnpm check` enforces some)
 - Use tokens only (`--paper`, `--ink`, `--quantity` blue = the quantity, `--change` camwood = change/action/primary button, `--built` green = accumulated/mastered/earned). Never hard-code colours.
 - Fonts: Bricolage Grotesque (display, sparingly), Atkinson Hyperlegible Next (text), JetBrains Mono only for instrument readings on the Bench.
@@ -69,13 +86,18 @@ Ifiok is **student-led**: no hard-coded or admin-curated courses. Students creat
 Today ≤ 170 KB gz initial JS · lesson shell ≤ 200 KB gz (KaTeX pre-rendered at save time, plots evaluated by the AST interpreter, no mathjs on the client except lazily for `expression` items) · each lazy block chunk ≤ 120 KB gz (MathLive excepted, load only when needed) · LCP ≤ 2.5 s on mid-range Android over 4G · lesson JSON ≤ 60 KB · 3D lab chunk ≤ 650 KB gz · `zod/mini` on the client.
 
 ## Env vars
-`NEXT_PUBLIC_SITE_URL` (absolute origin for canonical and share-image URLs; set per deploy), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`, `RESEND_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SENTRY_DSN`, `POSTHOG_KEY`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `GROQ_API_KEY` (P3). Validated in `lib/env.ts`. Use the Gemini **free** tier only with synthetic data in local development.
+`AUTH_EMAIL_CODES` (true once Resend SMTP is connected, 12 §4 Q18), `AUTH_DEV_SIGN_IN` (`next dev` only: sign in without email), `NEXT_PUBLIC_PRIVACY_EMAIL`, `NEXT_PUBLIC_MINORS_EMAIL`, `NEXT_PUBLIC_SITE_URL` (absolute origin for canonical and share-image URLs; set per deploy), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (replaces the spec's `…_ANON_KEY`, 12 §4 Q12), `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`, `RESEND_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SENTRY_DSN`, `POSTHOG_KEY`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `GROQ_API_KEY` (P3). Validated in `lib/env/schema.ts` at boot (`next.config.ts`); list in `.env.example`, values in `.env.local` (gitignored). The pilot runs on the Gemini **free** tier with real student content by owner decision (12 §4 Q25): `app_config.ai_billing` says which providers are free; the gateway strips personal details before free-tier calls; never add names, emails or account ids to prompts.
 
 ## Repository status (update as tickets land)
 - Spec lives in `specifications/` (index: `specifications/README.md`). Every `docs/spec/` reference you meet elsewhere means `specifications/`.
 - Done ahead of the build order: a static landing page at `app/(marketing)/page.tsx` (brief for P1-13: `07` §5.11). It also seeds the P0-05 tokens and fonts (`app/globals.css`, `app/layout.tsx`). Its hero plot is self-contained (`components/marketing/TangentHero.tsx`); when P0-09 builds the real `plot` block renderer, switch the hero to it.
-- Not done yet: everything from **P0-01** on. The repo is still the Create Next App scaffold, so it uses npm (`package-lock.json`), has no pnpm workspace, Vitest, Playwright, Supabase or `pnpm check`. P0-01 moves it to pnpm and adds these. Until then use `npm run dev`, `npm run build` and `npm run lint`.
-- Installed Next.js is 16.3.8. Before P0-02, check it against the versions `@opennextjs/cloudflare` supports and pin to match (`02` §1). Next 16 renames `middleware.ts` to `proxy.ts`; the spec wants Edge `middleware.ts` while OpenNext needs it. Record the outcome in `12` §4.
+- **P0-01 done (10 Oct 2026):** pnpm workspace (`packages/core` as `@ifiok/core`), ESLint + full jsx-a11y + Prettier, Vitest, Playwright (`e2e/`), zod env validation that fails boot, CI (`.github/workflows/ci.yml`, path-filtered), Supabase clients + session middleware, TanStack Query layer, `supabase/` initialised (config, empty migrations/functions/seed/tests). Next pinned to 16.3.8 with Edge `middleware.ts` (12 §4 Q11). Serwist deferred to P1-11 (Q9a).
+- **P0-02 deferred:** hosting is Vercel for now (12 §4 Q17).
+- **P0-03 done (10 Oct 2026):** migrations `supabase/migrations/2026101010*` (sections 0001–0005 + retrieval + helper hardening), seed `supabase/seed/00_universities.sql`, pgTAP in `supabase/tests` (baseline guards for RLS and function grants cover every new table/function automatically). Applied to the hosted project "ifiok ai" (`lojqrepxeafjhfhneile`, linked); 65 tests pass locally and remotely. Types in `lib/supabase/types.ts` are generated.
+- **P0-04 done (10 Oct 2026), with Q18/Q19 open:** `app/(auth)/sign-in` (email code, Google when enabled, dev sign-in), `app/auth/callback`, `app/auth/sign-out`, onboarding `app/(auth)/onboarding/*` (birth → consent → university → level → minutes; under-18 deletes the auth user), `lib/auth/*` (viewer, guards, onboarding rules, consent version), `app/(app)/today` (empty), legal drafts `/terms`, `/privacy`, `/ai` (OWN-06 review), `/api/ai/stub`. "What do you want to learn?" joins onboarding in P1-01. e2e `e2e/auth.spec.ts` runs against the hosted project when the secret key is present.
+- **P0-06 mostly done (10 Oct 2026, 12 §4 Q23):** app shell `components/app/AppShell.tsx` (desktop sidebar + phone bottom nav, `AppNav.tsx`), page parts `components/app/Page.tsx` (PageHeader, PageBody, Panel, EmptyState), Today start hub, Courses, Practice and Me pages. Feature entry points and their open/closed state live in `lib/features.ts`: when a ticket ships a feature, set `open: true` and build the page at its `href`. Layout rule: app pages use the full width beside the sidebar; never a centred narrow column. Server components import button styles from `components/ui/button-styles.ts` (`Button.tsx` is a client module).
+- **P0-10 done (10 Oct 2026, 12 §4 Q24):** AI gateway `lib/ai/gateway.ts` (policy → kill switch → caps → quota reserve → route/retry/fallback → JSON + control-char validation with one repair → `ai_calls` cost row → refund on failure), providers `lib/ai/providers/{gemini,anthropic}.ts`, skills registry `lib/ai/skills` (first skill: `moderate`), runtime config `lib/config.ts` (zod schemas in `lib/config-schema.ts`, 60 s cache), migration `ai_gateway` (`ai_spend_micros`, seeded `app_config`). Call AI only as `getGateway().run(skill, { userId, input })` from server code; catch `GatewayError` and show its message. Add a skill = schema + versioned prompt + registry entry + route in `app_config.ai_routes`. `pnpm test:integration` runs the real-quota race test and a live Gemini call (synthetic text only).
+- **Next:** P1-01 (courses, topics, outlines and concepts: `topic_resolve`, `outline_draft`, moderation of names), which opens the Today hub's main actions. It also needs embeddings (P0-12) for concept matching. Empty folders from `02` §3 hold a `.gitkeep` until their ticket fills them.
 
 ## Next.js version notes
 @AGENTS.md

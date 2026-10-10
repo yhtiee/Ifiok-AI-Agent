@@ -3,48 +3,77 @@
 /* Design tokens: specifications/07-brand-ui-ux.md §3.3. Never hard-code colours elsewhere. */
 :root {
   /* Page (light) */
-  --paper: #F2F4F7;      /* cool paper, not cream */
-  --surface: #FBFCFD;
-  --ink: #131B26;        /* text and lines */
-  --ink-2: #4A5563;      /* secondary text */
-  --ink-3: #5D6876;      /* tertiary; check AA on surface before use */
-  --line: #DDE2E8;
+  --paper: #f2f4f7; /* cool paper, not cream */
+  --surface: #fbfcfd;
+  --ink: #131b26; /* text and lines */
+  --ink-2: #4a5563; /* secondary text */
+  --ink-3: #5d6876; /* tertiary; check AA on surface before use */
+  --line: #dde2e8;
 
   /* Role colours */
-  --quantity: #2650B8;       /* blue: the thing itself */
-  --quantity-soft: #E2EAFB;
-  --change: #B0500F;         /* camwood: rate, change, action, primary CTA (white text 5.25:1) */
-  --change-soft: #F8E8DB;
-  --built: #1C7A5A;          /* green: accumulated, mastered, earned */
-  --built-soft: #DDF2E9;
-  --on-change: #FFFFFF;      /* text on the primary button */
+  --quantity: #2650b8; /* blue: the thing itself */
+  --quantity-soft: #e2eafb;
+  --change: #b0500f; /* camwood: rate, change, action, primary CTA (white text 5.25:1) */
+  --change-soft: #f8e8db;
+  --built: #1c7a5a; /* green: accumulated, mastered, earned */
+  --built-soft: #ddf2e9;
+  --on-change: #ffffff; /* text on the primary button */
 
   /* Status (never the only signal; always paired with text/icon) */
-  --ok: #23824F; --warn: #8F5A00; --bad: #B8382B;
+  --ok: #23824f;
+  --warn: #8f5a00;
+  --bad: #b8382b;
 
   /* Bench (dark doing surface, same in both themes) */
-  --bench: #131B26; --bench-2: #1D2733; --bench-line: #2C3848; --bench-ink: #EEF1F5;
-  --bench-quantity: #7FA2F0; --bench-change: #F08A45; --bench-built: #4FBF96;
+  --bench: #131b26;
+  --bench-2: #1d2733;
+  --bench-line: #2c3848;
+  --bench-ink: #eef1f5;
+  --bench-quantity: #7fa2f0;
+  --bench-change: #f08a45;
+  --bench-built: #4fbf96;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #0E1318; --surface: #161D25; --ink: #E5EBF1; --ink-2: #A9B4C2; --ink-3: #97A4B2; --line: #2A3542;
-    --quantity: #7FA2F0; --quantity-soft: #17243B; --change: #F08A45; --change-soft: #3A2616;
-    --built: #4FBF96; --built-soft: #132E24;
-    --on-change: var(--paper);  /* 07 §3.3: paper text on camwood in dark (7.5:1) */
-    --ok: #4FBF7A; --warn: #E0A040; --bad: #F07A6A;
+    --paper: #0e1318;
+    --surface: #161d25;
+    --ink: #e5ebf1;
+    --ink-2: #a9b4c2;
+    --ink-3: #97a4b2;
+    --line: #2a3542;
+    --quantity: #7fa2f0;
+    --quantity-soft: #17243b;
+    --change: #f08a45;
+    --change-soft: #3a2616;
+    --built: #4fbf96;
+    --built-soft: #132e24;
+    --on-change: var(--paper); /* 07 §3.3: paper text on camwood in dark (7.5:1) */
+    --ok: #4fbf7a;
+    --warn: #e0a040;
+    --bad: #f07a6a;
     color-scheme: dark;
   }
 }
 
 /* Manual toggle mirrors the dark block */
 :root[data-theme="dark"] {
-  --paper: #0E1318; --surface: #161D25; --ink: #E5EBF1; --ink-2: #A9B4C2; --ink-3: #97A4B2; --line: #2A3542;
-  --quantity: #7FA2F0; --quantity-soft: #17243B; --change: #F08A45; --change-soft: #3A2616;
-  --built: #4FBF96; --built-soft: #132E24;
+  --paper: #0e1318;
+  --surface: #161d25;
+  --ink: #e5ebf1;
+  --ink-2: #a9b4c2;
+  --ink-3: #97a4b2;
+  --line: #2a3542;
+  --quantity: #7fa2f0;
+  --quantity-soft: #17243b;
+  --change: #f08a45;
+  --change-soft: #3a2616;
+  --built: #4fbf96;
+  --built-soft: #132e24;
   --on-change: var(--paper);
-  --ok: #4FBF7A; --warn: #E0A040; --bad: #F07A6A;
+  --ok: #4fbf7a;
+  --warn: #e0a040;
+  --bad: #f07a6a;
   color-scheme: dark;
 }
 
@@ -110,9 +139,24 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Tailwind v4 no longer gives buttons a pointer cursor; every tappable control shows one. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  summary,
+  input[type="range"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    cursor: pointer;
   }
 }

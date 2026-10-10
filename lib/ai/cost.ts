@@ -1,0 +1,22 @@
+import type { ConfigValue } from "@/lib/config-schema";
+import type { ProviderName, TokenUsage } from "./types";
+
+type Prices = ConfigValue<"ai_prices">;
+
+/** The price row in force on `on` (latest effective_from on or before that day), or null. */
+export function priceFor(prices: Prices, provider: ProviderName, model: string, on: Date) {
+  const day = on.toISOString().slice(0, 10);
+  return (
+    prices
+      .filter((p) => p.provider === provider && p.model === model && p.effective_from <= day)
+      .sort((a, b) => b.effective_from.localeCompare(a.effective_from))[0] ?? null
+  );
+}
+
+/**
+ * Cost in micro-USD. Prices are USD per 1M tokens, so tokens × price is already micro-USD.
+ * Thinking tokens are billed as output (04 §2 step 6).
+ */
+export function costMicros(price: { input: number; output: number }, usage: TokenUsage): number {
+  return Math.round(usage.input * price.input + (usage.output + usage.thinking) * price.output);
+}

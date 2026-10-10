@@ -1,0 +1,14 @@
+# Spec and docs keep their own formatting
+specifications/
+*.md
+
+# Generated / vendored
+.next/
+node_modules/
+pnpm-lock.yaml
+lib/supabase/types.ts
+supabase/.temp/
+assets/
+playwright-report/
+test-results/
+next-env.d.ts
