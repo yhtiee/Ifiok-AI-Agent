@@ -1,22 +1,219 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button, SubmitButton } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Field";
+import { PasswordField } from "@/components/ui/PasswordField";
 import { StepScreen } from "@/components/ui/StepScreen";
-import { sendCode, signInWithGoogle, verifyCode, type SendCodeState, type VerifyState } from "./actions";
+import { NAME_MAX } from "@/lib/auth/name-limits";
+import { MIN_PASSWORD_LENGTH } from "@/lib/auth/password";
+import {
+  sendCode,
+  signInWithGoogle,
+  signInWithPassword,
+  signUpWithPassword,
+  verifyCode,
+  type PasswordState,
+  type SendCodeState,
+  type VerifyState,
+} from "./actions";
+import { RESEND_SECONDS, useCountdown } from "./use-countdown";
 
-const RESEND_SECONDS = 60;
+type Mode = "signin" | "signup" | "code";
 
 type Props = {
   next: string;
   googleEnabled: boolean;
-  /** "code" sends a 6-digit code; "dev" signs in without email (next dev only); "off" hides email. */
-  emailMode: "code" | "dev" | "off";
+  /** Emailed 6-digit codes, only once an email provider is connected (12 §4 Q28). */
+  codesEnabled: boolean;
+  /** Password reset by emailed code, only once an email provider is connected (12 §4 Q29). */
+  resetEnabled: boolean;
   initialError: string | null;
 };
 
-export function SignInForm({ next, googleEnabled, emailMode, initialError }: Props) {
+export function SignInForm({ next, googleEnabled, codesEnabled, resetEnabled, initialError }: Props) {
+  const [mode, setMode] = useState<Mode>("signin");
+  // Keep what the student typed when they switch between sign in and create account.
+  const [email, setEmail] = useState("");
+
+  if (mode === "code" && codesEnabled) {
+    return <CodeFlow next={next} initialEmail={email} onUsePassword={() => setMode("signin")} />;
+  }
+
+  const signingUp = mode === "signup";
+  return (
+    <PasswordForm
+      key={mode}
+      signingUp={signingUp}
+      next={next}
+      email={email}
+      onEmailChange={setEmail}
+      initialError={signingUp ? null : initialError}
+      onSwitch={() => setMode(signingUp ? "signin" : "signup")}
+      onUseCode={codesEnabled ? () => setMode("code") : undefined}
+      resetHref={resetEnabled && !signingUp ? `/sign-in/reset?next=${encodeURIComponent(next)}` : undefined}
+      googleEnabled={googleEnabled}
+    />
+  );
+}
+
+type PasswordFormProps = {
+  signingUp: boolean;
+  next: string;
+  email: string;
+  onEmailChange: (email: string) => void;
+  initialError: string | null;
+  onSwitch: () => void;
+  onUseCode?: () => void;
+  resetHref?: string;
+  googleEnabled: boolean;
+};
+
+function PasswordForm({
+  signingUp,
+  next,
+  email,
+  onEmailChange,
+  initialError,
+  onSwitch,
+  onUseCode,
+  resetHref,
+  googleEnabled,
+}: PasswordFormProps) {
+  const [state, action, pending] = useActionState<PasswordState, FormData>(
+    signingUp ? signUpWithPassword : signInWithPassword,
+    { status: "idle" },
+  );
+  // Controlled, so a refused attempt doesn't wipe the names (React resets forms after an action).
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const fieldError = (field: "first_name" | "last_name" | "email" | "password") =>
+    state.status === "error"
+      ? state.field === field
+        ? state.message
+        : null
+      : field === "password"
+        ? initialError
+        : null;
+
+  return (
+    <StepScreen
+      title={signingUp ? "Create your Ifiok account" : "Sign in to Ifiok"}
+      intro={
+        signingUp
+          ? "Use your email and a password you'll remember. Ifiok is for students 18 and older."
+          : "Welcome back. Ifiok is for students 18 and older."
+      }
+      action={
+        <SubmitButton
+          form="password-form"
+          pending={pending}
+          pendingLabel={signingUp ? "Creating account…" : "Signing in…"}
+        >
+          {signingUp ? "Create account" : "Sign in"}
+        </SubmitButton>
+      }
+    >
+      <div className="grid gap-6 sm:max-w-md">
+        <form id="password-form" action={action} className="grid gap-4" noValidate>
+          <input type="hidden" name="next" value={next} />
+          {signingUp ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="First name"
+                name="first_name"
+                autoComplete="given-name"
+                autoCapitalize="words"
+                maxLength={NAME_MAX}
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.currentTarget.value)}
+                error={fieldError("first_name")}
+              />
+              <TextField
+                label="Last name"
+                name="last_name"
+                autoComplete="family-name"
+                autoCapitalize="words"
+                maxLength={NAME_MAX}
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.currentTarget.value)}
+                error={fieldError("last_name")}
+              />
+            </div>
+          ) : null}
+          <TextField
+            label="Email address"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            value={email}
+            onChange={(e) => onEmailChange(e.currentTarget.value)}
+            error={fieldError("email")}
+          />
+          <PasswordField
+            label="Password"
+            name="password"
+            autoComplete={signingUp ? "new-password" : "current-password"}
+            required
+            minLength={signingUp ? MIN_PASSWORD_LENGTH : undefined}
+            hint={signingUp ? `At least ${MIN_PASSWORD_LENGTH} characters.` : undefined}
+            error={fieldError("password")}
+          />
+          {resetHref ? (
+            <Link
+              href={resetHref}
+              className="-mt-2 flex min-h-11 items-center justify-self-start text-sm font-semibold text-quantity underline-offset-4 hover:underline"
+            >
+              Forgot password?
+            </Link>
+          ) : null}
+        </form>
+
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-sm text-ink-2">{signingUp ? "Already have an account?" : "New to Ifiok?"}</p>
+          <Button variant="quiet" full={false} onClick={onSwitch}>
+            {signingUp ? "Sign in" : "Create an account"}
+          </Button>
+        </div>
+
+        {onUseCode ? (
+          <Button variant="quiet" full={false} onClick={onUseCode}>
+            Email me a sign-in code instead
+          </Button>
+        ) : null}
+
+        {googleEnabled ? (
+          <>
+            <div className="flex items-center gap-3 text-sm text-ink-2" aria-hidden="true">
+              <span className="h-px flex-1 bg-line" />
+              or
+              <span className="h-px flex-1 bg-line" />
+            </div>
+            <form action={signInWithGoogle}>
+              <input type="hidden" name="next" value={next} />
+              <SubmitButton variant="secondary" pendingLabel="Opening Google…">
+                <GoogleMark />
+                Continue with Google
+              </SubmitButton>
+            </form>
+          </>
+        ) : null}
+      </div>
+    </StepScreen>
+  );
+}
+
+type CodeFlowProps = { next: string; initialEmail: string; onUsePassword: () => void };
+
+/** Emailed-code sign-in: ask for the email, then the 6-digit code. */
+function CodeFlow({ next, initialEmail, onUsePassword }: CodeFlowProps) {
   const [sendState, sendAction, sending] = useActionState<SendCodeState, FormData>(sendCode, { status: "idle" });
   const [changingEmail, setChangingEmail] = useState(false);
   const [lastSentAt, setLastSentAt] = useState<number | null>(null);
@@ -41,74 +238,38 @@ export function SignInForm({ next, googleEnabled, emailMode, initialError }: Pro
     );
   }
 
-  const error = sendState.status === "error" ? sendState.message : initialError;
-  const emailDefault = sendState.status === "error" || sendState.status === "sent" ? (sendState.email ?? "") : "";
-
-  if (emailMode === "off" && !googleEnabled) {
-    return (
-      <StepScreen
-        title="Sign-in opens soon"
-        intro="Ifiok is getting ready for its first students. Check back shortly; nothing is needed from you yet."
-      />
-    );
-  }
-
-  const devMode = emailMode === "dev";
+  const emailDefault =
+    sendState.status === "error" || sendState.status === "sent" ? (sendState.email ?? initialEmail) : initialEmail;
 
   return (
     <StepScreen
-      title="Sign in to Ifiok"
-      intro="New here? The same steps create your account. Ifiok is for students 18 and older."
+      title="Sign in with a code"
+      intro="We'll email you a 6-digit code. New here? The same steps create your account."
       action={
-        emailMode === "off" ? undefined : (
-          <SubmitButton form="email-form" pending={sending} pendingLabel={devMode ? "Signing in…" : "Sending code…"}>
-            {devMode ? "Continue" : "Send code"}
-          </SubmitButton>
-        )
+        <SubmitButton form="email-form" pending={sending} pendingLabel="Sending code…">
+          Send code
+        </SubmitButton>
       }
     >
-      <div className="grid gap-6 sm:max-w-md">
-        {emailMode === "off" ? null : (
-          <form id="email-form" action={sendAction} className="grid gap-4 sm:max-w-md" noValidate>
-            <input type="hidden" name="next" value={next} />
-            <TextField
-              label="Email address"
-              name="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              spellCheck={false}
-              required
-              defaultValue={emailDefault}
-              error={error}
-              hint={
-                devMode
-                  ? "Development sign-in: no email is sent, you're signed in straight away."
-                  : "We'll email you a 6-digit code. No password needed."
-              }
-            />
-          </form>
-        )}
-
-        {googleEnabled ? (
-          <>
-            {emailMode === "off" ? null : (
-              <div className="flex items-center gap-3 text-sm text-ink-2" aria-hidden="true">
-                <span className="h-px flex-1 bg-line" />
-                or
-                <span className="h-px flex-1 bg-line" />
-              </div>
-            )}
-            <form action={signInWithGoogle}>
-              <input type="hidden" name="next" value={next} />
-              <SubmitButton variant="secondary" pendingLabel="Opening Google…">
-                <GoogleMark />
-                Continue with Google
-              </SubmitButton>
-            </form>
-          </>
-        ) : null}
+      <div className="grid gap-4 sm:max-w-md">
+        <form id="email-form" action={sendAction} className="grid gap-4" noValidate>
+          <input type="hidden" name="next" value={next} />
+          <TextField
+            label="Email address"
+            name="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            defaultValue={emailDefault}
+            error={sendState.status === "error" ? sendState.message : null}
+          />
+        </form>
+        <Button variant="quiet" full={false} onClick={onUsePassword}>
+          Use my password instead
+        </Button>
       </div>
     </StepScreen>
   );
@@ -189,20 +350,6 @@ function CodeStep({ email, sentAt, next, sendAction, onChangeEmail }: CodeStepPr
       </div>
     </StepScreen>
   );
-}
-
-/** Seconds left until `seconds` after `from`. The code step remounts on every resend. */
-function useCountdown(from: number, seconds: number) {
-  const [left, setLeft] = useState(() => Math.max(0, seconds - Math.floor((Date.now() - from) / 1000)));
-  useEffect(() => {
-    const id = setInterval(() => {
-      const next = Math.max(0, seconds - Math.floor((Date.now() - from) / 1000));
-      setLeft(next);
-      if (next === 0) clearInterval(id);
-    }, 1000);
-    return () => clearInterval(id);
-  }, [from, seconds]);
-  return left;
 }
 
 function GoogleMark() {

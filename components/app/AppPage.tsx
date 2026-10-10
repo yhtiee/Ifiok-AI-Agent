@@ -2,6 +2,7 @@ import { ArrowLeftIcon, CaretRightIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Wordmark } from "@/components/marketing/Brand";
+import { greeting } from "@/lib/auth/names";
 import { getViewer } from "@/lib/auth/viewer";
 
 // Every signed-in page: a fixed header (back button + breadcrumbs, always visible while
@@ -23,7 +24,8 @@ type AppPageProps = {
 
 export async function AppPage({ crumbs, title, eyebrow, description, actions, children }: AppPageProps) {
   const viewer = await getViewer();
-  const initial = (viewer?.profile.display_name || viewer?.email || "?").trim().charAt(0).toUpperCase();
+  const initial = (viewer?.profile.first_name || viewer?.email || "?").trim().charAt(0).toUpperCase();
+  const hello = greeting(viewer?.profile.first_name);
   const parent = crumbs.length > 1 ? [...crumbs.slice(0, -1)].reverse().find((c) => c.href) : undefined;
 
   return (
@@ -71,10 +73,17 @@ export async function AppPage({ crumbs, title, eyebrow, description, actions, ch
             </ol>
           </nav>
 
+          {/* Greeting: always on wider screens; on phones only where there's no back button and trail. */}
+          <p
+            className={`ml-auto min-w-0 truncate pl-2 text-base text-ink-2 ${parent ? "hidden sm:block" : ""}`}
+            data-testid="greeting"
+          >
+            {hello}
+          </p>
           <Link
             href="/me"
             aria-label="Me: your profile and settings"
-            className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center lg:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center"
           >
             <span
               aria-hidden="true"

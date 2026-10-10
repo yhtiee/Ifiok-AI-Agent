@@ -39,8 +39,8 @@ export const serverEnvSchema = publicEnvSchema.extend({
   INTERNAL_FUNCTION_SECRET: nonEmpty.optional(), // P1-01
   /** "true" once an email provider (Resend SMTP) is connected: turns on email sign-in codes. */
   AUTH_EMAIL_CODES: z.enum(["true", "false"]).optional(),
-  /** "true" lets `next dev` sign in without email. Ignored in production builds. */
-  AUTH_DEV_SIGN_IN: z.enum(["true", "false"]).optional(),
+  /** "true" once an email provider is connected and the recovery template is pushed: turns on password reset. */
+  AUTH_PASSWORD_RESET: z.enum(["true", "false"]).optional(),
 });
 
 export type PublicEnv = z.infer<typeof publicEnvSchema>;

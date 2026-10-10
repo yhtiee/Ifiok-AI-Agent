@@ -181,7 +181,7 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
@@ -225,7 +225,8 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = true
+# No confirmation email until an email provider is connected (12 §4 Q28): accounts are active at sign-up.
+enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -256,17 +257,22 @@ otp_expiry = 3600
 # [auth.email.template.magic_link]
 # subject = "Your Ifiok code"
 # content_path = "./supabase/templates/code.html"
+#
+# Password reset by 6-digit code (12 §4 Q29). Uncomment with the two above, then set AUTH_PASSWORD_RESET=true.
+# [auth.email.template.recovery]
+# subject = "Your Ifiok password reset code"
+# content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
-# Uncomment to customize notification email template
+# Tells the student when their password changes (Q29). Uncomment once SMTP is connected.
 # [auth.email.notification.password_changed]
 # enabled = true
-# subject = "Your password has been changed"
-# content_path = "./supabase/templates/password_changed_notification.html"
+# subject = "Your Ifiok password was changed"
+# content_path = "./supabase/templates/password_changed.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.

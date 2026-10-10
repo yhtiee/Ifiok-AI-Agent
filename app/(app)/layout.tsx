@@ -8,7 +8,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const viewer = await requireOnboardedPage();
   return (
     <QueryProvider>
-      <AppShell user={{ name: viewer.profile.display_name, email: viewer.email }}>{children}</AppShell>
+      <AppShell user={{ name: `${viewer.profile.first_name} ${viewer.profile.last_name}`.trim(), email: viewer.email }}>
+        {children}
+      </AppShell>
     </QueryProvider>
   );
 }

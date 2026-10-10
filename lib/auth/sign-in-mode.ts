@@ -1,17 +1,14 @@
 import "server-only";
 import { serverEnv } from "@/lib/env/server";
 
-/**
- * How email sign-in works right now:
- * - "code": 6-digit email codes (needs an email provider connected in Supabase).
- * - "dev":  `next dev` only, no email: the server signs the address in directly.
- * - "off":  no email provider yet and not in development; only Google (if enabled).
- */
-export type EmailSignInMode = "code" | "dev" | "off";
+// Sign-in methods (F0-FR1, 12 §4 Q28): email and password always; emailed 6-digit codes only
+// once an email provider (Resend SMTP) is connected in Supabase and AUTH_EMAIL_CODES=true.
+export function emailCodesEnabled(): boolean {
+  return serverEnv.AUTH_EMAIL_CODES === "true";
+}
 
-export function emailSignInMode(): EmailSignInMode {
-  if (serverEnv.AUTH_EMAIL_CODES === "true") return "code";
-  // NODE_ENV is "production" in every `next build`, so this can never be on in a deployment.
-  if (process.env.NODE_ENV === "development" && serverEnv.AUTH_DEV_SIGN_IN === "true") return "dev";
-  return "off";
+// Password reset by emailed 6-digit code (12 §4 Q29): needs the same email provider, plus the
+// recovery template in supabase/config.toml (Supabase's default reset email has no code).
+export function passwordResetEnabled(): boolean {
+  return serverEnv.AUTH_PASSWORD_RESET === "true";
 }

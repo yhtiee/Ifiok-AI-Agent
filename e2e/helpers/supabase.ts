@@ -17,12 +17,29 @@ export function adminClient(): SupabaseClient<Database> {
   return createClient<Database>(url, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-/** A fresh test user. Uses example.com, which never receives mail. */
-export async function createTestUser() {
-  const email = `e2e-${randomUUID()}@example.com`;
-  const { data, error } = await adminClient().auth.admin.createUser({ email, email_confirm: true });
+/** A fresh test email. Uses example.com, which never receives mail. */
+export function testEmail() {
+  return `e2e-${randomUUID()}@example.com`;
+}
+
+/** A fresh test user, optionally with a password. */
+export async function createTestUser(opts: { password?: string } = {}) {
+  const email = testEmail();
+  const { data, error } = await adminClient().auth.admin.createUser({
+    email,
+    email_confirm: true,
+    ...(opts.password ? { password: opts.password } : {}),
+  });
   if (error || !data.user) throw new Error(`createUser failed: ${error?.message}`);
   return { id: data.user.id, email };
+}
+
+/** The id of an account created through the UI, found by signing in with its password. */
+export async function userIdFor(email: string, password: string) {
+  const client = createClient<Database>(url, publishableKey, { auth: { persistSession: false } });
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
+  if (error || !data.user) return null;
+  return data.user.id;
 }
 
 export async function deleteTestUser(id: string) {
@@ -81,7 +98,8 @@ export async function createOnboardedUser(opts: { university: string; level: num
       level: opts.level,
       daily_minutes: 30,
       onboarded_at: new Date().toISOString(),
-      display_name: `Test ${opts.university}`,
+      first_name: "Test",
+      last_name: opts.university,
     })
     .eq("id", user.id);
   const { CONSENT_VERSION } = await import("../../lib/auth/consent");

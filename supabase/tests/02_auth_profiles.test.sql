@@ -9,7 +9,7 @@ insert into auth.users (id, email, raw_user_meta_data) values
 select plan(19);
 
 -- A profile is created for every auth user, starting not adult and not onboarded.
-select is((select display_name from profiles where id = '00000000-0000-0000-0000-0000000000a1'), 'Ada Obi', 'new user gets a profile with the provider display name');
+select is((select display_name from profiles where id = '00000000-0000-0000-0000-0000000000a1'), 'Ada O.', 'new user gets a profile named from the provider (first name, last initial)');
 select is((select display_name from profiles where id = '00000000-0000-0000-0000-0000000000a2'), '', 'no name from the provider leaves the display name empty (never the email)');
 select is((select (is_adult, role::text, status::text, onboarded_at) from profiles where id = '00000000-0000-0000-0000-0000000000a1'),
           (false, 'student'::text, 'active'::text, null::timestamptz), 'new profiles start as a non-adult, active student, not onboarded');

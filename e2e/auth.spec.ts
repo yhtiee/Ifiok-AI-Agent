@@ -2,10 +2,13 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   adminClient,
   birthMonthTurning18Now,
+  createOnboardedUser,
   createTestUser,
   deleteTestUser,
   hasSupabaseAdmin,
   signInAs,
+  testEmail,
+  userIdFor,
 } from "./helpers/supabase";
 
 // P0-04: sign-in, the 18+ gate, consents and onboarding, against the real Supabase project.
@@ -23,22 +26,45 @@ test.describe("signed out", () => {
     }
   });
 
-  test("until an email provider is connected, a production build says sign-in opens soon", async ({ page }) => {
-    test.skip(process.env.AUTH_EMAIL_CODES === "true", "email codes are on");
-    await page.goto("/sign-in");
-    await expect(page.getByRole("heading", { name: "Sign-in opens soon" })).toBeVisible();
-    await expect(page.getByLabel("Email address")).toHaveCount(0);
-    await shot(page, "01-sign-in-closed");
-  });
-
-  test("sign-in asks for an email and explains a bad one without sending anything", async ({ page }) => {
-    test.skip(process.env.AUTH_EMAIL_CODES !== "true", "email codes are off until a provider is connected");
+  test("sign-in asks for an email and password and explains a bad email", async ({ page }) => {
     await page.goto("/sign-in");
     await expect(page.getByRole("heading", { name: "Sign in to Ifiok" })).toBeVisible();
     await shot(page, "01-sign-in");
     await page.getByLabel("Email address").fill("ada@");
-    await page.getByRole("button", { name: "Send code" }).click();
+    await page.getByLabel("Password", { exact: true }).fill("whatever123");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page.getByRole("alert").filter({ hasText: "Enter a full email address" })).toBeVisible();
+  });
+
+  test("the password can be shown, and create account keeps the typed email", async ({ page }) => {
+    await page.goto("/sign-in");
+    await page.getByLabel("Email address").fill("ada@example.com");
+    const password = page.getByLabel("Password", { exact: true });
+    await password.fill("secret-pass");
+    await expect(password).toHaveAttribute("type", "password");
+    await page.getByRole("button", { name: "Show password" }).click();
+    await expect(password).toHaveAttribute("type", "text");
+
+    await page.getByRole("button", { name: "Create an account" }).click();
+    await expect(page.getByRole("heading", { name: "Create your Ifiok account" })).toBeVisible();
+    await expect(page.getByLabel("Email address")).toHaveValue("ada@example.com");
+    await expect(page.getByText("At least 8 characters.")).toBeVisible();
+    await shot(page, "01-create-account");
+
+    await page.getByLabel("First name").fill("Ada");
+    await page.getByLabel("Last name").fill("Obi");
+    await page.getByLabel("Password", { exact: true }).fill("short");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "at least 8 characters" })).toBeVisible();
+  });
+
+  test("without an email provider there is no password reset to get stuck in", async ({ page }) => {
+    test.skip(process.env.AUTH_PASSWORD_RESET === "true", "password reset is on");
+    await page.goto("/sign-in");
+    await expect(page.getByRole("heading", { name: "Sign in to Ifiok" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Forgot password?" })).toHaveCount(0);
+    await page.goto("/sign-in/reset");
+    await expect(page).toHaveURL(/\/sign-in$/);
   });
 
   test("the AI stub refuses signed-out callers", async ({ request }) => {
@@ -71,6 +97,120 @@ test.describe("with a real account", () => {
     for (const id of created) await deleteTestUser(id);
   });
 
+  test("a student creates an account with a password, signs out and signs back in", async ({ page }) => {
+    const email = testEmail();
+    const password = `pw-${Date.now()}-ok`;
+
+    await page.goto("/sign-in");
+    await page.getByRole("button", { name: "Create an account" }).click();
+    await page.getByLabel("Email address").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+
+    // Names are required, and a refused attempt keeps what was typed.
+    await page.getByLabel("First name").fill("Chiamaka");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Enter your last name." })).toBeVisible();
+    await expect(page.getByLabel("First name")).toHaveValue("Chiamaka");
+    await page.getByLabel("Last name").fill("Okonkwo");
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    // No confirmation email (Q28): the new account goes straight to onboarding.
+    await expect(page).toHaveURL(/\/onboarding$/);
+    const id = await userIdFor(email, password);
+    expect(id).not.toBeNull();
+    created.push(id!);
+    const { data: named } = await adminClient()
+      .from("profiles")
+      .select("first_name, last_name, display_name")
+      .eq("id", id!)
+      .single();
+    expect(named).toEqual({ first_name: "Chiamaka", last_name: "Okonkwo", display_name: "Chiamaka O." });
+
+    // Signing up again with the same email says so.
+    await page.context().clearCookies();
+    await page.goto("/sign-in");
+    await page.getByRole("button", { name: "Create an account" }).click();
+    await page.getByLabel("First name").fill("Someone");
+    await page.getByLabel("Last name").fill("Else");
+    await page.getByLabel("Email address").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill("another-password");
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "already an account" })).toBeVisible();
+
+    // A wrong password gets one message that doesn't reveal whether the account exists.
+    await page.getByRole("button", { name: "Sign in", exact: true }).first().click();
+    await expect(page.getByRole("heading", { name: "Sign in to Ifiok" })).toBeVisible();
+    await page.getByLabel("Password", { exact: true }).fill("wrong-password");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "don't match" })).toBeVisible();
+
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/onboarding$/);
+    await expect(page.getByRole("heading", { name: "When were you born?" })).toBeVisible();
+  });
+
+  test("a student who forgot their password resets it with an emailed code", async ({ page }) => {
+    test.skip(process.env.AUTH_PASSWORD_RESET !== "true", "password reset is off until an email provider is connected");
+    const oldPassword = `old-${Date.now()}-pw`;
+    const newPassword = `new-${Date.now()}-pw`;
+    const user = await createTestUser({ password: oldPassword });
+    created.push(user.id);
+
+    await page.goto("/sign-in");
+    await page.getByRole("link", { name: "Forgot password?" }).click();
+    await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
+    await shot(page, "01-reset");
+    await page.getByLabel("Email address").fill(user.email);
+    await page.getByRole("button", { name: "Send code" }).click();
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+
+    // A wrong code is refused and the password stays the same.
+    await page.getByLabel("6-digit code").fill("000000");
+    await page.getByLabel("New password", { exact: true }).fill(newPassword);
+    await page.getByRole("button", { name: "Save new password" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "wrong or has expired" })).toBeVisible();
+
+    // The code from the email (taken from the admin API here; example.com gets no mail).
+    const { data, error } = await adminClient().auth.admin.generateLink({ type: "recovery", email: user.email });
+    const code = data?.properties?.email_otp;
+    if (error || !code) throw new Error(`generateLink failed: ${error?.message}`);
+    await page.getByLabel("6-digit code").fill(code);
+    await page.getByRole("button", { name: "Save new password" }).click();
+
+    await expect(page).toHaveURL(/\/onboarding$/);
+    expect(await userIdFor(user.email, newPassword)).toBe(user.id);
+    expect(await userIdFor(user.email, oldPassword)).toBeNull();
+  });
+
+  test("a student updates their name on Me and the header greets them by it", async ({ page, context, baseURL }) => {
+    const user = await createOnboardedUser({ university: "UNIUYO", level: 200 });
+    created.push(user.id);
+    await signInAs(context, user.email, baseURL!);
+
+    await page.goto("/me");
+    await expect(page.getByTestId("greeting")).toHaveText(/^Good (morning|afternoon|evening), Test$/);
+    const first = page.getByLabel("First name");
+    await expect(first).toHaveValue("Test");
+    await first.fill("Adébáyọ̀");
+    await page.getByLabel("Last name").fill("Okon");
+    await page.getByRole("button", { name: "Save name" }).click();
+    await expect(page.getByRole("status")).toHaveText("Name saved.");
+    await expect(page.getByTestId("greeting")).toHaveText(/, Adébáyọ̀$/);
+    await shot(page, "09-me-name");
+
+    // Other pages greet them too, and a bad name is explained, not saved.
+    await page.goto("/today");
+    await expect(page.getByTestId("greeting")).toHaveText(/, Adébáyọ̀$/);
+    await page.goto("/me");
+    await page.getByLabel("Last name").fill("0k0n");
+    await page.getByRole("button", { name: "Save name" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Use letters for your last name" })).toBeVisible();
+    const { data } = await adminClient().from("profiles").select("first_name, last_name").eq("id", user.id).single();
+    expect(data).toEqual({ first_name: "Adébáyọ̀", last_name: "Okon" });
+  });
+
   test("an adult signs up, agrees and reaches an empty Today in 12 taps or fewer", async ({
     page,
     context,
@@ -78,7 +218,7 @@ test.describe("with a real account", () => {
   }) => {
     const user = await createTestUser();
     created.push(user.id);
-    // Email sign-in costs 1 tap ("Send code"; the code submits itself when typed).
+    // Password sign-in costs 1 tap ("Sign in"; typing isn't counted).
     let taps = 1;
     await signInAs(context, user.email, baseURL!);
 

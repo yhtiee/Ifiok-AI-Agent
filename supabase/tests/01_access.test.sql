@@ -89,7 +89,7 @@ select throws_ok($$insert into review_cards (user_id,item_id,due,stability,diffi
 select throws_ok($$select consume_quota(auth.uid(),'tutor',8)$$, '42501', null, 'cannot call consume_quota');
 select throws_ok($$select enqueue_job('payouts','{}'::jsonb)$$, '42501', null, 'cannot call enqueue_job');
 select throws_ok($$update profiles set role='admin' where id = auth.uid()$$, '42501', null, 'cannot self-promote');
-select lives_ok($$update profiles set display_name='Ada' where id = auth.uid()$$, 'can edit display name');
+select lives_ok($$update profiles set first_name='Ada' where id = auth.uid()$$, 'can edit own name');
 select throws_ok($$insert into attempts (id,user_id,item_id,response,correct) values (gen_random_uuid(), auth.uid(), gen_random_uuid(), '{}', true)$$, '42501', null, 'clients cannot insert attempts');
 -- Admin D
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000d';

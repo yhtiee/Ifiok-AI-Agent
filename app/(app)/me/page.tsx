@@ -6,12 +6,13 @@ import { AppPage } from "@/components/app/AppPage";
 import { buttonClass } from "@/components/ui/button-styles";
 import { requireOnboardedPage } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
+import { NameForm } from "./NameForm";
 
 export const metadata: Metadata = { title: "Me", robots: { index: false } };
 
 const LEVEL_LABEL: Record<number, string> = { 700: "Postgraduate" };
 
-// Me (07 §4): profile and settings. Editing, data export and account deletion arrive with
+// Me (07 §4): profile and settings. Name editing is here (Q30). Other editing, data export and account deletion arrive with
 // Settings → Privacy (P1-14); study details can be changed through the setup steps until then.
 export default async function MePage() {
   const { profile, email } = await requireOnboardedPage();
@@ -26,6 +27,10 @@ export default async function MePage() {
   return (
     <AppPage crumbs={[{ label: "Me" }]} title="Me" description="Your account and study settings.">
       <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
+        <Panel title="Your name">
+          <NameForm firstName={profile.first_name} lastName={profile.last_name} />
+        </Panel>
+
         <Panel
           title="Study profile"
           action={

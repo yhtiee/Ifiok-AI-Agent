@@ -1661,8 +1661,10 @@ export type Database = {
           data_saver: boolean
           department: string | null
           display_name: string
+          first_name: string
           id: string
           is_adult: boolean
+          last_name: string
           level: number | null
           locale: string
           onboarded_at: string | null
@@ -1679,8 +1681,10 @@ export type Database = {
           data_saver?: boolean
           department?: string | null
           display_name?: string
+          first_name?: string
           id: string
           is_adult?: boolean
+          last_name?: string
           level?: number | null
           locale?: string
           onboarded_at?: string | null
@@ -1697,8 +1701,10 @@ export type Database = {
           data_saver?: boolean
           department?: string | null
           display_name?: string
+          first_name?: string
           id?: string
           is_adult?: boolean
+          last_name?: string
           level?: number | null
           locale?: string
           onboarded_at?: string | null
@@ -2439,6 +2445,10 @@ export type Database = {
       merge_concepts: {
         Args: { p_admin: string; p_loser: string; p_survivor: string }
         Returns: undefined
+      }
+      profile_display_name: {
+        Args: { p_first: string; p_last: string }
+        Returns: string
       }
       refund_quota: {
         Args: { p_feature: string; p_user: string }

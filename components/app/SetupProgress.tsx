@@ -16,7 +16,8 @@ const STEPS = [
 
 export function SetupProgress() {
   const pathname = usePathname();
-  const current = STEPS.findIndex((s) => s.path === pathname);
+  // Password reset (/sign-in/reset) is part of the sign-in step.
+  const current = STEPS.findIndex((s) => s.path === (pathname.startsWith("/sign-in/") ? "/sign-in" : pathname));
   if (current === -1) return null;
 
   return (
