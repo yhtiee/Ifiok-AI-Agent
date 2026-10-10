@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { PageBody, PageHeader, Panel } from "@/components/app/Page";
+import { Panel } from "@/components/app/Page";
+import { AppPage } from "@/components/app/AppPage";
 import { buttonClass } from "@/components/ui/button-styles";
 import { requireOnboardedPage } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
@@ -23,8 +24,7 @@ export default async function MePage() {
   const level = profile.level ? (LEVEL_LABEL[profile.level] ?? `${profile.level} level`) : "Not set";
 
   return (
-    <PageBody>
-      <PageHeader title="Me" description="Your account and study settings." />
+    <AppPage crumbs={[{ label: "Me" }]} title="Me" description="Your account and study settings.">
       <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
         <Panel
           title="Study profile"
@@ -71,7 +71,7 @@ export default async function MePage() {
           </form>
         </Panel>
       </div>
-    </PageBody>
+    </AppPage>
   );
 }
 

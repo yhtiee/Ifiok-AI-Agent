@@ -52,7 +52,7 @@ Auth, profiles, age gate, universities, student-created courses, outlines and co
 - F2 Lessons on demand for **any course or topic**: student-created courses, outlines (upload, typed or AI draft), concept resolution, generated once per concept and shared
 - F1 AI Tutor (grounded chat, verified maths)
 - F11 crowd uploads and curation (no rewards yet), so the bank starts growing from day one
-- F4 Virtual Lab (2D): Ohm's law (port of the prototype) and Simple pendulum
+- F4 Virtual Lab (2D): Generate as part of the AI course learning for topic or course that would be best explained using this 2d interactions
 - F5 Practice and progress (checkpoints, items, FSRS review, mastery per concept)
 - F6 Learning agent: goals, daily plan, adapting (deterministic planner, course calendar)
 - F7 Snap-and-mark (maths) with root-cause diagnosis
@@ -62,7 +62,7 @@ Auth, profiles, age gate, universities, student-created courses, outlines and co
 
 ### Phase P1b — Pilot extensions (same pilot, once P1a exit checks pass)
 - F3 Textbook → private lessons (on-device extraction and matching)
-- F4 PC Build 3D lab (port of the three.js prototype, 2D fallback)
+- F4 Virtual 3D lab (generated for advance labs using three js or can be built using native html, 2D fallback) this is generated on request and saved
 - Teach-back (text)
 - A willingness-to-pay test in the last 4 weeks of the pilot (price page and "notify me" bundles, no real charges) to measure `p` and `A` for `09` §5
 

@@ -40,7 +40,8 @@ export type ProviderRequest = {
   system: string;
   user: string;
   images?: ImageInput[];
-  maxOutputTokens: number;
+  /** Output token cap; undefined = no cap (the model's own maximum), 12 §4 Q27. */
+  maxOutputTokens?: number;
   thinking?: ThinkingLevel;
   /** Ask for a JSON-only reply. */
   json: boolean;

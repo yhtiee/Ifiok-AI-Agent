@@ -1,36 +1,7 @@
 import type { ReactNode } from "react";
 
-// Building blocks for app pages. Layout is full width beside the sidebar: no centred narrow
-// column. Content is capped only at very wide sizes, and stays left-aligned.
-
-export function PageHeader({
-  title,
-  eyebrow,
-  description,
-  actions,
-}: {
-  title: ReactNode;
-  /** Small line above the title, sentence case (e.g. the date). */
-  eyebrow?: ReactNode;
-  description?: ReactNode;
-  actions?: ReactNode;
-}) {
-  return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-4 lg:mb-8">
-      <div className="min-w-0">
-        {eyebrow ? <p className="text-sm text-ink-2">{eyebrow}</p> : null}
-        <h1 className="font-display text-[1.75rem] leading-tight font-semibold lg:text-[2rem]">{title}</h1>
-        {description ? <p className="mt-1 max-w-[60ch] text-base text-ink-2">{description}</p> : null}
-      </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
-    </header>
-  );
-}
-
-/** Page body: wide layouts use the space; the cap only stops lines getting absurdly long on huge screens. */
-export function PageBody({ children }: { children: ReactNode }) {
-  return <div className="w-full max-w-[90rem]">{children}</div>;
-}
+// Building blocks inside app pages (the page frame itself is AppPage). Layout is full width beside
+// the sidebar: no centred narrow column.
 
 /** A bordered section of a page (no shadow, 07 §3.3). Never nest panels inside panels. */
 export function Panel({

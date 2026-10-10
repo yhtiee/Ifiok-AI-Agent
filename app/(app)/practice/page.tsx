@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { EmptyState, PageBody, PageHeader, Panel } from "@/components/app/Page";
+import { EmptyState, Panel } from "@/components/app/Page";
+import { AppPage } from "@/components/app/AppPage";
 import { requireOnboardedPage } from "@/lib/auth/guards";
 
 export const metadata: Metadata = { title: "Practice", robots: { index: false } };
@@ -8,11 +9,11 @@ export const metadata: Metadata = { title: "Practice", robots: { index: false } 
 export default async function PracticePage() {
   await requireOnboardedPage();
   return (
-    <PageBody>
-      <PageHeader
-        title="Practice"
-        description="Reviews at the right time, your weak spots, and marking for your own working."
-      />
+    <AppPage
+      crumbs={[{ label: "Practice" }]}
+      title="Practice"
+      description="Reviews at the right time, your weak spots, and marking for your own working."
+    >
       <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
         <Panel title="Due now">
           <EmptyState
@@ -27,6 +28,6 @@ export default async function PracticePage() {
           />
         </Panel>
       </div>
-    </PageBody>
+    </AppPage>
   );
 }

@@ -1,3 +1,5 @@
+import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 // One idea per screen (00 §4.2): a short title, one line of context, the content and the one
@@ -7,6 +9,8 @@ import type { ReactNode } from "react";
 
 type StepScreenProps = {
   step?: { current: number; total: number };
+  /** Link to the previous step, where going back is allowed. */
+  back?: { href: string; label: string };
   title: ReactNode;
   intro?: ReactNode;
   children?: ReactNode;
@@ -14,10 +18,18 @@ type StepScreenProps = {
   action?: ReactNode;
 };
 
-export function StepScreen({ step, title, intro, children, action }: StepScreenProps) {
+export function StepScreen({ step, back, title, intro, children, action }: StepScreenProps) {
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex-1 pb-6 lg:flex-none">
+        {back ? (
+          <Link
+            href={back.href}
+            className="mb-3 -ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-base text-ink-2 hover:bg-surface hover:text-ink"
+          >
+            <ArrowLeftIcon size={18} aria-hidden="true" /> {back.label}
+          </Link>
+        ) : null}
         {step ? (
           <div className="mb-6 grid gap-2 lg:hidden">
             <p className="text-sm text-ink-2 tabular-nums">

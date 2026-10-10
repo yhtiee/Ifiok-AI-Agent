@@ -6,6 +6,8 @@ import { ProviderError, type Provider, type ProviderRequest, type ProviderRespon
 // retries and fallbacks, so the SDK's own retries are off. No thinking is requested: the
 // fallback route uses Claude Haiku 4.5 for short structured replies.
 
+const UNCAPPED_MAX_TOKENS = 16_000;
+
 export function createAnthropicProvider(apiKey: string | undefined): Provider {
   const client = apiKey ? new Anthropic({ apiKey, maxRetries: 0 }) : null;
 
@@ -30,7 +32,9 @@ export function createAnthropicProvider(apiKey: string | undefined): Provider {
         message = await client.messages.create(
           {
             model: req.model,
-            max_tokens: req.maxOutputTokens,
+            // The Messages API requires max_tokens: with no cap configured, use the safe ceiling for a
+            // non-streaming request.
+            max_tokens: req.maxOutputTokens ?? UNCAPPED_MAX_TOKENS,
             system: req.json ? `${req.system}\n\nReply with a single JSON object and nothing else.` : req.system,
             messages: [{ role: "user", content }],
           },

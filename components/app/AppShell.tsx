@@ -13,8 +13,8 @@ const TOOLS = [
 ] as const;
 
 // The signed-in app frame (P0-06). Laptops and desktops: a fixed left sidebar and a content area
-// that uses the full width beside it. Phones: a slim top bar, full-width content (16 px gutters)
-// and the bottom tab bar in the thumb zone.
+// that uses the full width beside it. Phones: full-width content (16 px gutters) and the bottom
+// tab bar in the thumb zone. Every page adds a fixed header with back navigation (AppPage).
 
 type AppShellProps = {
   user: { name: string; email: string | null };
@@ -57,19 +57,8 @@ export function AppShell({ user, children }: AppShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
-          <Link href="/today" className="flex min-h-11 items-center" aria-label="Ifiok, go to Today">
-            <Wordmark className="text-[1.5rem]" />
-          </Link>
-          <Link
-            href="/me"
-            aria-label="Me: your profile and settings"
-            className="flex min-h-11 min-w-11 items-center justify-end"
-          >
-            <Avatar initial={initial} />
-          </Link>
-        </header>
-        <main className="flex-1 px-4 pt-5 pb-24 sm:px-6 lg:px-10 lg:pt-8 lg:pb-10">{children}</main>
+        {/* Each page (AppPage) renders its own fixed header with breadcrumbs and back navigation. */}
+        <main className="flex-1 pb-24 lg:pb-10">{children}</main>
       </div>
 
       <BottomNav />

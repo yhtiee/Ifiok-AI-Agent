@@ -17,6 +17,7 @@ export default async function UniversityPage({ searchParams }: PageProps<"/onboa
       universities={universities ?? []}
       currentId={viewer.profile.university_id}
       failed={error === "1"}
+      back={viewer.profile.onboarded_at ? { href: "/me", label: "Back to Me" } : undefined}
     />
   );
 }

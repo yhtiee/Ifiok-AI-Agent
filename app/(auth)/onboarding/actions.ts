@@ -127,5 +127,6 @@ export async function saveMinutes(form: FormData) {
     .eq("id", viewer.userId)
     .is("onboarded_at", null);
   if (done.error) redirect("/onboarding/minutes?error=1");
-  redirect("/today");
+  // Finished students changing settings from Me go back there; new students start on Today.
+  redirect(viewer.profile.onboarded_at ? "/me" : "/today");
 }

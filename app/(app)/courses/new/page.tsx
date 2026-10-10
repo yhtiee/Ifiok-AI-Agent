@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { PageBody, PageHeader } from "@/components/app/Page";
+import { AppPage } from "@/components/app/AppPage";
 import { requireOnboardedPage } from "@/lib/auth/guards";
 import { getSubjects } from "@/lib/courses/read";
 import { createClient } from "@/lib/supabase/server";
@@ -20,17 +20,17 @@ export default async function NewCoursePage({ searchParams }: PageProps<"/course
   ]);
 
   return (
-    <PageBody>
-      <PageHeader
-        title="Add a course"
-        description={`Add your course at ${university?.name ?? "your university"}. Classmates who search for it will join you.`}
-      />
+    <AppPage
+      crumbs={[{ label: "Courses", href: "/courses" }, { label: "Add a course" }]}
+      title="Add a course"
+      description={`Add your course at ${university?.name ?? "your university"}. Classmates who search for it will join you.`}
+    >
       <CreateCourseForm
         subjects={subjects}
         defaultLevel={viewer.profile.level}
         initialCode={typeof params.code === "string" ? params.code : ""}
         initialTitle={typeof params.title === "string" ? params.title : ""}
       />
-    </PageBody>
+    </AppPage>
   );
 }

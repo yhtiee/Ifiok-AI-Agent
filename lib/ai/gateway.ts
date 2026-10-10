@@ -149,7 +149,8 @@ export type RunResult<O> = {
 
 const INTERACTIVE_TIMEOUT_MS = 25_000;
 const JOB_TIMEOUT_MS = 100_000;
-const DEFAULT_MAX_OUTPUT = 1024;
+/** The most a truncated reply's retry may ask for. */
+const MAX_OUTPUT_CEILING = 16_000;
 const USD = 1_000_000; // micro-USD per USD
 
 /** Midnight in Lagos (UTC+1, no daylight saving) for the day / month containing `now`. */
@@ -292,7 +293,11 @@ export function createGateway(deps: GatewayDeps) {
     let calls = 0;
     let totalCost = 0;
 
-    const call = async (candidate: Candidate, rawUser: string): Promise<ProviderResponse> => {
+    const call = async (
+      candidate: Candidate,
+      rawUser: string,
+      maxTokens: number | undefined = maxOutput,
+    ): Promise<ProviderResponse> => {
       calls++;
       // Free tier: never send personal details (Gemini terms for Unpaid Services).
       let user = rawUser;
@@ -326,7 +331,7 @@ export function createGateway(deps: GatewayDeps) {
           system: prompt.system,
           user,
           images: options.images,
-          maxOutputTokens: maxOutput ?? DEFAULT_MAX_OUTPUT,
+          maxOutputTokens: maxTokens,
           thinking: candidate.thinking,
           json: true,
           timeoutMs: mode === "job" ? JOB_TIMEOUT_MS : INTERACTIVE_TIMEOUT_MS,
@@ -390,13 +395,39 @@ export function createGateway(deps: GatewayDeps) {
       };
     }
 
-    let repairResponse: ProviderResponse;
-    try {
-      repairResponse = await call(used, repairPrompt(prompt.user, response.text, first.errors));
-    } catch (err) {
-      if (err instanceof ProviderError && err.kind === "blocked") throw new GatewayError("blocked", MESSAGES.blocked);
-      throw new GatewayError("provider_failed", MESSAGES.failed);
+    const retry = async (user: string, maxTokens: number | undefined) => {
+      try {
+        return await call(used, user, maxTokens);
+      } catch (err) {
+        if (err instanceof ProviderError && err.kind === "blocked") throw new GatewayError("blocked", MESSAGES.blocked);
+        throw new GatewayError("provider_failed", MESSAGES.failed);
+      }
+    };
+
+    // A reply cut off at a configured token cap can't be repaired at the same cap: ask again once
+    // with double the budget instead. Uncapped skills (the default, 12 §4 Q27) skip this.
+    let budget = maxOutput;
+    if (response.finish === "length" && budget !== undefined) {
+      budget = Math.min(budget * 2, MAX_OUTPUT_CEILING);
+      const longer = await retry(prompt.user, budget);
+      const reparsed = parseOutput(longer.text, skill);
+      if (reparsed.ok) {
+        return {
+          output: reparsed.value,
+          provider: used.provider.name,
+          model: used.model,
+          costMicros: totalCost,
+          calls,
+          repaired: true,
+        };
+      }
+      if (longer.finish === "length") throw new GatewayError("invalid_output", MESSAGES.failed);
+      response = longer;
     }
+
+    const latest = parseOutput(response.text, skill);
+    const errors = latest.ok ? first.errors : latest.errors;
+    const repairResponse = await retry(repairPrompt(prompt.user, response.text, errors), budget);
     const second = parseOutput(repairResponse.text, skill);
     if (!second.ok) throw new GatewayError("invalid_output", MESSAGES.failed);
     return {

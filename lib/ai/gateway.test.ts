@@ -404,3 +404,47 @@ describe("free tier (12 §4 Q25)", () => {
     expect(alone.refunds).toEqual(["tutor"]);
   });
 });
+
+describe("truncated replies", () => {
+  const cut = (text: string): ProviderResponse => ({
+    text,
+    usage: { input: 100, output: 700, thinking: 0 },
+    finish: "length",
+  });
+
+  it("retries once with double the token budget instead of repairing at the same limit", async () => {
+    const t = setup({ gemini: [cut('{"answer":"cut off he'), ok('{"answer":"complete"}')] });
+    const result = await run(t.gateway, "tutor_chat");
+    expect(result).toMatchObject({ output: { answer: "complete" }, repaired: true, calls: 2 });
+    expect(t.gemini.requests.map((r) => r.maxOutputTokens)).toEqual([700, 1400]);
+    expect(t.gemini.requests[1]!.user).toBe(t.gemini.requests[0]!.user); // same prompt, bigger budget
+  });
+
+  it("fails without a third call when the bigger budget is cut off too", async () => {
+    const t = setup({ gemini: [cut('{"answer":"cut'), cut('{"answer":"still cut')] });
+    await expectCode(run(t.gateway, "tutor_chat"), "invalid_output");
+    expect(t.gemini.requests).toHaveLength(2);
+    expect(t.refunds).toEqual(["tutor"]);
+  });
+});
+
+describe("uncapped output (12 §4 Q27)", () => {
+  it("sends no output token limit when the route sets none", async () => {
+    const t = setup({ gemini: [ok('{"answer":"ok"}')] });
+    await run(t.gateway, "brief_rewrite"); // its test route has no max_output_tokens
+    expect(t.gemini.requests[0]!.maxOutputTokens).toBeUndefined();
+  });
+
+  it("repairs a truncated uncapped reply instead of retrying with a bigger budget", async () => {
+    const cut: ProviderResponse = {
+      text: '{"answer":"cut',
+      usage: { input: 10, output: 10, thinking: 0 },
+      finish: "length",
+    };
+    const t = setup({ gemini: [cut, ok('{"answer":"fixed"}')] });
+    const result = await run(t.gateway, "brief_rewrite");
+    expect(result.output.answer).toBe("fixed");
+    expect(t.gemini.requests[1]!.user).toContain("could not be used");
+    expect(t.gemini.requests[1]!.maxOutputTokens).toBeUndefined();
+  });
+});

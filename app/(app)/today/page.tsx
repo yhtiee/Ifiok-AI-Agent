@@ -16,7 +16,8 @@ import type { Icon } from "@phosphor-icons/react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { PageBody, PageHeader, Panel } from "@/components/app/Page";
+import { Panel } from "@/components/app/Page";
+import { AppPage } from "@/components/app/AppPage";
 import { ButtonLink } from "@/components/ui/Button";
 import { requireOnboardedPage } from "@/lib/auth/guards";
 import { FEATURES, type FeatureKey } from "@/lib/features";
@@ -77,13 +78,12 @@ export default async function TodayPage() {
   }).format(new Date());
 
   return (
-    <PageBody>
-      <PageHeader
-        eyebrow={date}
-        title="Start learning"
-        description="Choose what you want to learn. Ifiok builds the lessons, practice and daily plan around it."
-      />
-
+    <AppPage
+      crumbs={[{ label: "Today" }]}
+      eyebrow={date}
+      title="Start learning"
+      description="Choose what you want to learn. Ifiok builds the lessons, practice and daily plan around it."
+    >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:gap-6">
         <div className="grid content-start gap-4 lg:gap-6">
           {/* The one primary action on this screen. */}
@@ -182,7 +182,7 @@ export default async function TodayPage() {
           </Panel>
         </div>
       </div>
-    </PageBody>
+    </AppPage>
   );
 }
 

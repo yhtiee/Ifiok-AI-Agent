@@ -1,7 +1,8 @@
 import { BooksIcon, TargetIcon } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { EmptyState, PageBody, PageHeader, Panel } from "@/components/app/Page";
+import { EmptyState, Panel } from "@/components/app/Page";
+import { AppPage } from "@/components/app/AppPage";
 import { LearnSearch } from "@/components/app/LearnSearch";
 import { requireOnboardedPage } from "@/lib/auth/guards";
 import { getFollowedTopics, getMyCourses } from "@/lib/courses/read";
@@ -22,12 +23,11 @@ export default async function CoursesPage() {
   ]);
 
   return (
-    <PageBody>
-      <PageHeader
-        title="Courses"
-        description="Find your course or any topic, and Ifiok builds the lessons around it."
-      />
-
+    <AppPage
+      crumbs={[{ label: "Courses" }]}
+      title="Courses"
+      description="Find your course or any topic, and Ifiok builds the lessons around it."
+    >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:gap-6">
         <div className="grid content-start gap-4 lg:gap-6">
           <section
@@ -95,6 +95,6 @@ export default async function CoursesPage() {
           )}
         </Panel>
       </div>
-    </PageBody>
+    </AppPage>
   );
 }

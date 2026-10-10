@@ -65,6 +65,21 @@ test.describe("student-created courses, outlines and concepts", () => {
     await expect(page.getByText("Differentiation from first principles")).toBeVisible();
     await shot(page, "04-outline");
 
+    // Fixed header: breadcrumbs with the real course code, still on screen after scrolling,
+    // and a back button to the section.
+    const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
+    await expect(crumbs).toContainText("Courses");
+    await expect(crumbs).toContainText(courseCode);
+    await page.setViewportSize({ width: 1280, height: 400 });
+    await page.mouse.wheel(0, 2000);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    const box = await page.locator("header").filter({ has: crumbs }).boundingBox();
+    expect(box?.y).toBe(0);
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.getByRole("link", { name: "Back to Courses" }).click();
+    await expect(page).toHaveURL(/\/courses$/);
+    await page.goto(courseUrl);
+
     const courseId = courseUrl.split("/").pop()!;
     const { data: topics } = await adminClient()
       .from("topics")
@@ -207,13 +222,6 @@ test.describe("student-created courses, outlines and concepts", () => {
     if (await createAnyway.isVisible({ timeout: 8_000 }).catch(() => false)) await createAnyway.click();
     await expect(page.getByRole("heading", { level: 1, name: new RegExp(code) })).toBeVisible({ timeout: 30_000 });
 
-    // AI draft: shown for checking, labelled as a draft.
-    await page.getByRole("button", { name: /Draft one for me/ }).click();
-    await expect(page.getByText(/Draft outline. Check it against your course/)).toBeVisible({ timeout: 60_000 });
-    expect(await page.getByPlaceholder("For example, Limits and continuity").count()).toBeGreaterThanOrEqual(6);
-    await shot(page, "08-draft");
-    await page.getByRole("button", { name: "Cancel" }).click();
-
     // Photo: render a synthetic outline to an image and upload it.
     const outlinePage = await context.newPage();
     await outlinePage.setContent(
@@ -235,5 +243,24 @@ test.describe("student-created courses, outlines and concepts", () => {
     expect(read.join(" | ")).toMatch(/bernoulli/);
     expect(read.join(" | ")).not.toMatch(/office hours|lecturer/);
     await shot(page, "09-from-photo");
+    await page.getByRole("button", { name: "Cancel" }).click();
+
+    // AI draft: shown for checking, labelled as a draft, and saved. A 10–14 topic draft is the
+    // largest topic_resolve request a student makes (it once failed on the output token cap).
+    await page.getByRole("button", { name: /Draft one for me/ }).click();
+    await expect(page.getByText(/Draft outline. Check it against your course/)).toBeVisible({ timeout: 60_000 });
+    const drafted = await page.getByPlaceholder("For example, Limits and continuity").count();
+    expect(drafted).toBeGreaterThanOrEqual(6);
+    await shot(page, "08-draft");
+    await page.getByRole("button", { name: "Save outline" }).click();
+    await expect(page.getByText("Outline saved.")).toBeVisible({ timeout: 150_000 });
+    await expect(page.getByText(/Draft\. Check it against your course/)).toBeVisible();
+    const courseId = page.url().split("/").pop()!;
+    const { count } = await adminClient()
+      .from("topics")
+      .select("*", { count: "exact", head: true })
+      .eq("course_id", courseId)
+      .is("archived_at", null);
+    expect(count).toBe(drafted);
   });
 });

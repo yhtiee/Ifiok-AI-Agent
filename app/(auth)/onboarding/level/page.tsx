@@ -24,6 +24,7 @@ export default async function LevelPage({ searchParams }: PageProps<"/onboarding
   return (
     <StepScreen
       step={{ current: 4, total: 5 }}
+      back={{ href: "/onboarding/university", label: "Back to university" }}
       title="What level are you in?"
       intro="Ifiok pitches lessons at your level. You can change it later."
     >

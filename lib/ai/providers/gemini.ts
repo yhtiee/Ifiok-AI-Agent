@@ -35,7 +35,7 @@ export function createGeminiProvider(apiKey: string | undefined): Provider {
           },
         ],
         generationConfig: {
-          maxOutputTokens: req.maxOutputTokens,
+          ...(req.maxOutputTokens ? { maxOutputTokens: req.maxOutputTokens } : {}),
           ...(req.json ? { responseMimeType: "application/json" } : {}),
           ...(req.thinking ? { thinkingConfig: { thinkingLevel: req.thinking } } : {}),
         },

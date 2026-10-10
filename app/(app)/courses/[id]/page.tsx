@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PageBody, PageHeader, Panel } from "@/components/app/Page";
+import { Panel } from "@/components/app/Page";
+import { AppPage } from "@/components/app/AppPage";
 import { JoinCourseButton } from "@/components/app/outline/JoinCourseButton";
 import { OutlineHistory } from "@/components/app/outline/OutlineHistory";
 import { OutlineWorkspace } from "@/components/app/outline/OutlineWorkspace";
@@ -30,14 +31,13 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
     .join(" · ");
 
   return (
-    <PageBody>
-      <PageHeader
-        eyebrow={course.university ?? undefined}
-        title={`${course.code} · ${course.title}`}
-        description={meta}
-        actions={membership ? null : <JoinCourseButton courseId={course.id} />}
-      />
-
+    <AppPage
+      crumbs={[{ label: "Courses", href: "/courses" }, { label: course.code }]}
+      eyebrow={course.university ?? undefined}
+      title={`${course.code} · ${course.title}`}
+      description={meta}
+      actions={membership ? null : <JoinCourseButton courseId={course.id} />}
+    >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:gap-6">
         <OutlineWorkspace
           courseId={course.id}
@@ -59,6 +59,6 @@ export default async function CoursePage({ params }: PageProps<"/courses/[id]">)
           </Panel>
         )}
       </div>
-    </PageBody>
+    </AppPage>
   );
 }

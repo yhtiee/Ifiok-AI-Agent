@@ -14,10 +14,13 @@ export function UniversityPicker({
   universities,
   currentId,
   failed,
+  back,
 }: {
   universities: University[];
   currentId: string | null;
   failed: boolean;
+  /** Set when a finished student is changing their study profile from Me. */
+  back?: { href: string; label: string };
 }) {
   const [query, setQuery] = useState("");
   const q = normalise(query);
@@ -27,7 +30,8 @@ export function UniversityPicker({
 
   return (
     <StepScreen
-      step={{ current: 3, total: 5 }}
+      step={back ? undefined : { current: 3, total: 5 }}
+      back={back}
       title="Where do you study?"
       intro="Tap your university, so you find the same courses as your classmates."
     >

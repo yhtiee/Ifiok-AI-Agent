@@ -17,6 +17,7 @@ const LIMITS = { coursesPerDay: 5, conceptsPerDay: 20, outlineEditsPerDay: 10, t
 /** Below this similarity a topic becomes a new concept without asking the model (04 §4.5b). */
 const CANDIDATE_MIN_SIMILARITY = 0.8;
 const NEAR_DUPLICATE_SCORE = 0.45;
+const RESOLVE_BATCH = 8;
 
 const db = () => createAdminClient();
 
@@ -111,8 +112,9 @@ export async function resolveTopics(params: {
     const subjectCodes = new Set((subjects ?? []).map((s) => s.code));
     let createdToday = await countConceptsCreatedToday(viewer.userId);
 
-    for (let start = 0; start < needModel.length; start += 15) {
-      const batch = needModel.slice(start, start + 15);
+    // Batches of 8 keep each reply short (a new concept is ~120 output tokens) and fast.
+    for (let start = 0; start < needModel.length; start += RESOLVE_BATCH) {
+      const batch = needModel.slice(start, start + RESOLVE_BATCH);
       let output: TopicResolveOutput;
       try {
         ({ output } = await getGateway().run<TopicResolveOutput>("topic_resolve", {
