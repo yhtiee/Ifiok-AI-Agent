@@ -2,6 +2,8 @@
 
 import { evaluateAst } from "@ifiok/core/expr-eval/index";
 import type { ExprAst } from "@ifiok/core/expr/types";
+import { useId, useState } from "react";
+import { RichText } from "../RichText";
 import type { BlockOf } from "./types";
 
 const WIDTH = 360;
@@ -10,12 +12,17 @@ const SAMPLES = 80;
 
 /**
  * Plots the ASTs the server compiled at save time (`block.compiled`) with the small AST
- * interpreter, so no mathjs ships to the client (02 §7). Every plot has a text summary.
+ * interpreter, so no mathjs ships to the client (02 §7). Sliders change the parameters live; the
+ * text summary under the graph says what is drawn and the current slider values.
  */
 export function PlotBlock({ block }: { block: BlockOf<"plot"> }) {
+  const id = useId();
+  const params = block.params ?? [];
+  const [values, setValues] = useState<Record<string, number>>(() =>
+    Object.fromEntries(params.map((p) => [p.name, p.value])),
+  );
   const [xMin, xMax] = block.x;
   const [yMin, yMax] = block.y ?? [-10, 10];
-  const scope = Object.fromEntries((block.params ?? []).map((p) => [p.name, p.value]));
   const asts = (block.compiled?.functions ?? []) as ExprAst[];
 
   const toSvgX = (x: number) => ((x - xMin) / (xMax - xMin)) * WIDTH;
@@ -28,7 +35,7 @@ export function PlotBlock({ block }: { block: BlockOf<"plot"> }) {
       const x = xMin + (i * (xMax - xMin)) / (SAMPLES - 1);
       let y = Number.NaN;
       try {
-        y = evaluateAst(ast, { ...scope, x });
+        y = evaluateAst(ast, { ...values, x });
       } catch {
         // leave a gap
       }
@@ -43,11 +50,14 @@ export function PlotBlock({ block }: { block: BlockOf<"plot"> }) {
   });
 
   const labels = block.functions.map((f) => f.label ?? `y = ${f.expr}`).join(", ");
-  const summary = `Graph of ${labels} for x from ${xMin} to ${xMax}.${block.caption ? ` ${block.caption}` : ""}`;
+  const settings = params.map((p) => `${p.label} = ${values[p.name]}${p.unit ? ` ${p.unit}` : ""}`).join(", ");
+  const summary = `Graph of ${labels} for x from ${xMin} to ${xMax}${settings ? `, with ${settings}` : ""}.`;
 
   return (
     <figure className="flex flex-col items-center">
-      <figcaption className="mb-2 text-sm font-semibold text-ink-2">{block.caption ?? labels}</figcaption>
+      <figcaption className="mb-2 text-sm font-semibold text-ink-2">
+        <RichText text={block.caption ?? labels} />
+      </figcaption>
       <div className="max-w-full overflow-x-auto rounded-lg border border-line bg-paper p-2">
         <svg width={WIDTH} height={HEIGHT} role="img" aria-label={summary} className="overflow-visible">
           {yMin <= 0 && yMax >= 0 ? (
@@ -61,6 +71,31 @@ export function PlotBlock({ block }: { block: BlockOf<"plot"> }) {
           ))}
         </svg>
       </div>
+      {params.length ? (
+        <div className="mt-3 grid w-full max-w-[360px] gap-3">
+          {params.map((p) => (
+            <div key={p.name} className="grid gap-1">
+              <label htmlFor={`${id}-${p.name}`} className="flex justify-between text-sm text-ink">
+                <span>{p.label}</span>
+                <output htmlFor={`${id}-${p.name}`} className="font-semibold text-quantity tabular-nums">
+                  {values[p.name]}
+                  {p.unit ? ` ${p.unit}` : ""}
+                </output>
+              </label>
+              <input
+                id={`${id}-${p.name}`}
+                type="range"
+                min={p.min}
+                max={p.max}
+                step={p.step}
+                value={values[p.name]}
+                onChange={(e) => setValues((v) => ({ ...v, [p.name]: Number(e.target.value) }))}
+                className="min-h-11 w-full accent-[var(--quantity)]"
+              />
+            </div>
+          ))}
+        </div>
+      ) : null}
       <p className="mt-2 text-sm text-ink-2">{summary}</p>
     </figure>
   );

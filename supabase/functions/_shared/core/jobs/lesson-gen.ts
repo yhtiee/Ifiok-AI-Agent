@@ -18,17 +18,43 @@ export const lessonGenPayload = z.object({
   user_id: z.string().uuid().nullable().default(null),
 });
 
-// Until subjects carry a profile column (P1-02 remainder), STEM is decided by subject code.
+// Subject profile (F2-FR4: STEM / social science / humanities) from the controlled subject codes,
+// until subjects carry a profile column (P1-02 remainder). STEM = quantitative subjects whose lessons
+// get maths verification; every other profile gets the claim check (F2-FR5).
 const STEM_SUBJECTS = new Set([
   "mathematics",
+  "statistics",
   "physics",
   "chemistry",
-  "engineering",
-  "computer_science",
-  "statistics",
+  "computer-science",
+  "civil-engineering",
+  "chemical-engineering",
+  "electrical-engineering",
+  "mechanical-engineering",
+  "architecture",
   "economics",
   "accounting",
+  "banking-finance",
 ]);
+const SOCIAL_SUBJECTS = new Set([
+  "political-science",
+  "sociology",
+  "psychology",
+  "geography",
+  "mass-communication",
+  "business-administration",
+  "marketing",
+  "estate-management",
+  "education",
+  "law",
+]);
+
+export function subjectProfile(subject: string): "stem" | "social_science" | "humanities" {
+  const code = subject.toLowerCase();
+  if (STEM_SUBJECTS.has(code) || code.endsWith("-engineering")) return "stem";
+  if (SOCIAL_SUBJECTS.has(code)) return "social_science";
+  return "humanities";
+}
 
 const MSG = {
   failed: "Ifiok couldn't build this lesson just now. Read the quick explanation below, then try again.",
@@ -86,7 +112,7 @@ export function createLessonGenHandler(deps: LessonGenDeps): JobHandler {
         },
         course_context: course,
         chunks,
-        subject_profile: STEM_SUBJECTS.has(concept.subject.toLowerCase()) ? ("stem" as const) : ("humanities" as const),
+        subject_profile: subjectProfile(concept.subject),
       };
 
       let result;

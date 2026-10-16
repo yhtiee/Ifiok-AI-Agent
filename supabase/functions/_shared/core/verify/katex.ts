@@ -15,6 +15,7 @@ export type KatexRenderResult = {
  * Pre-renders LaTeX to sanitized HTML string with trust: false.
  */
 export function renderKatex(latex: string, display = true): KatexRenderResult {
+  if (latex.length > 2000) return { html: "", ok: false, error: "formula too long" };
   try {
     const html = katex.renderToString(latex, {
       displayMode: display,

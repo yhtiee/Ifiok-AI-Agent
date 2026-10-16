@@ -28,7 +28,8 @@ export function getGateway(): Gateway {
         event.type === "missing_price" ||
         event.type === "refund_failed" ||
         event.type === "provider_error" ||
-        event.type === "fallback_used"
+        event.type === "fallback_used" ||
+        event.type === "invalid_output"
       ) {
         console.warn("[ai]", event);
       }

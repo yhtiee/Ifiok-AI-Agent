@@ -73,11 +73,14 @@ describe("live gateway (Gemini)", () => {
       .eq("user_id", userId)
       .gte("created_at", since);
     expect(rows!.length).toBeGreaterThanOrEqual(2);
+    // The model comes from app_config.ai_routes (model IDs never live in code).
+    const { data: routes } = await db.from("app_config").select("value").eq("key", "ai_routes").single();
+    const moderate = (routes!.value as { moderate: { provider: string; model: string } }).moderate;
     for (const row of rows!) {
       expect(row).toMatchObject({
         feature: "moderate",
-        provider: "gemini",
-        model: "gemini-3.1-flash-lite",
+        provider: moderate.provider,
+        model: moderate.model,
         ok: true,
         prompt_version: 2,
       });

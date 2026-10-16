@@ -10,7 +10,7 @@ Ifiok is an AI learning agent for Nigerian university students (18+ at launch): 
 4. Report: what changed (files), how it was tested, any spec deviation.
 
 ## Stack (don't swap without a review-log entry)
-Next.js App Router + TypeScript strict (version pinned to what `@opennextjs/cloudflare` supports; use Edge `middleware.ts`, not Node `proxy.ts`) · Cloudflare Workers via `@opennextjs/cloudflare` · Supabase (Postgres, RLS, pgvector, pgmq, pg_cron, pg_net, Auth, Storage, Realtime, Edge Functions on Deno) · Tailwind v4 (tokens in `app/globals.css`) · Radix primitives · zod · TanStack Query · Zustand · mathjs · KaTeX · MathLive · Mafs · @react-three/fiber + drei · pdfjs-dist · ts-fsrs · Serwist + Dexie · Paystack · Resend · Sentry · PostHog. AI: our own gateway (`lib/ai`), Gemini paid tier by default, Claude Haiku 4.5 fallback; model IDs live in `app_config`, never in code.
+Next.js App Router + TypeScript strict (version pinned to what `@opennextjs/cloudflare` supports; use Edge `middleware.ts`, not Node `proxy.ts`) · Cloudflare Workers via `@opennextjs/cloudflare` · Supabase (Postgres, RLS, pgvector, pgmq, pg_cron, pg_net, Auth, Storage, Realtime, Edge Functions on Deno) · Tailwind v4 (tokens in `app/globals.css`) · Radix primitives · zod · TanStack Query · Zustand · mathjs · KaTeX · MathLive · Mafs · @react-three/fiber + drei · pdfjs-dist · ts-fsrs · Serwist + Dexie · Paystack · Resend · Sentry · PostHog. AI: our own gateway (`lib/ai`, code in `packages/core/src/ai`); during the pilot Groq is primary for text skills and Gemini the fallback, with image skills on Gemini (12 §4 Q35); model IDs live in `app_config`, never in code.
 
 ## Commands
 ```

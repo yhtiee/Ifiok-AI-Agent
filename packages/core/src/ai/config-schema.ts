@@ -14,7 +14,12 @@ export const routeSchema = z.object({
   batch: z.boolean().optional(),
 });
 
-export const fallbackRouteSchema = z.object({ provider: providerNameSchema, model: z.string().min(1) });
+export const fallbackRouteSchema = z.object({
+  provider: providerNameSchema,
+  model: z.string().min(1),
+  /** Optional: keeps a reasoning model's fallback calls fast (12 §4 Q35). */
+  thinking: thinkingLevelSchema.optional(),
+});
 
 /** `_fallback` is the default fallback; any other key is a skill name. */
 export const aiRoutesSchema = z.record(z.string(), z.unknown()).transform((raw, ctx) => {

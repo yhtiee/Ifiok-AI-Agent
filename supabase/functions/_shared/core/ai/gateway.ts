@@ -116,7 +116,9 @@ export type GatewayEvent =
   | { type: "missing_price"; provider: ProviderName; model: string }
   | { type: "redacted"; skill: SkillName; count: number }
   /** A backup provider answered after the primary failed (metadata only). */
-  | { type: "fallback_used"; skill: SkillName; provider: ProviderName; model: string };
+  | { type: "fallback_used"; skill: SkillName; provider: ProviderName; model: string }
+  /** A reply failed validation. `issues` are field paths and our own rule messages, never output text. */
+  | { type: "invalid_output"; skill: SkillName; provider: ProviderName; stage: "first" | "final"; issues: string[] };
 
 export type GatewayDeps = {
   config: ConfigReader;
@@ -390,6 +392,15 @@ export function createGateway(deps: GatewayDeps) {
 
     // 5. Parse and validate; one repair retry with the validator's messages, then fail.
     const first = parseOutput(response.text, skill);
+    const logInvalid = (stage: "first" | "final", errors: string[]) =>
+      log({
+        type: "invalid_output",
+        skill: skillName,
+        provider: used.provider.name,
+        stage,
+        issues: errors.slice(0, 8).map((e) => e.slice(0, 160)),
+      });
+    if (!first.ok) logInvalid("first", first.errors);
     if (first.ok) {
       return {
         output: first.value,
@@ -401,12 +412,27 @@ export function createGateway(deps: GatewayDeps) {
       };
     }
 
+    // A repair goes to the provider that answered. If that provider is rate-limited or down (a
+    // repair right after a long reply often hits a per-minute token limit), it goes to the other
+    // candidate instead, with the same repair prompt.
     const retry = async (user: string, maxTokens: number | undefined) => {
       try {
         return await call(used, user, maxTokens);
       } catch (err) {
         if (err instanceof ProviderError && err.kind === "blocked") throw new GatewayError("blocked", MESSAGES.blocked);
-        throw new GatewayError("provider_failed", MESSAGES.failed);
+        const other = candidates.find((c) => c !== used);
+        const canSwitch = err instanceof ProviderError && (err.status === 429 || err.retryable);
+        if (!other || !canSwitch) throw new GatewayError("provider_failed", MESSAGES.failed);
+        try {
+          const response = await call(other, user, maxTokens);
+          used = other;
+          log({ type: "fallback_used", skill: skillName, provider: other.provider.name, model: other.model });
+          return response;
+        } catch (err2) {
+          if (err2 instanceof ProviderError && err2.kind === "blocked")
+            throw new GatewayError("blocked", MESSAGES.blocked);
+          throw new GatewayError("provider_failed", MESSAGES.failed);
+        }
       }
     };
 
@@ -435,7 +461,10 @@ export function createGateway(deps: GatewayDeps) {
     const errors = latest.ok ? first.errors : latest.errors;
     const repairResponse = await retry(repairPrompt(prompt.user, response.text, errors), budget);
     const second = parseOutput(repairResponse.text, skill);
-    if (!second.ok) throw new GatewayError("invalid_output", MESSAGES.failed);
+    if (!second.ok) {
+      logInvalid("final", second.errors);
+      throw new GatewayError("invalid_output", MESSAGES.failed);
+    }
     return {
       output: second.value,
       provider: used.provider.name,

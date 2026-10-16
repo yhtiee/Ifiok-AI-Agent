@@ -6,6 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { lessonLabel } from "@/lib/lessons/label";
 import type { LessonRow } from "@/lib/lessons/types";
 import { BlockRenderer } from "./BlockRenderer";
+import { MathHtmlProvider } from "./RichText";
 import { FlagModal } from "./FlagModal";
 
 type PlayerProps = {
@@ -107,13 +108,15 @@ export function Player({ lesson, courseId, onFinish }: PlayerProps) {
               </div>
             }
           >
-            <div className="space-y-4">
-              {currentScreen?.blocks
-                .filter((b) => !lesson.hidden_blocks.includes(b.id))
-                .map((block) => (
-                  <BlockRenderer key={block.id} block={block} onFlag={(id) => setFlaggingBlockId(id)} />
-                ))}
-            </div>
+            <MathHtmlProvider value={lesson.spec.math_html}>
+              <div className="space-y-4">
+                {currentScreen?.blocks
+                  .filter((b) => !lesson.hidden_blocks.includes(b.id))
+                  .map((block) => (
+                    <BlockRenderer key={block.id} block={block} onFlag={(id) => setFlaggingBlockId(id)} />
+                  ))}
+              </div>
+            </MathHtmlProvider>
 
             <div className="mt-6 flex items-center justify-between gap-4 border-t border-line pt-4">
               <Button type="button" variant="secondary" onClick={handlePrev} disabled={screenIndex === 0}>

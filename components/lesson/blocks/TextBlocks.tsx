@@ -1,5 +1,6 @@
 "use client";
 
+import { RichText } from "../RichText";
 import type { BlockOf } from "./types";
 
 // Light, static blocks. Each is still its own lazy chunk entry in BlockRenderer.
@@ -8,7 +9,9 @@ export function ProseBlock({ block }: { block: BlockOf<"prose"> }) {
   return (
     <div className="space-y-3 text-base leading-relaxed text-ink">
       {block.md.split("\n\n").map((p, i) => (
-        <p key={i}>{p}</p>
+        <p key={i}>
+          <RichText text={p} />
+        </p>
       ))}
     </div>
   );
@@ -31,7 +34,9 @@ export function CalloutBlock({ block }: { block: BlockOf<"callout"> }) {
   return (
     <aside className={`rounded-lg border-l-4 p-4 ${tone}`}>
       <p className="text-sm font-semibold text-ink">{CALLOUT_LABEL[block.variant]}</p>
-      <p className="mt-1 text-base leading-relaxed text-ink">{block.md}</p>
+      <p className="mt-1 text-base leading-relaxed text-ink">
+        <RichText text={block.md} />
+      </p>
     </aside>
   );
 }
@@ -52,10 +57,14 @@ export function CompareBlock({ block }: { block: BlockOf<"compare"> }) {
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {[block.left, block.right].map((side, i) => (
         <div key={i} className="rounded-lg border border-line bg-paper p-4">
-          <h4 className={`mb-2 text-sm font-semibold ${i === 0 ? "text-quantity" : "text-change"}`}>{side.title}</h4>
+          <h4 className={`mb-2 text-sm font-semibold ${i === 0 ? "text-quantity" : "text-change"}`}>
+            <RichText text={side.title} />
+          </h4>
           <ul className="list-inside list-disc space-y-1 text-sm text-ink">
             {side.points.map((pt, j) => (
-              <li key={j}>{pt}</li>
+              <li key={j}>
+                <RichText text={pt} />
+              </li>
             ))}
           </ul>
         </div>
@@ -72,7 +81,7 @@ export function TableBlock({ block }: { block: BlockOf<"table"> }) {
           <tr className="border-b border-line text-ink-2">
             {block.columns.map((col, i) => (
               <th key={i} scope="col" className="pb-2 font-semibold">
-                {col}
+                <RichText text={col} />
               </th>
             ))}
           </tr>
@@ -82,7 +91,7 @@ export function TableBlock({ block }: { block: BlockOf<"table"> }) {
             <tr key={r}>
               {row.map((cell, c) => (
                 <td key={c} className="py-2 text-ink">
-                  {cell}
+                  <RichText text={cell} />
                 </td>
               ))}
             </tr>
@@ -98,8 +107,12 @@ export function TimelineBlock({ block }: { block: BlockOf<"timeline"> }) {
     <ol className="space-y-3 border-l-2 border-quantity pl-4">
       {block.events.map((e, i) => (
         <li key={i} className="text-base text-ink">
-          <span className="font-semibold text-quantity">{e.when}</span> · {e.label}
-          {e.detail ? <p className="text-sm text-ink-2">{e.detail}</p> : null}
+          <span className="font-semibold text-quantity">{e.when}</span> · <RichText text={e.label} />
+          {e.detail ? (
+            <p className="text-sm text-ink-2">
+              <RichText text={e.detail} />
+            </p>
+          ) : null}
         </li>
       ))}
     </ol>

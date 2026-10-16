@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { stripMathDelimiters } from "@ifiok/core/dsl/inline-math";
+import { Formula, RichText } from "../RichText";
 import type { BlockOf } from "./types";
 
 export function StepperBlock({ block }: { block: BlockOf<"stepper"> }) {
@@ -16,8 +18,10 @@ export function StepperBlock({ block }: { block: BlockOf<"stepper"> }) {
         {block.steps.slice(0, shown).map((s, i) => (
           <li key={i} className="text-base leading-relaxed text-ink">
             <span className="font-semibold text-quantity">Step {i + 1}. </span>
-            {s.why}
-            <div className="mt-1 overflow-x-auto rounded bg-quantity-soft p-2 text-sm text-quantity">{s.latex}</div>
+            <RichText text={s.why} />
+            <div className="mt-1 overflow-x-auto rounded bg-quantity-soft p-2 text-quantity">
+              <Formula latex={stripMathDelimiters(s.latex)} />
+            </div>
           </li>
         ))}
       </ol>

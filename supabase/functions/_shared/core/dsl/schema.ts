@@ -188,7 +188,10 @@ export const plotFunctionSchema = z.object({
 });
 
 export const plotParamSchema = z.object({
-  name: z.string().regex(/^[a-zA-Z]$/, { message: "Param name must be a single letter" }),
+  name: z.string().regex(/^[a-zA-Z]$/, {
+    message:
+      "Slider name must be ONE letter (for example a, k or T, not T1 or cp); rename it here and in every plotted expression that uses it",
+  }),
   min: z.number(),
   max: z.number(),
   step: z.number().positive(),
@@ -351,6 +354,8 @@ export const lessonSpecSchema = z
     est_minutes: z.number().int().min(5).max(20),
     screens: z.array(screenSchema).min(3).max(12),
     summary: z.array(z.string().trim().min(1)).min(2).max(4),
+    /** Server-added: inline formulas ($…$ in text) pre-rendered by KaTeX, keyed by their LaTeX. */
+    math_html: z.record(z.string(), z.string()).optional(),
   })
   .superRefine((lesson, ctx) => {
     // Checkpoint count requirement: >= 2 checkpoints per lesson (05 §3)

@@ -188,6 +188,21 @@ export function checkpointItems(
           answer: { answer_expr: item.answer_expr, vars: item.vars, why: item.why } as Json,
           verification: { type: "expression", answer_expr: item.answer_expr, vars: item.vars } as Json,
         });
+      } else if (item.type === "order" || item.type === "match") {
+        // 04 §4.3: order and match items always go to human review in P1 before practice uses them.
+        rows.push({
+          ...base,
+          status: "review",
+          block_id: block.id,
+          type: item.type,
+          stem: (item.type === "order"
+            ? { prompt: item.stem_md, steps: item.steps }
+            : { prompt: item.stem_md, pairs: item.pairs }) as Json,
+          answer: (item.type === "order"
+            ? { order: item.steps, why: item.why }
+            : { pairs: item.pairs, why: item.why }) as Json,
+          verification: { type: item.type } as Json,
+        });
       }
     }
   }

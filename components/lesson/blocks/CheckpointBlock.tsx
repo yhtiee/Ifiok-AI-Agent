@@ -1,6 +1,8 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
+import { numericMatches } from "@ifiok/core/dsl/numeric";
+import { RichText } from "../RichText";
 import type { BlockOf, CheckpointItem } from "./types";
 
 // Checkpoint feedback on the device. The server re-grades every attempt through /api/sync
@@ -34,12 +36,20 @@ export function CheckpointBlock({ block }: { block: BlockOf<"checkpoint"> }) {
       return <NumericCheckpoint item={item} />;
     case "expression":
       return <ExpressionCheckpoint item={item} />;
+    case "order":
+      return <OrderCheckpoint item={item} seed={block.id} />;
+    case "match":
+      return <MatchCheckpoint item={item} seed={block.id} />;
     default:
-      // short_text, order and match get their own renderers with the practice items (P1-04).
+      // short_text needs the AI answer check (P1-04); show the model answer for now.
       return (
         <div className="space-y-2">
-          <p className="text-base font-semibold text-ink">{item.stem_md}</p>
-          <p className="rounded-lg bg-paper p-3 text-base text-ink-2">{item.why}</p>
+          <p className="text-base font-semibold text-ink">
+            <RichText text={item.stem_md} />
+          </p>
+          <p className="rounded-lg bg-paper p-3 text-base text-ink-2">
+            <RichText text={item.why} />
+          </p>
         </div>
       );
   }
@@ -52,7 +62,9 @@ function McqCheckpoint({ item }: { item: CheckpointItem<"mcq"> }) {
 
   return (
     <fieldset className="space-y-3">
-      <legend className="text-base font-semibold text-ink">{item.stem_md}</legend>
+      <legend className="text-base font-semibold text-ink">
+        <RichText text={item.stem_md} />
+      </legend>
       <div className="space-y-2">
         {item.options.map((opt) => {
           const isSelected = selected === opt.id;
@@ -75,7 +87,9 @@ function McqCheckpoint({ item }: { item: CheckpointItem<"mcq"> }) {
               onClick={() => setSelected(opt.id)}
               className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border p-3 text-left text-base text-ink ${tone}`}
             >
-              <span>{opt.md}</span>
+              <span>
+                <RichText text={opt.md} />
+              </span>
               {submitted && isCorrect ? <span className="text-sm font-semibold text-ok">Correct answer</span> : null}
               {submitted && isSelected && !isCorrect ? (
                 <span className="text-sm font-semibold text-bad">Your answer</span>
@@ -89,7 +103,9 @@ function McqCheckpoint({ item }: { item: CheckpointItem<"mcq"> }) {
           Check answer
         </button>
       ) : chosen ? (
-        <Feedback correct={chosen.id === item.correct}>{chosen.why}</Feedback>
+        <Feedback correct={chosen.id === item.correct}>
+          <RichText text={chosen.why} />
+        </Feedback>
       ) : null}
     </fieldset>
   );
@@ -103,14 +119,13 @@ function NumericCheckpoint({ item }: { item: CheckpointItem<"numeric"> }) {
   const check = () => {
     const n = Number(value.trim().replace(/,/g, ""));
     if (value.trim() === "" || !Number.isFinite(n)) return setResult("invalid");
-    const tol = Math.max(item.tolerance?.abs ?? 0, (item.tolerance?.rel ?? 0) * Math.abs(item.stated), 1e-4);
-    setResult(Math.abs(n - item.stated) <= tol ? "correct" : "wrong");
+    setResult(numericMatches(n, item.stated, item.tolerance) ? "correct" : "wrong");
   };
 
   return (
     <div className="space-y-3">
       <label htmlFor={id} className="block text-base font-semibold text-ink">
-        {item.stem_md}
+        <RichText text={item.stem_md} />
       </label>
       <div className="flex gap-2">
         <input
@@ -129,11 +144,15 @@ function NumericCheckpoint({ item }: { item: CheckpointItem<"numeric"> }) {
         </button>
       </div>
       {result === "invalid" ? <p className="text-base text-bad">Enter a number, for example 2.5.</p> : null}
-      {result === "correct" ? <Feedback correct>{item.why}</Feedback> : null}
+      {result === "correct" ? (
+        <Feedback correct>
+          <RichText text={item.why} />
+        </Feedback>
+      ) : null}
       {result === "wrong" ? (
         <Feedback correct={false}>
           The answer is {item.stated}
-          {item.unit ? ` ${item.unit}` : ""}. {item.why}
+          {item.unit ? ` ${item.unit}` : ""}. <RichText text={item.why} />
         </Feedback>
       ) : null}
     </div>
@@ -161,7 +180,7 @@ function ExpressionCheckpoint({ item }: { item: CheckpointItem<"expression"> }) 
   return (
     <div className="space-y-3">
       <label htmlFor={id} className="block text-base font-semibold text-ink">
-        {item.stem_md}
+        <RichText text={item.stem_md} />
       </label>
       <div className="flex gap-2">
         <input
@@ -181,10 +200,14 @@ function ExpressionCheckpoint({ item }: { item: CheckpointItem<"expression"> }) 
           Check
         </button>
       </div>
-      {result === "correct" ? <Feedback correct>{item.why}</Feedback> : null}
+      {result === "correct" ? (
+        <Feedback correct>
+          <RichText text={item.why} />
+        </Feedback>
+      ) : null}
       {result === "wrong" ? (
         <Feedback correct={false}>
-          One answer is {item.answer_expr}. {item.why}
+          One answer is {item.answer_expr}. <RichText text={item.why} />
         </Feedback>
       ) : null}
       {result === "unknown" ? (
@@ -193,6 +216,174 @@ function ExpressionCheckpoint({ item }: { item: CheckpointItem<"expression"> }) 
           again.
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/** Deterministic shuffle (same order on every render and device), never the answer order. */
+function shuffled<T>(items: readonly T[], seed: string): T[] {
+  let h = 2166136261;
+  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    const j = Math.abs(h) % (i + 1);
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  if (out.length > 1 && out.every((v, i) => v === items[i])) out.push(out.shift()!);
+  return out;
+}
+
+/** Put the steps in order: move each step up or down (buttons, not drag, so it works everywhere). */
+function OrderCheckpoint({ item, seed }: { item: CheckpointItem<"order">; seed: string }) {
+  const [order, setOrder] = useState(() => shuffled(item.steps, seed));
+  const [submitted, setSubmitted] = useState(false);
+  const correct = order.every((s, i) => s === item.steps[i]);
+
+  const move = (i: number, by: -1 | 1) => {
+    const j = i + by;
+    if (j < 0 || j >= order.length) return;
+    const next = [...order];
+    [next[i], next[j]] = [next[j]!, next[i]!];
+    setOrder(next);
+    setSubmitted(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-base font-semibold text-ink">
+        <RichText text={item.stem_md} />
+      </p>
+      <ol className="space-y-2">
+        {order.map((step, i) => {
+          const right = step === item.steps[i];
+          return (
+            <li
+              key={`${i}:${step}`}
+              className={`flex items-center gap-2 rounded-lg border p-2 ${
+                submitted ? (right ? "border-ok bg-built-soft" : "border-bad bg-change-soft") : "border-line bg-paper"
+              }`}
+            >
+              <span className="w-6 text-center text-sm text-ink-2 tabular-nums">{i + 1}</span>
+              <span className="flex-1 text-base text-ink">
+                <RichText text={step} />
+              </span>
+              {submitted ? (
+                <span className={`text-sm font-semibold ${right ? "text-ok" : "text-bad"}`}>
+                  {right ? "Right place" : "Wrong place"}
+                </span>
+              ) : (
+                <span className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => move(i, -1)}
+                    disabled={i === 0}
+                    aria-label={`Move step ${i + 1} up`}
+                    className="min-h-11 min-w-11 rounded-md border border-line text-ink disabled:text-ink-3"
+                  >
+                    Up
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(i, 1)}
+                    disabled={i === order.length - 1}
+                    aria-label={`Move step ${i + 1} down`}
+                    className="min-h-11 min-w-11 rounded-md border border-line text-ink disabled:text-ink-3"
+                  >
+                    Down
+                  </button>
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {!submitted ? (
+        <button type="button" onClick={() => setSubmitted(true)} className={checkClass}>
+          Check order
+        </button>
+      ) : (
+        <>
+          <Feedback correct={correct}>
+            <RichText text={item.why} />
+          </Feedback>
+          {!correct ? (
+            <button
+              type="button"
+              onClick={() => setSubmitted(false)}
+              className="min-h-11 text-sm font-semibold text-change"
+            >
+              Try again
+            </button>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Match each item on the left to one on the right. */
+function MatchCheckpoint({ item, seed }: { item: CheckpointItem<"match">; seed: string }) {
+  const id = useId();
+  const rights = shuffled(
+    item.pairs.map(([, r]) => r),
+    seed,
+  );
+  const [picks, setPicks] = useState<Record<number, string>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const complete = item.pairs.every((_, i) => picks[i]);
+  const allRight = item.pairs.every(([, r], i) => picks[i] === r);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-base font-semibold text-ink">
+        <RichText text={item.stem_md} />
+      </p>
+      <ul className="space-y-2">
+        {item.pairs.map(([left, right], i) => {
+          const ok = picks[i] === right;
+          return (
+            <li
+              key={left}
+              className={`grid gap-2 rounded-lg border p-3 sm:grid-cols-[1fr_1fr] sm:items-center ${
+                submitted ? (ok ? "border-ok bg-built-soft" : "border-bad bg-change-soft") : "border-line bg-paper"
+              }`}
+            >
+              <label htmlFor={`${id}-${i}`} className="text-base text-ink">
+                <RichText text={left} />
+              </label>
+              <select
+                id={`${id}-${i}`}
+                value={picks[i] ?? ""}
+                disabled={submitted}
+                onChange={(e) => setPicks({ ...picks, [i]: e.target.value })}
+                className="min-h-11 rounded-lg border border-line bg-surface px-2 text-base text-ink"
+              >
+                <option value="">Choose a match</option>
+                {rights.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+              {submitted && !ok ? (
+                <p className="text-sm text-ink sm:col-span-2">
+                  Matches: <RichText text={right} />
+                </p>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+      {!submitted ? (
+        <button type="button" disabled={!complete} onClick={() => setSubmitted(true)} className={checkClass}>
+          Check matches
+        </button>
+      ) : (
+        <Feedback correct={allRight}>
+          <RichText text={item.why} />
+        </Feedback>
+      )}
     </div>
   );
 }

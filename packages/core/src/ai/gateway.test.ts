@@ -291,6 +291,25 @@ describe("routing and retries", () => {
 });
 
 describe("output validation", () => {
+  it("sends the repair to the backup provider when the first provider is rate-limited", async () => {
+    const t = setup({
+      gemini: [ok('{"wrong":1}'), new ProviderError("per-minute token limit", "http", 429)],
+      anthropic: [ok('{"answer":"fixed by backup"}')],
+    });
+    const result = await run(t.gateway, "tutor_chat");
+    expect(result).toMatchObject({ output: { answer: "fixed by backup" }, provider: "anthropic", repaired: true });
+    expect(t.anthropic.requests[0]!.user).toContain("could not be used");
+    expect(t.events).toContainEqual(expect.objectContaining({ type: "fallback_used", provider: "anthropic" }));
+  });
+
+  it("logs validation issues as field paths only, never the reply text", async () => {
+    const t = setup({ gemini: [ok('{"secret student text":1}'), ok('{"answer":"ok"}')] });
+    await run(t.gateway, "tutor_chat");
+    const event = t.events.find((e) => (e as { type: string }).type === "invalid_output") as { issues: string[] };
+    expect(event.issues.join(" ")).toMatch(/answer/);
+    expect(JSON.stringify(event)).not.toContain("secret student text");
+  });
+
   it("invalid JSON triggers one repair retry with the errors, then succeeds", async () => {
     const t = setup({ gemini: [ok("Sure! Here you go"), ok('```json\n{"answer":"fixed"}\n```')] });
     const result = await run(t.gateway, "tutor_chat");

@@ -34,7 +34,8 @@ const RENDERERS: Partial<Record<Block["type"], Renderer>> = {
   reveal: lazy(() => import("./blocks/RevealBlock").then((m) => m.RevealBlock as Renderer)),
   flashcards: lazy(() => import("./blocks/FlashcardsBlock").then((m) => m.FlashcardsBlock as Renderer)),
   checkpoint: lazy(() => import("./blocks/CheckpointBlock").then((m) => m.CheckpointBlock as Renderer)),
-  // diagram and sim arrive with their tickets (labs: P1-08); until then the fallback shows.
+  diagram: lazy(() => import("./blocks/DiagramBlock").then((m) => m.DiagramBlock as Renderer)),
+  // sim arrives with the labs (P1-08); until then the fallback shows.
 };
 
 type BlockRendererProps = {

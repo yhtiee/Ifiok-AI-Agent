@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RichText } from "../RichText";
 import type { BlockOf } from "./types";
 
 export function FlashcardsBlock({ block }: { block: BlockOf<"flashcards"> }) {
@@ -25,7 +26,9 @@ export function FlashcardsBlock({ block }: { block: BlockOf<"flashcards"> }) {
         <span className="mb-1 text-sm text-ink-3">
           Card {index + 1} of {block.cards.length} · {flipped ? "back" : "front, tap to turn over"}
         </span>
-        <span className="text-base font-semibold text-ink">{flipped ? card.back : card.front}</span>
+        <span className="text-base font-semibold text-ink">
+          <RichText text={flipped ? card.back : card.front} />
+        </span>
       </button>
       {block.cards.length > 1 ? (
         <div className="flex justify-between">

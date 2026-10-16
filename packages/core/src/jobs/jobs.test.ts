@@ -277,3 +277,15 @@ describe("secondsUntilLagosMidnight", () => {
     expect(secondsUntilLagosMidnight(new Date("2026-10-16T23:00:00Z"))).toBe(86_400);
   });
 });
+
+describe("subjectProfile", () => {
+  it("maps the real subject codes to the three profiles", async () => {
+    const { subjectProfile } = await import("./lesson-gen");
+    expect(subjectProfile("mechanical-engineering")).toBe("stem");
+    expect(subjectProfile("computer-science")).toBe("stem");
+    expect(subjectProfile("political-science")).toBe("social_science");
+    expect(subjectProfile("law")).toBe("social_science");
+    expect(subjectProfile("history")).toBe("humanities");
+    expect(subjectProfile("biology")).toBe("humanities");
+  });
+});

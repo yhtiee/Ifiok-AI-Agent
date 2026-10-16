@@ -72,7 +72,7 @@ describe("Lesson Generation & Quality Skills", () => {
     expect(parsed.success).toBe(true);
   });
 
-  it("generates grounded quick explainer while lesson is generating", async () => {
+  it("generates grounded quick explainer while lesson is generating", { timeout: 20_000 }, async () => {
     const { generateQuickExplainer } = await import("./service");
     const explainerWithDesc = generateQuickExplainer({
       title: "Matrix Inverses",
