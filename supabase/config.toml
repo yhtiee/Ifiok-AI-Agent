@@ -436,3 +436,8 @@ enabled = true
 # Server-to-server only; it checks INTERNAL_FUNCTION_SECRET itself (new-style API keys aren't JWTs).
 [functions.embed]
 verify_jwt = false
+
+# The job worker (02 §4). Woken by pg_net (enqueue trigger) and pg_cron (sweeper); it checks
+# INTERNAL_FUNCTION_SECRET itself.
+[functions.worker]
+verify_jwt = false

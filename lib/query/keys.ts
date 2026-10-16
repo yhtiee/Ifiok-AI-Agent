@@ -15,6 +15,8 @@ const concepts = {
   all: () => ["concepts"] as const,
   followed: () => [...concepts.all(), "followed"] as const,
   detail: (conceptId: string) => [...concepts.all(), "detail", conceptId] as const,
+  /** Where the concept's shared lesson stands (published, generating, waiting, review, failed). */
+  lesson: (conceptId: string) => [...concepts.detail(conceptId), "lesson"] as const,
 };
 
 const lessons = {

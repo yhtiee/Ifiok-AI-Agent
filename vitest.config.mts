@@ -14,6 +14,6 @@ export default defineConfig({
     environment: "node",
     include: ["**/*.test.{ts,tsx}"],
     // Integration tests hit real services: run them with `pnpm test:integration`.
-    exclude: ["node_modules/**", ".next/**", "e2e/**", "**/*.integration.test.ts", "**/integration.test.ts"],
+    exclude: ["**/node_modules/**", ".next/**", "e2e/**", "**/*.integration.test.ts", "**/integration.test.ts"],
   },
 });

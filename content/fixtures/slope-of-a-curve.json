@@ -1,0 +1,156 @@
+{
+  "dsl_version": 1,
+  "title": "The slope of a curve",
+  "objective": "You'll be able to find the slope of y = x² at any point.",
+  "subject_profile": "stem",
+  "est_minutes": 8,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [
+        {
+          "id": "s1b1",
+          "type": "prose",
+          "md": "A straight line has one slope everywhere. A curve's steepness keeps changing. Drag the point and watch the orange line."
+        },
+        {
+          "id": "s1b2",
+          "type": "plot",
+          "x": [-3, 3],
+          "y": [-1, 9],
+          "functions": [
+            {
+              "expr": "x^2",
+              "role": "quantity",
+              "label": "y = x²"
+            }
+          ],
+          "params": [
+            {
+              "name": "a",
+              "min": -2.5,
+              "max": 2.5,
+              "step": 0.05,
+              "value": 1,
+              "label": "Point x"
+            }
+          ],
+          "annotations": [
+            {
+              "kind": "tangent",
+              "at_expr": "a",
+              "of": "x^2"
+            }
+          ],
+          "caption": "The orange line touches the curve at one point: the tangent."
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        {
+          "id": "s2b1",
+          "type": "stepper",
+          "check": "equivalence",
+          "steps": [
+            {
+              "latex": "\\frac{(x+h)^2 - x^2}{h}",
+              "mathjs": "((x+h)^2 - x^2)/h",
+              "why": "Slope between x and x + h."
+            },
+            {
+              "latex": "\\frac{2xh + h^2}{h}",
+              "mathjs": "(2*x*h + h^2)/h",
+              "why": "Expand; the x² terms cancel."
+            },
+            {
+              "latex": "2x + h",
+              "mathjs": "2*x + h",
+              "why": "Divide each term by h."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        {
+          "id": "s3b1",
+          "type": "checkpoint",
+          "item": {
+            "type": "numeric",
+            "stem_md": "What is the slope of $y = x^2$ at $x = 1.5$?",
+            "answer_expr": "2*1.5",
+            "stated": 3,
+            "why": "The slope is 2x, and 2 × 1.5 = 3."
+          }
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "blocks": [
+        {
+          "id": "s4b1",
+          "type": "callout",
+          "variant": "tip",
+          "md": "As $h$ approaches zero, the secant line between the two points turns into the tangent line."
+        },
+        {
+          "id": "s4b2",
+          "type": "prose",
+          "md": "When $h = 0$, the expression $2x + h$ simply becomes $2x$. This gives us an exact formula for the slope at any point."
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "blocks": [
+        {
+          "id": "s5b1",
+          "type": "reveal",
+          "prompt": "What happens to the slope when x is negative?",
+          "md": "Since the slope is $2x$, when $x < 0$ the slope is negative, meaning the curve slopes downwards from left to right."
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "blocks": [
+        {
+          "id": "s6b1",
+          "type": "checkpoint",
+          "item": {
+            "type": "mcq",
+            "stem_md": "What is the slope of $y = x^2$ at $x = -2$?",
+            "options": [
+              {
+                "id": "opt1",
+                "md": "4",
+                "why": "Remember to multiply by the negative sign: 2(-2) = -4."
+              },
+              {
+                "id": "opt2",
+                "md": "-4",
+                "why": "Correct! The slope formula is 2x, so 2(-2) = -4."
+              },
+              {
+                "id": "opt3",
+                "md": "-2",
+                "why": "Don't forget to multiply by 2."
+              }
+            ],
+            "correct": "opt2"
+          }
+        }
+      ]
+    }
+  ],
+  "summary": [
+    "The slope of a curve at a point is the slope of its tangent.",
+    "For y = x², the slope formula is 2x.",
+    "Positive x means rising slope; negative x means falling slope."
+  ]
+}

@@ -1,6 +1,14 @@
 "use client";
 
-import { CameraIcon, ListChecksIcon, LockSimpleIcon, NotePencilIcon, PencilSimpleIcon } from "@phosphor-icons/react";
+import {
+  ArrowRightIcon,
+  CameraIcon,
+  ListChecksIcon,
+  LockSimpleIcon,
+  NotePencilIcon,
+  PencilSimpleIcon,
+} from "@phosphor-icons/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { EmptyState, Panel } from "@/components/app/Page";
@@ -16,6 +24,7 @@ type Topic = {
   title: string;
   week: number | null;
   description: string | null;
+  conceptId: string | null;
   conceptTitle: string | null;
   hasLesson: boolean;
 };
@@ -194,18 +203,39 @@ export function OutlineWorkspace({ courseId, courseCode, isMember, locked, isDra
             </div>
           ) : null}
           <ol className="grid divide-y divide-line">
-            {topics.map((t, i) => (
-              <li key={t.id} className="grid grid-cols-[3.25rem_1fr] gap-3 py-3">
-                <span className="pt-0.5 text-sm text-ink-2 tabular-nums">{t.week ? `Wk ${t.week}` : `#${i + 1}`}</span>
-                <span className="grid gap-0.5">
-                  <span className="text-base font-semibold">{t.title}</span>
-                  {t.description ? <span className="text-sm text-ink-2">{t.description}</span> : null}
-                  <span className="text-xs text-ink-3">
-                    {t.hasLesson ? "Lesson ready" : "Lesson builds on first open"}
+            {topics.map((t, i) => {
+              const rowContent = (
+                <>
+                  <span className="pt-0.5 text-sm text-ink-2 tabular-nums">
+                    {t.week ? `Wk ${t.week}` : `#${i + 1}`}
                   </span>
-                </span>
-              </li>
-            ))}
+                  <span className="grid min-w-0 flex-1 gap-0.5">
+                    <span className="text-base font-semibold">{t.title}</span>
+                    {t.description ? <span className="text-sm text-ink-2">{t.description}</span> : null}
+                    <span className="text-xs text-ink-3">
+                      {t.hasLesson ? "Lesson ready" : "Lesson builds on first open"}
+                    </span>
+                  </span>
+                  {t.conceptId ? (
+                    <ArrowRightIcon size={18} className="mt-1 shrink-0 text-ink-2" aria-hidden="true" />
+                  ) : null}
+                </>
+              );
+              return (
+                <li key={t.id}>
+                  {t.conceptId ? (
+                    <Link
+                      href={`/learn/${t.conceptId}?course=${courseId}`}
+                      className="grid grid-cols-[3.25rem_1fr_auto] items-start gap-3 py-3 hover:underline"
+                    >
+                      {rowContent}
+                    </Link>
+                  ) : (
+                    <div className="grid grid-cols-[3.25rem_1fr] gap-3 py-3">{rowContent}</div>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </>
       ) : isMember ? (

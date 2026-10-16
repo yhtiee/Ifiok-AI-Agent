@@ -3,9 +3,18 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Pure TypeScript shared by the Next app and Supabase Edge Functions (specifications/02-architecture.md §3). No Node or browser APIs.",
+  "description": "Pure TypeScript shared by the Next app and Supabase Edge Functions (specifications/02-architecture.md \u00c2\u00a73). No Node or browser APIs.",
   "exports": {
     ".": "./src/index.ts",
     "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
+    "katex": "^0.19.0",
+    "mathjs": "^15.2.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.8"
   }
 }

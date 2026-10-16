@@ -2,3 +2,5 @@ packages:
   - packages/*
 allowBuilds:
   unrs-resolver: true
+  # Install script only re-checks the binary its platform package already ships.
+  esbuild: false

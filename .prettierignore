@@ -6,9 +6,11 @@ specifications/
 .next/
 node_modules/
 pnpm-lock.yaml
-lib/supabase/types.ts
+packages/core/src/db/types.ts
 supabase/.temp/
 assets/
 playwright-report/
 test-results/
 next-env.d.ts
+content/fixtures/invalid/
+supabase/functions/_shared/

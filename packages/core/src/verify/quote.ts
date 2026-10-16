@@ -1,0 +1,14 @@
+/**
+ * Verifies that a source quote is an exact substring of the cited chunk content
+ * after whitespace normalization (specifications/05-lesson-and-lab-engine.md §6).
+ */
+export function checkQuote(quote: string, chunkContent: string): boolean {
+  if (!quote || !chunkContent) return false;
+
+  const normalizeWhitespace = (str: string) => str.replace(/\s+/g, " ").trim().toLowerCase();
+
+  const normQuote = normalizeWhitespace(quote);
+  const normChunk = normalizeWhitespace(chunkContent);
+
+  return normChunk.includes(normQuote);
+}

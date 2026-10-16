@@ -1,0 +1,39 @@
+{
+  "dsl_version": 1,
+  "title": "MCQ invalid correct ID",
+  "objective": "Test rejection of MCQ item whose correct ID does not match any option ID.",
+  "subject_profile": "humanities",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [{ "id": "s1b1", "type": "prose", "md": "Screen 1 content" }]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        {
+          "id": "s2b1",
+          "type": "checkpoint",
+          "item": {
+            "type": "mcq",
+            "stem_md": "Question?",
+            "options": [
+              { "id": "optA", "md": "Option A", "why": "Why A" },
+              { "id": "optB", "md": "Option B", "why": "Why B" }
+            ],
+            "correct": "optZ"
+          }
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        { "id": "s3b1", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q2", "key_ideas": ["B"], "why": "Exp" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2"]
+}
+

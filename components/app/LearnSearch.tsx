@@ -46,8 +46,7 @@ export function LearnSearch({ universityName, myCourseIds }: Props) {
           setNotice(`“${topic}” covers a lot. Pick a narrower topic to start with:`);
         } else {
           setQuery("");
-          setNotice(`You're following “${result.concept.title}”. Its lesson is built when you first open it.`);
-          router.refresh();
+          router.push(`/learn/${result.concept.id}`);
         }
       },
       onError: (err) => setNotice(err instanceof ApiError ? err.message : "Couldn't add that topic. Try again."),

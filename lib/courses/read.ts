@@ -118,6 +118,7 @@ export async function getCourseView(viewer: Viewer, courseId: string) {
       title: t.title,
       week: t.week,
       description: t.description,
+      conceptId: t.concept_id,
       conceptTitle: t.concepts?.title ?? null,
       hasLesson: Boolean(t.concepts?.current_lesson_id),
     })),

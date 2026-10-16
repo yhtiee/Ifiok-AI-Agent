@@ -1,0 +1,31 @@
+{
+  "dsl_version": 1,
+  "title": "LaTeX formfeed control character",
+  "objective": "Test rejection of unescaped LaTeX \\frac creating formfeed control character.",
+  "subject_profile": "stem",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [
+        { "id": "s1b1", "type": "prose", "md": "Formula intro." },
+        { "id": "s1b2", "type": "math", "latex": "\frac{1}{2}", "display": true }
+      ]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        { "id": "s2b1", "type": "checkpoint", "item": { "type": "numeric", "stem_md": "1/2?", "answer_expr": "0.5", "stated": 0.5, "why": "Half" } }
+      ]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        { "id": "s3b1", "type": "reveal", "prompt": "Check?", "md": "Done." },
+        { "id": "s3b2", "type": "checkpoint", "item": { "type": "numeric", "stem_md": "2/4?", "answer_expr": "0.5", "stated": 0.5, "why": "Half" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2"]
+}
+

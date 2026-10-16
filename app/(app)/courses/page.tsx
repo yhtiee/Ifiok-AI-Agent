@@ -74,17 +74,19 @@ export default async function CoursesPage() {
           {topics.length ? (
             <ul className="grid divide-y divide-line">
               {topics.map((t) => (
-                <li key={t.id} className="flex min-h-14 items-start gap-3 py-3">
-                  <span
-                    aria-hidden="true"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-built-soft text-built"
-                  >
-                    <TargetIcon size={22} />
-                  </span>
-                  <span className="grid gap-0.5">
-                    <span className="text-base font-semibold">{t.title}</span>
-                    {t.description ? <span className="text-sm text-ink-2">{t.description}</span> : null}
-                  </span>
+                <li key={t.id}>
+                  <Link href={`/learn/${t.id}`} className="flex min-h-14 items-start gap-3 py-3 hover:underline">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-built-soft text-built"
+                    >
+                      <TargetIcon size={22} />
+                    </span>
+                    <span className="grid gap-0.5">
+                      <span className="text-base font-semibold">{t.title}</span>
+                      {t.description ? <span className="text-sm text-ink-2">{t.description}</span> : null}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

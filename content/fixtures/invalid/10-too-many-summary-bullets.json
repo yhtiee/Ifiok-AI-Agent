@@ -1,0 +1,27 @@
+{
+  "dsl_version": 1,
+  "title": "Too many summary bullets",
+  "objective": "Test rejection of summary with more than 4 bullets.",
+  "subject_profile": "humanities",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [{ "id": "s1b1", "type": "prose", "md": "Screen 1 content" }]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        { "id": "s2b1", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q1", "key_ideas": ["A"], "why": "Exp" } }
+      ]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        { "id": "s3b1", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q2", "key_ideas": ["B"], "why": "Exp" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2", "Bullet 3", "Bullet 4", "Bullet 5"]
+}
+

@@ -1,0 +1,90 @@
+import type { Json } from "../db/types";
+
+// The job system's contracts (02 §4), shared by the worker Edge Function and the tests.
+
+/** Every queue in 02 §4. Only some have handlers yet; the rest arrive with their tickets. */
+export const QUEUES = [
+  "lesson_gen",
+  "items_gen",
+  "ocr",
+  "curate",
+  "mark_transcribe",
+  "mark_verify",
+  "exam_extract",
+  "embed",
+  "notify",
+  "payouts",
+  "noop",
+] as const;
+export type QueueName = (typeof QUEUES)[number];
+
+/** Heavy queues read one message per invocation; light ones up to 5 (02 §4). */
+export const HEAVY_QUEUES: ReadonlySet<QueueName> = new Set([
+  "lesson_gen",
+  "items_gen",
+  "mark_transcribe",
+  "mark_verify",
+  "ocr",
+  "curate",
+  "exam_extract",
+]);
+export const LIGHT_BATCH = 5;
+
+/** A run that crashes reappears after this many seconds (pgmq visibility timeout). */
+export const VISIBILITY_TIMEOUT_S = 180;
+/** After this many attempts a job ends `failed` and the student sees a retry. */
+export const MAX_ATTEMPTS = 3;
+/** Each invocation stops starting work after this (free plan wall clock is 150 s). */
+export const WORKER_DEADLINE_MS = 130_000;
+/** Don't start a heavy job with less time than this left; it waits for the next invocation. */
+export const HEAVY_JOB_BUDGET_MS = 110_000;
+/** A retry waits this long before the message is visible again. */
+export const RETRY_BACKOFF_S = 30;
+
+/** One claimed job: its pgmq message and the `jobs` row it tracks. */
+export type ClaimedJob = {
+  queue: QueueName;
+  msgId: number;
+  jobId: string;
+  /** Attempts so far, including this one. */
+  attempts: number;
+  ownerId: string | null;
+  payload: unknown;
+};
+
+export type HandlerOutcome =
+  | { kind: "done"; result: Json }
+  /** Not a failure: park the job (e.g. library budget used up) and try again later. */
+  | { kind: "defer"; seconds: number; result: Json };
+
+export type JobHandler = {
+  run(job: ClaimedJob): Promise<HandlerOutcome>;
+  /** Runs once when the job ends `failed` (e.g. refund the quota). */
+  giveUp?(job: ClaimedJob): Promise<void>;
+};
+
+/**
+ * A handler failure. `userMessage` is what the student sees on the job; `retryable: false` ends the
+ * job at once (bad payload, missing data) instead of retrying.
+ */
+export class JobFailure extends Error {
+  constructor(
+    message: string,
+    readonly userMessage: string,
+    readonly retryable = true,
+  ) {
+    super(message);
+    this.name = "JobFailure";
+  }
+}
+
+export const DEFAULT_FAILURE_MESSAGE = "Ifiok couldn't finish this just now. Try again in a minute.";
+
+/** The queue operations the runner needs (SQL `worker_*` functions over pgmq). */
+export interface WorkerQueue {
+  read(queue: QueueName, visibilityTimeoutS: number, qty: number): Promise<ClaimedJob[]>;
+  complete(job: ClaimedJob, result: Json): Promise<void>;
+  /** final = true ends the job `failed`; otherwise the message reappears after `retryAfterS`. */
+  fail(job: ClaimedJob, error: string, final: boolean, retryAfterS: number): Promise<void>;
+  defer(job: ClaimedJob, seconds: number, result: Json): Promise<void>;
+}

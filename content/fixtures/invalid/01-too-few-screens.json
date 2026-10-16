@@ -1,0 +1,24 @@
+{
+  "dsl_version": 1,
+  "title": "Too few screens",
+  "objective": "Test schema minimum screens requirement.",
+  "subject_profile": "humanities",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [
+        { "id": "s1b1", "type": "prose", "md": "Screen 1 content" },
+        { "id": "s1b2", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q1", "key_ideas": ["A"], "why": "Explanation" } }
+      ]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        { "id": "s2b1", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q2", "key_ideas": ["B"], "why": "Explanation" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2"]
+}
+

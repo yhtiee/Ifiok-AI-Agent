@@ -1,0 +1,25 @@
+{
+  "dsl_version": 1,
+  "title": "Too few checkpoints",
+  "objective": "Test schema requirement of at least 2 checkpoints.",
+  "subject_profile": "humanities",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [{ "id": "s1b1", "type": "prose", "md": "Screen 1 content" }]
+    },
+    {
+      "id": "s2",
+      "blocks": [{ "id": "s2b1", "type": "reveal", "prompt": "Prompt?", "md": "Answer." }]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        { "id": "s3b1", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q1", "key_ideas": ["Idea"], "why": "Explanation" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2"]
+}
+

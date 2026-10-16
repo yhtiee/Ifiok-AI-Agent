@@ -1,5 +1,2 @@
-// Consent versions (F0-FR3, 08 §4). Bump CONSENT_VERSION when the legal pages change: every user
-// is asked to agree again on their next visit. "draft" until the owner's legal review (OWN-06).
-export const CONSENT_VERSION = "2026-10-gemini-free-draft";
-export const REQUIRED_CONSENTS = ["terms", "privacy", "ai_disclosure"] as const;
-export type RequiredConsent = (typeof REQUIRED_CONSENTS)[number];
+// Lives in packages/core so the worker Edge Function checks the same consent version.
+export * from "@ifiok/core/consent";

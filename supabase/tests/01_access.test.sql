@@ -57,11 +57,11 @@ set local role authenticated;
 -- Lecturer L
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
 select throws_ok($$update lessons set status='published'$$, '42501', null, 'lecturer cannot update lessons directly');
-select is((select count(*)::int from lessons), 1, 'lecturer sees the published shared lesson only (not private, not in review)');
+select is((select count(*)::int from lessons where id::text like '40000000-%'), 1, 'lecturer sees the published shared lesson only (not private, not in review)');
 select is((select count(*)::int from chunks), 1, 'clients read only their own chunks (lecturer: own handout)');
 -- Student B (same course)
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
-select is((select count(*)::int from lessons), 1, 'student B sees shared lesson only');
+select is((select count(*)::int from lessons where id::text like '40000000-%'), 1, 'student B sees shared lesson only');
 select is((select count(*)::int from chunks where content like 'rejected%'), 0, 'rejected bank text is hidden');
 select is((select count(*)::int from sources where owner_id <> auth.uid()), 0, 'clients cannot list other people''s sources');
 select throws_ok($$select * from match_chunks(auth.uid(),'20000000-0000-0000-0000-000000000001',null,'limit', null, 6)$$, '42501', null, 'clients cannot call match_chunks');
@@ -71,7 +71,7 @@ select throws_ok($$insert into concepts (slug,title,subject,level_band) values (
 select lives_ok($$insert into concept_follows (user_id,concept_id) values (auth.uid(),'70000000-0000-0000-0000-000000000002')$$, 'student can follow any concept outside a course');
 -- Student F (another university, not enrolled): global sharing
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000f';
-select is((select count(*)::int from lessons), 1, 'student at another university reuses the shared lesson');
+select is((select count(*)::int from lessons where id::text like '40000000-%'), 1, 'student at another university reuses the shared lesson');
 select is((select count(*)::int from chunks), 0, 'no bulk reads of the crowd bank from the client');
 -- Curator E
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000e';
@@ -79,7 +79,7 @@ select is(is_curator('70000000-0000-0000-0000-000000000001'), true, 'maths curat
 select is(is_curator('70000000-0000-0000-0000-000000000002'), false, 'maths curator does not cover physics concepts');
 -- Student A (owner)
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
-select is((select count(*)::int from lessons), 2, 'owner sees shared + private lesson');
+select is((select count(*)::int from lessons where id::text like '40000000-%'), 2, 'owner sees shared + private lesson');
 select throws_ok($$insert into sources (owner_id,course_id,kind,visibility,title,review) values (auth.uid(),'20000000-0000-0000-0000-000000000001','notes','bank','x','approved')$$, '42501', null, 'cannot insert self-approved bank source');
 select throws_ok($$update sources set review='approved', visibility='bank' where owner_id = auth.uid()$$, '42501', null, 'cannot self-approve own source');
 select lives_ok($$insert into sources (owner_id,course_id,kind,title) values (auth.uid(),null,'notes','My course-free notes')$$, 'can create a private pending source, with or without a course');

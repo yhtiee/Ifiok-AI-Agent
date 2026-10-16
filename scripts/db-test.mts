@@ -19,9 +19,13 @@ const sqlFiles = (dir: string, suffix = ".sql") =>
 const db = new PGlite({ extensions: { vector, pgtap, pg_trgm, pgcrypto } });
 await db.exec("set search_path = public, extensions;");
 
+// Supabase-only extensions: PGlite can't install them, so their `create extension` lines are
+// skipped and scripts/db/prelude.sql provides stand-ins with the same function signatures.
+const SUPABASE_ONLY = /^[ \t]*create extension if not exists (pgmq|pg_net|pg_cron)\b[^;]*;/gim;
+
 async function load(file: string) {
   try {
-    await db.exec(readFileSync(join(root, file), "utf8"));
+    await db.exec(readFileSync(join(root, file), "utf8").replace(SUPABASE_ONLY, "-- (skipped in PGlite) $&"));
   } catch (err) {
     console.error(`\n✗ ${file} failed to load:\n  ${(err as Error).message}`);
     process.exit(1);

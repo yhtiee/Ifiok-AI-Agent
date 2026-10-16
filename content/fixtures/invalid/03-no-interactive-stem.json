@@ -1,0 +1,27 @@
+{
+  "dsl_version": 1,
+  "title": "No interactive block in STEM",
+  "objective": "Test requirement of at least 1 interactive block in STEM lessons.",
+  "subject_profile": "stem",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [{ "id": "s1b1", "type": "prose", "md": "Screen 1 prose content." }]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        { "id": "s2b1", "type": "checkpoint", "item": { "type": "numeric", "stem_md": "1 + 1?", "answer_expr": "2", "stated": 2, "why": "1+1=2" } }
+      ]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        { "id": "s3b1", "type": "checkpoint", "item": { "type": "numeric", "stem_md": "2 + 2?", "answer_expr": "4", "stated": 4, "why": "2+2=4" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2"]
+}
+

@@ -1,0 +1,31 @@
+{
+  "dsl_version": 1,
+  "title": "LaTeX neq newline character",
+  "objective": "Test rejection of unescaped LaTeX \\neq parsed as newline followed by eq.",
+  "subject_profile": "stem",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [
+        { "id": "s1b1", "type": "prose", "md": "Inequality intro." },
+        { "id": "s1b2", "type": "math", "latex": "a \neq b", "display": true }
+      ]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        { "id": "s2b1", "type": "checkpoint", "item": { "type": "numeric", "stem_md": "Check?", "answer_expr": "1", "stated": 1, "why": "Yes" } }
+      ]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        { "id": "s3b1", "type": "reveal", "prompt": "Check?", "md": "Done." },
+        { "id": "s3b2", "type": "checkpoint", "item": { "type": "numeric", "stem_md": "Check 2?", "answer_expr": "2", "stated": 2, "why": "Yes" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2"]
+}
+

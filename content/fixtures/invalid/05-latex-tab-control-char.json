@@ -1,0 +1,31 @@
+{
+  "dsl_version": 1,
+  "title": "LaTeX tab control character",
+  "objective": "Test rejection of unescaped LaTeX \\theta creating tab control character.",
+  "subject_profile": "stem",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [
+        { "id": "s1b1", "type": "prose", "md": "Angle intro." },
+        { "id": "s1b2", "type": "math", "latex": "\theta = \pi/4", "display": true }
+      ]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        { "id": "s2b1", "type": "checkpoint", "item": { "type": "numeric", "stem_md": "Angle?", "answer_expr": "45", "stated": 45, "why": "45 deg" } }
+      ]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        { "id": "s3b1", "type": "reveal", "prompt": "Angle?", "md": "45" },
+        { "id": "s3b2", "type": "checkpoint", "item": { "type": "numeric", "stem_md": "Check?", "answer_expr": "1", "stated": 1, "why": "Yes" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2"]
+}
+

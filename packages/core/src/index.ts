@@ -5,3 +5,7 @@
 export * from "./age";
 export * from "./constants";
 export * from "./streak";
+export * from "./dsl";
+export * from "./expr";
+export * from "./expr-eval";
+export * from "./verify";

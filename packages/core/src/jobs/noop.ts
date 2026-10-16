@@ -1,0 +1,11 @@
+import { JobFailure, type JobHandler } from "./types";
+
+// The `noop` queue (02 §4): exercises the job system end to end in tests. `{ "fail": true }`
+// fails every attempt, so retries and the final `failed` state can be checked.
+export const noopHandler: JobHandler = {
+  async run(job) {
+    const payload = (job.payload ?? {}) as { fail?: unknown };
+    if (payload.fail === true) throw new JobFailure("noop_fail", "This test job always fails.");
+    return { kind: "done", result: { ok: true, attempts: job.attempts } };
+  },
+};

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+import "katex/dist/katex.min.css";
 
 // specifications/07-brand-ui-ux.md §3.3 typography: display, text, instrument readings only.
 const bricolage = Bricolage_Grotesque({

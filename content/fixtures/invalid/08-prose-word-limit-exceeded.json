@@ -1,0 +1,33 @@
+{
+  "dsl_version": 1,
+  "title": "Prose word limit exceeded",
+  "objective": "Test rejection of prose block exceeding 90 words limit.",
+  "subject_profile": "humanities",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [
+        {
+          "id": "s1b1",
+          "type": "prose",
+          "md": "This is a very long prose block written specifically to exceed the strict ninety word limit defined in the Lesson DSL specification. One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three twenty-four twenty-five twenty-six twenty-seven twenty-eight twenty-nine thirty thirty-one thirty-two thirty-three thirty-four thirty-five thirty-six thirty-seven thirty-eight thirty-nine forty forty-one forty-two forty-three forty-four forty-five forty-six forty-seven forty-eight forty-nine fifty fifty-one fifty-two fifty-three fifty-four fifty-five fifty-six fifty-seven fifty-eight fifty-nine sixty sixty-one sixty-two sixty-three sixty-four sixty-five sixty-six sixty-seven sixty-eight sixty-nine seventy seventy-one seventy-two seventy-three seventy-four seventy-five."
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        { "id": "s2b1", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q1", "key_ideas": ["A"], "why": "Exp" } }
+      ]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        { "id": "s3b1", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q2", "key_ideas": ["B"], "why": "Exp" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2"]
+}
+

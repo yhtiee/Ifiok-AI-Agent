@@ -1,0 +1,132 @@
+import { lessonSpecSchema, type Block, type LessonSpec } from "../dsl/schema";
+import { verifyLesson } from "../verify/lesson";
+import type { ClaimCheckInput, ClaimCheckOutput } from "../ai/skills/claim-check";
+import { TOPIC_MIN_SCREENS } from "../ai/skills/lesson-generate";
+
+// The lesson_gen decision (F2-FR5, 04 §4.2 post-processing), free of I/O so every branch is unit
+// tested: generate → verify (schema, size, maths, KaTeX, plots, source refs) → claim check for
+// non-STEM lessons → published, or 'review' when a check fails or the subject is sensitive.
+
+export { TOPIC_MIN_SCREENS };
+
+export type SourceChunk = { id: number; content: string; page?: number | null };
+
+export type PipelineDeps = {
+  generate: () => Promise<{ output: unknown; model: string }>;
+  claimCheck: (input: ClaimCheckInput) => Promise<ClaimCheckOutput>;
+};
+
+export type PipelineInput = {
+  chunks: SourceChunk[];
+  /** subjects.sensitive: the lesson waits for a curator before students see it. */
+  sensitive: boolean;
+};
+
+export type PipelineResult = {
+  status: "published" | "review";
+  /** Why it is in review: a curator must approve, or an automatic check failed. */
+  reason: "passed" | "curator" | "checks_failed";
+  spec: LessonSpec;
+  model: string;
+  sourceRefs: number[];
+  /** Distinct approved chunks the lesson cites; 0 = "General explanation" label. */
+  sourcesUsed: number;
+  /** Check failures for the curator queue. Never shown to students or logged. */
+  issues: string[];
+};
+
+/** Text that carries factual claims: prose, callouts, tables and flashcards (04 §4.5b). */
+export function claimTexts(spec: LessonSpec): ClaimCheckInput["blocks"] {
+  const out: ClaimCheckInput["blocks"] = [];
+  for (const screen of spec.screens) {
+    for (const block of screen.blocks) {
+      const text = blockClaimText(block);
+      if (text) out.push({ block_id: block.id, text });
+    }
+  }
+  return out;
+}
+
+function blockClaimText(block: Block): string | null {
+  switch (block.type) {
+    case "prose":
+    case "callout":
+      return block.md;
+    case "table":
+      return [block.columns.join(" | "), ...block.rows.map((r) => r.join(" | "))].join("\n");
+    case "flashcards":
+      return block.cards.map((c) => `${c.front}: ${c.back}`).join("\n");
+    default:
+      return null;
+  }
+}
+
+/** Drops the given blocks and any screen they leave empty. Checkpoints are never claim blocks. */
+export function removeBlocks(spec: LessonSpec, blockIds: ReadonlySet<string>): LessonSpec {
+  return {
+    ...spec,
+    screens: spec.screens
+      .map((s) => ({ ...s, blocks: s.blocks.filter((b) => !blockIds.has(b.id)) }))
+      .filter((s) => s.blocks.length > 0),
+  };
+}
+
+export function citedChunkIds(spec: LessonSpec): number[] {
+  const ids = new Set<number>();
+  for (const screen of spec.screens) {
+    for (const block of screen.blocks) {
+      for (const ref of block.source_refs ?? []) ids.add(ref);
+      if (block.type === "source_quote") ids.add(block.chunk_id);
+    }
+  }
+  return [...ids];
+}
+
+export async function runLessonPipeline(deps: PipelineDeps, input: PipelineInput): Promise<PipelineResult> {
+  const { output, model } = await deps.generate();
+
+  const verified = verifyLesson(output, input.chunks, { minScreens: TOPIC_MIN_SCREENS });
+  let spec = verified.verifiedSpec;
+  const issues = [...verified.errors];
+
+  if (verified.ok && spec.subject_profile !== "stem") {
+    // Claim check against the chunks the lesson cites. With no cited sources the lesson is
+    // labelled "General explanation (not from course material)" instead (F2-FR5).
+    const cited = new Set(citedChunkIds(spec));
+    const citedChunks = input.chunks.filter((c) => cited.has(c.id));
+    if (citedChunks.length > 0) {
+      const result = await deps.claimCheck({
+        blocks: claimTexts(spec),
+        chunks: citedChunks.map((c) => ({ id: c.id, content: c.content })),
+      });
+      const unsupported = new Set(result.claims.filter((c) => c.supported_by === null).map((c) => c.block_id));
+      if (unsupported.size > 0) {
+        // No lesson_repair skill yet: remove the unsupported blocks, then the lesson must still
+        // pass every check (enough screens and checkpoints) or it goes to review (12 §4 Q32).
+        const reverified = verifyLesson(removeBlocks(spec, unsupported), input.chunks, {
+          minScreens: TOPIC_MIN_SCREENS,
+        });
+        if (reverified.ok) {
+          spec = reverified.verifiedSpec;
+        } else {
+          issues.push(
+            `claim check: ${unsupported.size} block(s) had unsupported claims`,
+            ...reverified.errors.map((e) => `after removing unsupported blocks: ${e}`),
+          );
+        }
+      }
+    }
+  }
+
+  const passed = issues.length === 0 && lessonSpecSchema.safeParse(spec).success;
+  const sourceRefs = passed ? citedChunkIds(spec) : [];
+  return {
+    status: passed && !input.sensitive ? "published" : "review",
+    reason: !passed ? "checks_failed" : input.sensitive ? "curator" : "passed",
+    spec,
+    model,
+    sourceRefs,
+    sourcesUsed: sourceRefs.length,
+    issues,
+  };
+}

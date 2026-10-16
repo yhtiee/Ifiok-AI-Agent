@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { CONFIG_SCHEMAS, type ConfigKey, type ConfigReader } from "@/lib/config-schema";
+import { CONFIG_SCHEMAS, type ConfigKey, type ConfigReader } from "./config-schema";
 import { createGateway, GatewayError, type AiCallRow, type GatewayStore } from "./gateway";
 import { defineSkill, type SkillDefinition } from "./skills/types";
 import { ProviderError, type Provider, type ProviderName, type ProviderRequest, type ProviderResponse } from "./types";

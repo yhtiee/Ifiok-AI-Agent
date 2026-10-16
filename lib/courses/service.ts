@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { getGateway, GatewayError } from "@/lib/ai";
 import { embedTexts, EmbeddingError, toVector } from "@/lib/ai/embed";
-import type { SchemeExtractOutput, TopicResolveOutput } from "@/lib/ai/skills/courses";
+import type { SchemeExtractOutput, TopicResolveOutput } from "@ifiok/core/ai/skills/courses";
 import type { ImageInput } from "@/lib/ai/types";
 import { RouteError } from "@/lib/api/route";
 import type { Viewer } from "@/lib/auth/viewer";

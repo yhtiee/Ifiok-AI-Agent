@@ -1,0 +1,30 @@
+{
+  "dsl_version": 1,
+  "title": "Duplicate block ID",
+  "objective": "Test rejection of duplicate block IDs in a lesson.",
+  "subject_profile": "humanities",
+  "est_minutes": 5,
+  "screens": [
+    {
+      "id": "s1",
+      "blocks": [
+        { "id": "s1b1", "type": "prose", "md": "First block." },
+        { "id": "s1b1", "type": "reveal", "prompt": "Prompt?", "md": "Duplicate ID here!" }
+      ]
+    },
+    {
+      "id": "s2",
+      "blocks": [
+        { "id": "s2b1", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q1", "key_ideas": ["A"], "why": "Exp" } }
+      ]
+    },
+    {
+      "id": "s3",
+      "blocks": [
+        { "id": "s3b1", "type": "checkpoint", "item": { "type": "short_text", "stem_md": "Q2", "key_ideas": ["B"], "why": "Exp" } }
+      ]
+    }
+  ],
+  "summary": ["Bullet 1", "Bullet 2"]
+}
+
