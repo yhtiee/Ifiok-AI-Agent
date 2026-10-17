@@ -292,6 +292,8 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F12 · Lecturers
+> **Deferred (owner decision, `12` §4 Q39):** Ifiok serves students only for now. Nothing below is built until this note is removed. Course reps (not lecturers) lock outlines in the meantime.
+
 **Purpose:** Lecturers share once and reach every student; they gain tools, insight, recognition and earnings. **Phase:** P2 (notes, insight), P3 (recordings).
 
 **FR**
@@ -331,6 +333,28 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 **Phase:** P1 minimal, P2 full.
 **FR:** admin dashboard (Linear-style density): lessons in `review` and flagged lessons, concept merges and blocked names, course merges, curator approvals, bank review queue, user reports, lecturer verification, payout approval, AI spend dashboard (daily cost by feature, top users), feature flags, kill switches (disable a feature or model instantly).
 **AC:** every admin action is audit-logged (`admin_audit`).
+
+---
+
+## F17 · Peer tutoring (paid)
+**Purpose:** Students who have mastered a topic earn by teaching it to other students; students who are stuck get a human who has just learned the same course. **Phase:** P2 (needs a registered business, Paystack live mode, a licensed escrow/payment partner and legal review of the terms). Owner decision `12` §4 Q39.
+
+**Stories**
+- I'm stuck on "Thermodynamic cycles" two days before the test. I book Ada, a 300-level student who mastered it on Ifiok, for 45 minutes. I pay ₦X; the money is held until the session ends; afterwards I confirm and she is paid.
+- I'm good at circuits. Ifiok invites me to tutor "Kirchhoff's laws" because I reached Mastered there; I set my price and the times I'm free.
+
+**FR**
+1. **Who can tutor:** adult, active account ≥ 30 days old; **Mastered** in each concept they offer (from server-written attempts, never self-declared); a verified payout account whose resolved name matches their legal name (`06` §5 rule 7); agreed to the tutor terms. A tutor profile lists concepts, price per session (within a band in `app_config`), availability and their record (sessions completed, ratings, learning gain).
+2. **Booking:** the learner picks a concept, a tutor and a time; pays through Paystack into **escrow held by a licensed partner** (Ifiok never holds the funds itself); the booking shows "Paid, held until the session ends".
+3. **The session** happens by chat in Ifiok plus a call or meeting the two arrange; Ifiok does not host video (a non-goal). Ifiok gives both a session page: the concept's lesson, a short practice set, and a 3-question check before and after.
+4. **Release:** the learner confirms the session happened, or it releases automatically 24 h after the scheduled end if no dispute is opened. Ifiok's commission (`app_config.tutoring_take_rate`, default 15%) is deducted at release.
+5. **Disputes and refunds:** tutor no-show → full refund; learner no-show → tutor paid in full; disputes opened within 24 h freeze the release and go to admin review with the booking record (not chat content, guardrail 10).
+6. **Learning gain:** the before/after checks give each tutor a "learning gain" score shown on their profile alongside ratings. That is the quality signal no generic marketplace has.
+7. **Safety:** 18+ only; in-app chat filtered for harassment and for sharing contact details before a booking is paid; report and block; in-person safety guidance; repeated refunds or disputes suspend tutoring.
+8. **Anti-fraud:** a tutor can't book themselves or pay through a linked account; pairs that repeatedly book and refund, or rings of accounts rating each other, are flagged (graph signals as in `06` §5).
+
+**AC:** funds never touch an Ifiok bank account (partner integration test); release happens exactly once per booking (idempotent on the booking id); a tutor without Mastered in a concept cannot list it (test); refunds and auto-release follow the rules above (test).
+**Trade-offs:** a human market adds trust and payment risk; escrow and Mastered-only tutors keep it honest. Revisit the take rate after pilot data.
 
 ---
 

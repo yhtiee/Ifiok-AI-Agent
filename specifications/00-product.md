@@ -21,9 +21,10 @@ Ifiok is an AI learning agent that teaches a student **whatever they choose to l
 - Wants: understand fast, pass, not waste data or money.
 
 ### Secondary
-- **Lecturer:** wants less repetitive explaining, visibility into where a class is stuck, recognition, some income. Won't adopt anything that adds admin work.
+- **Student tutor** (from P2, `12` §4 Q39): a student who has mastered a topic on Ifiok and teaches it to other students in paid sessions (F17). Wants income that fits around classes and recognition for being good at a subject.
+- **Student curator** (paid, from launch): a strong student who checks and fixes AI lessons in subjects they know (F2-FR6), paid per accepted review (`06` §13). Lessons never wait for a curator.
+- **Lecturers are not served for now** (Q39): no lecturer accounts, uploads, class insight or licence payments. F12 stays in the spec for later.
 - **Course rep:** relays timetable changes and materials; a natural distribution channel; can lock a course outline.
-- **Curator (volunteer or paid, optional):** checks and fixes lessons in a subject they know. Lessons never wait for a curator.
 - **Admin (us):** moderates names and uploads, merges duplicate courses and concepts, pays contributors. We do not create or curate the course catalogue.
 
 ### Not served at launch
@@ -69,7 +70,9 @@ Auth, profiles, age gate, universities, student-created courses, outlines and co
 ### Phase P2 — Paid launch "Earn"
 - F13 Units wallet (Paystack top-ups, spending, earned Units)
 - F11 Resource Bank rewards: usage tracking; contributors rewarded in Units
-- F12 Lecturers (verified accounts, notes upload, class insight); paid in cash under direct content licences
+- F17 Peer tutoring: students book student tutors who have mastered a topic; payment held by a licensed escrow/payment partner and released after the session (Q39)
+- Paid student curators (`06` §13)
+- ~~F12 Lecturers~~: deferred (Q39)
 - F8 Exam mode (past-paper extraction, exam map, mocks)
 - F9 Course space (timetable, lecture preview and recap, push notifications)
 - **P2b:** automatic contributor cash pool and withdrawals, switched on only when the pool is ≥ ₦250,000/month for 2 months and the terms have had legal review (`06`)

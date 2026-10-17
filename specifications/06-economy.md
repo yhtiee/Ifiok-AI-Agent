@@ -3,7 +3,8 @@
 **Phase:** P2. Nothing in this file ships until Supabase is on Pro (daily backups), the business is registered (Paystack live mode needs a verified business), and an accountant has reviewed §10.
 
 **Staged rollout (decided after peer review, `12` R15):**
-- **P2 launch:** Units (top-ups, spending, earning) for everyone. Contributors (students) are rewarded in **Units**. Lecturers are paid in **cash under direct content licences** (signed agreement; manual monthly transfer; fee basis in `app_config.licence_fee`, default ₦500 per published lesson that cites their materials and ₦2 per qualified student who used their materials that month, capped at ₦50,000 per lecturer per month; posted to `licence_fees`). No automated cash pool, no user withdrawals.
+- **Owner decision (12 §4 Q39):** lecturers are not served for now, so the lecturer licence payments below are **deferred**; students earn from contributing (Units, then the cash pool), from curating (§13) and from tutoring (§12).
+- **P2 launch:** Units (top-ups, spending, earning) for everyone. Contributors (students) are rewarded in **Units**. ~~Lecturers are paid in **cash under direct content licences**~~ (deferred, Q39) (signed agreement; manual monthly transfer; fee basis in `app_config.licence_fee`, default ₦500 per published lesson that cites their materials and ₦2 per qualified student who used their materials that month, capped at ₦50,000 per lecturer per month; posted to `licence_fees`). No automated cash pool, no user withdrawals.
 - **P2b (automatic cash pool):** switched on with `app_config.cash_pool_enabled` only when the computed pool has been **≥ ₦250,000 for 2 consecutive months** and a lawyer has reviewed the contributor terms. Until then a pool smaller than that would leave most contributors below the ₦2,000 withdrawal minimum while carrying the full KYC, transfer and tax burden.
 
 ## 1. Two currencies
@@ -140,3 +141,14 @@ Display balance for user accounts = `−balance` (credit-normal). `post_txn` rej
 
 ## 11. Sponsor prize pools (P3)
 Admin creates a campaign `{sponsor, amount, course(s), rule (e.g. top 20 mastery gains with ≥ 10 sessions), period}`. Sponsor money is booked to `sponsor_pool`. Winners are credited to `user_earnings_pending` (same hold and withdrawal rules) or receive data bundles (fulfilled manually). Ifiok keeps a fee (default 15%) recorded as revenue.
+
+## 12. Tutoring payments (P2, F17, owner decision 12 §4 Q39)
+- **Money flow:** learner pays via Paystack → funds held by a **licensed escrow/payment partner** (chosen after legal review; Ifiok never holds tutoring funds) → on release, the partner pays the tutor's verified account minus Ifiok's commission (`app_config.tutoring_take_rate`, default 15%); refunds go back to the learner's payment method.
+- **Ledger:** Ifiok records bookings and commission, not escrow balances: `tutoring_bookings` (state machine: `pending_payment → held → released | refunded | disputed`), commission posted as revenue at release via an idempotent SQL function keyed on the booking id (guardrail 5). Tutoring cash is separate from Units and from contributor Earnings.
+- **Prices:** tutors set a price per session inside a band (`app_config.tutoring_price_band`, set from pilot data).
+- **Tax and terms:** tutor income may be taxable; terms state the commission, release, dispute and refund rules. Legal review before launch.
+
+## 13. Student curator pay (owner decision 12 §4 Q39)
+- **Who:** students with **Mastered** in at least 5 concepts of a subject who pass a short curator check (fix three seeded lesson errors); verified payout account as in §5 rule 7.
+- **Work:** the curator queue (flagged and `new` lessons in their subject, F2-FR6); a fix publishes a new version through `/api/lessons/:id` (verification gate, audit). Non-STEM lessons without sources go to curators first, which also answers the invented-facts risk (Q36 f).
+- **Pay:** a fixed amount per **accepted** review (`app_config.curator_fee_per_review`; the `09` §7 placeholder is ₦1,500), paid monthly by transfer from Ifiok's budget (a cost line, not the contributor pool). A second curator spot-checks 1 in 10 reviews; rejected reviews are unpaid; monthly cap per curator in config.

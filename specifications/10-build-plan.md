@@ -1,5 +1,7 @@
 # 10 · Build plan (tickets for Claude Code)
 
+> **Until the MVP ships, build in the order of [`10a-mvp-plan.md`](10a-mvp-plan.md)** (owner decision, `12` §4 Q38). This file remains the reference for tickets not listed there.
+
 **How to use:** build tickets in order. Each ticket is sized for one to three Claude Code sessions. Start each session with:
 
 > Read CLAUDE.md and specifications/10-build-plan.md. We are on ticket P1-07. Read the spec sections it lists, then implement it with tests. Stop when every "Done when" check passes, and tell me which files changed.
