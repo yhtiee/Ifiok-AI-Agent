@@ -1,6 +1,8 @@
 import { AppShell } from "@/components/app/AppShell";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { requireOnboardedPage } from "@/lib/auth/guards";
+// Lesson maths (pre-rendered KaTeX HTML) needs its CSS here only, not on the landing page (landing 01 §3.8).
+import "katex/dist/katex.min.css";
 
 // Signed-in student area (Today · Courses · Practice · Me). Only adults who finished onboarding
 // get in; everyone else is sent to sign-in or their next onboarding step.

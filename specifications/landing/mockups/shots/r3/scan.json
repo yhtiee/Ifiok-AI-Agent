@@ -1,0 +1,134 @@
+[
+  {
+    "w": 390,
+    "fails": [],
+    "warns": [
+      "Icon + heading + paragraph card grid: 5 cards \"Learn…\". The most generated section on the web. Could it be a list, a table, a demo, or one strong example?"
+    ],
+    "facts": {
+      "fonts": {
+        "Atkinson Hyperlegible Next": "96%",
+        "Bricolage Grotesque": "4%"
+      },
+      "sizes": [
+        32.91,
+        28.21,
+        26,
+        24,
+        22,
+        20,
+        17,
+        15,
+        13
+      ],
+      "body": 16.8,
+      "hues": [
+        30,
+        210
+      ],
+      "boxes": 64,
+      "cardGrids": 1,
+      "defaultIcons": 0
+    }
+  },
+  {
+    "w": 768,
+    "fails": [],
+    "warns": [
+      "Icon + heading + paragraph card grid: 5 cards \"Learn…\". The most generated section on the web. Could it be a list, a table, a demo, or one strong example?"
+    ],
+    "facts": {
+      "fonts": {
+        "Atkinson Hyperlegible Next": "96%",
+        "Bricolage Grotesque": "4%"
+      },
+      "sizes": [
+        43.872,
+        35.392,
+        26,
+        24,
+        22,
+        20,
+        19,
+        17,
+        15,
+        13
+      ],
+      "body": 17.2,
+      "hues": [
+        30,
+        210
+      ],
+      "boxes": 76,
+      "cardGrids": 1,
+      "defaultIcons": 0
+    }
+  },
+  {
+    "w": 1280,
+    "fails": [],
+    "warns": [
+      "Icon + heading + paragraph card grid: 5 cards \"Learn…\". The most generated section on the web. Could it be a list, a table, a demo, or one strong example?"
+    ],
+    "facts": {
+      "fonts": {
+        "Atkinson Hyperlegible Next": "96%",
+        "Bricolage Grotesque": "4%"
+      },
+      "sizes": [
+        56,
+        44,
+        26,
+        24,
+        22,
+        20,
+        19,
+        17,
+        15,
+        13
+      ],
+      "body": 17.2,
+      "hues": [
+        30,
+        210
+      ],
+      "boxes": 65,
+      "cardGrids": 1,
+      "defaultIcons": 0
+    }
+  },
+  {
+    "w": 1440,
+    "fails": [],
+    "warns": [
+      "Icon + heading + paragraph card grid: 5 cards \"Learn…\". The most generated section on the web. Could it be a list, a table, a demo, or one strong example?"
+    ],
+    "facts": {
+      "fonts": {
+        "Atkinson Hyperlegible Next": "96%",
+        "Bricolage Grotesque": "4%"
+      },
+      "sizes": [
+        56,
+        44,
+        26,
+        24,
+        22,
+        20,
+        19,
+        17,
+        15,
+        13
+      ],
+      "body": 17.2,
+      "hues": [
+        30,
+        210
+      ],
+      "boxes": 65,
+      "cardGrids": 1,
+      "defaultIcons": 0,
+      "focusStops": 45
+    }
+  }
+]

@@ -91,6 +91,8 @@ Lowercase wordmark **ifiok** in Bricolage Grotesque ExtraBold, with the tittle o
 ```
 (Mirror the dark block under `:root[data-theme="dark"]` for the manual toggle.)
 
+**Landing page additions (`12` §4 Q47, `specifications/landing/05` §2):** `--line-strong`, `--change-hover`; identity hues palm yellow `--prep` (fill only; text uses `--prep-ink`) and zobo `--teach`, with `--path-learn|prepare|contribute|teach|earn` aliases (Learn blue, Prepare yellow, Contribute green, Teach zobo, Earn camwood), always paired with "Step n · Name" and used on the landing page only; in-app earnings stay `--built`. Illustration colours `--ill-*` are fixed in both themes and stand on `--stage-*` fields (mid tints in dark). The landing page ground is `--surface` with `--paper` bands; app screens keep `--paper`.
+
 In dark theme the primary button uses `--paper` text on `--change` (7.5:1). Plots, labs and readouts on the Bench always use the `--bench-*` role colours, never the Page ones (blue on the Bench would be 2.4:1).
 
 **Typography**
@@ -101,13 +103,13 @@ In dark theme the primary button uses `--paper` text on `--change` (7.5:1). Plot
 | Maths | KaTeX fonts | Equations only. |
 | Instrument readings | **JetBrains Mono** (tabular) | Only inside labs and the bench (meter readouts, ledgers). Never for decoration. |
 
-Type scale (mobile): 13 / 15 / 17 (body) / 20 / 24 / 32 / 44. Line height 1.5 body, 1.15 display. Measure ≤ 66 characters. Self-host via `next/font`, Latin subset only.
+Type scale (mobile): 13 / 15 / 17 (body) / 20 / 24 / 32 / 44; the landing H1 reaches 56 on desktop (Q47). Line height 1.5 body, 1.15 display. Measure ≤ 66 characters. Self-host via `next/font`, Latin subset only.
 
-**Shape and space:** 4-px grid. Radius by role: 6 px inputs, 12 px cards, 999 px chips and the primary button; the Bench uses 8 px. No drop shadows on Page cards (use a 1 px `--line` border). One elevated element per screen at most (the bottom sheet).
+**Shape and space:** 4-px grid. Radius by role: 6 px inputs, 12 px cards, 999 px chips and the primary button; the Bench uses 8 px; landing illustration stages use `--radius-stage` (24 px phone, 32 px desktop), with nothing inside them above 12 px (Q47). No drop shadows on Page cards (use a 1 px `--line` border). One elevated element per screen at most (the bottom sheet).
 
 **Iconography:** Phosphor (regular weight) for UI; our own glyphs for topic types. **Never** use a sparkle icon to mean "AI".
 
-**Illustration:** none of stock people with laptops. Visuals are subject diagrams, plots and lab scenes. Empty states use the Ink Line drawing a short stroke, plus one sentence and one action.
+**Illustration:** none of stock people with laptops. Visuals are subject diagrams, plots and lab scenes. Exception (Q47): the landing page's flat, ink-outlined cast "the Marks" (Dot, the wordmark's tittle, plus characters made only from learning objects); each reacts to a tap and is never used to nag or guilt. Empty states use the Ink Line drawing a short stroke, plus one sentence and one action.
 
 ### 3.4 Anti-slop rules (Claude Code must follow)
 1. No gradient blobs, glassmorphism or glowing orbs. No purple-to-blue gradients.
@@ -115,7 +117,7 @@ Type scale (mobile): 13 / 15 / 17 (body) / 20 / 24 / 32 / 44. Line height 1.5 bo
 3. No all-caps tracked eyebrow labels above headings in the app.
 4. No emoji in UI copy (users may use them in groups).
 5. No "AI magic" language or sparkle icons.
-6. No fade-up-on-scroll for sections. Motion only answers an action, plus the one Ink Line moment.
+6. No fade-up-on-scroll for sections. Motion only answers an action, plus the one Ink Line moment. (Landing illustrations add small tap-triggered answer-motions, Q47; nothing moves on scroll or loops.)
 7. No centred hero with two buttons on the landing page. The landing page opens with a live, draggable mini-lesson (the slope of a curve) as the hero.
 8. One primary action per screen, in camwood.
 9. Colour is never the only signal (pair with text or an icon).
@@ -189,7 +191,7 @@ Not built while lecturers are not served. The design below stays for later: left
 Queues (lessons, contribution pool, explainers, reports, tutoring disputes, payouts), AI spend (today, by skill, top users), kill switches, config. ⌘K command menu.
 
 ### 5.11 Landing page
-Hero = a live mini-lesson: drag a point on y = x² and watch the tangent; one line under it ("Your course, made easy to see, try and master."); one action ("Start learning free"). Below: four real screenshots, one per pillar (Path, exam prep, lab, Earn) with one-sentence captions; a short "How students earn on Ifiok" section; FAQ. No stock imagery.
+Built from `specifications/landing/04-strategy-and-copy.md` and `05-design-spec.md` (Q47). Hero = a live mini-lesson: drag a point on y = x² and Dot rides the tangent; one action ("Start learning free"). Then the five-step Journey (Learn, Prepare, Contribute, Teach, Earn) with status badges from `lib/features.ts`, one section per step with an interactive illustration, Trust on the Bench, pricing, FAQ and a final call to action. Real screenshots join Learn once the Path ships. No stock imagery.
 
 ## 6. Interaction details
 - **Touch targets** ≥ 44 × 44 px; primary actions in the thumb zone (bottom third).

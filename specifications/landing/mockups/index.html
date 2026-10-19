@@ -1,0 +1,1187 @@
+<!doctype html>
+<html lang="en-NG">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ifiok · AI learning agent for Nigerian university students</title>
+<meta name="description" content="Interactive lessons for any topic in your course, built for Nigerian university students. Exam prep and ways to earn are coming next. Free, 18+.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+/* Mockup for specifications/landing/05-design-spec.md. Token values are the spec's. */
+@font-face { font-family: "Atkinson Hyperlegible Next"; src: url(fonts/atkinson-hyperlegible-next-latin-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Atkinson Hyperlegible Next"; src: url(fonts/atkinson-hyperlegible-next-latin-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+
+:root {
+  /* existing (07 §3.3) */
+  --paper: #F2F4F7; --surface: #FBFCFD; --ink: #131B26; --ink-2: #4A5563; --ink-3: #5D6876; --line: #DDE2E8;
+  --quantity: #2650B8; --quantity-soft: #E2EAFB;
+  --change: #B0500F; --change-soft: #F8E8DB;
+  --built: #1C7A5A; --built-soft: #DDF2E9;
+  --on-change: #FFFFFF;
+  --bench: #131B26; --bench-2: #1D2733; --bench-line: #2C3848; --bench-ink: #EEF1F5;
+  --bench-quantity: #7FA2F0; --bench-change: #F08A45; --bench-built: #4FBF96;
+  /* new: path colours */
+  --prep: #F0B429; --prep-soft: #FDF1D3; --prep-ink: #7A5300;
+  --teach: #A3366B; --teach-soft: #F8E5EE;
+  --change-hover: #963F07;
+  --line-strong: #C3CAD3;
+  /* new: illustration (fixed in both themes; the stage is always lit) */
+  --ill-line: #131B26; --ill-white: #FFFFFF; --ill-paper: #FBFCFD;
+  --ill-dot: #C2581A; --ill-learn: #3F6AD8; --ill-prep: #F0B429; --ill-contribute: #2E9A72; --ill-teach: #C2457F; --ill-earn: #D0661F;
+  --ill-built-1: #CDEBDD; --ill-built-2: #7CC4A6;
+  --stage-learn: #E2EAFB; --stage-prep: #FDF1D3; --stage-contribute: #DDF2E9; --stage-teach: #F8E5EE; --stage-earn: #F8E8DB; --stage-ink-2: #3E4856;
+  /* type */
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-text: "Atkinson Hyperlegible Next", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --fs-h1: clamp(2rem, 1.35rem + 2.9vw, 3.5rem);
+  --fs-h2: clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem);
+  --fs-h3: 1.25rem;
+  --fs-lead: 1.0625rem;
+  --fs-body: 1.0625rem;
+  --fs-sm: 0.9375rem;
+  --fs-xs: 0.8125rem;
+  /* space, radius, layout */
+  --gutter: 16px; --section-y: 64px; --max: 1200px;
+  --radius-input: 6px; --radius-card: 12px; --radius-stage: 24px;
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+  --ease-hop: cubic-bezier(.34,1.45,.55,1);
+}
+@media (min-width: 768px) { :root { --gutter: 24px; --section-y: 88px; --fs-h3: 1.375rem; --fs-lead: 1.1875rem; } }
+@media (min-width: 1024px) { :root { --gutter: 40px; --section-y: 112px; --radius-stage: 32px; } }
+
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0E1318; --surface: #161D25; --ink: #E5EBF1; --ink-2: #A9B4C2; --ink-3: #97A4B2; --line: #2A3542; --line-strong: #3A4757;
+  --quantity: #7FA2F0; --quantity-soft: #17243B; --change: #F08A45; --change-soft: #3A2616; --built: #4FBF96; --built-soft: #132E24;
+  --on-change: #0E1318; --change-hover: #F5A26B;
+  --prep: #F2C14E; --prep-soft: #30260F; --prep-ink: #F2C14E; --teach: #F08DBF; --teach-soft: #371A2A;
+  --stage-learn: #A9BDEB; --stage-prep: #E3CB86; --stage-contribute: #9ACDB7; --stage-teach: #DDA9C3; --stage-earn: #E2B08E; --stage-ink-2: #2B3440; --readout-rate: #6E2E04;
+  color-scheme: dark;
+}}
+:root[data-theme="dark"] {
+  --paper: #0E1318; --surface: #161D25; --ink: #E5EBF1; --ink-2: #A9B4C2; --ink-3: #97A4B2; --line: #2A3542; --line-strong: #3A4757;
+  --quantity: #7FA2F0; --quantity-soft: #17243B; --change: #F08A45; --change-soft: #3A2616; --built: #4FBF96; --built-soft: #132E24;
+  --on-change: #0E1318; --change-hover: #F5A26B;
+  --prep: #F2C14E; --prep-soft: #30260F; --prep-ink: #F2C14E; --teach: #F08DBF; --teach-soft: #371A2A;
+  --stage-learn: #A9BDEB; --stage-prep: #E3CB86; --stage-contribute: #9ACDB7; --stage-teach: #DDA9C3; --stage-earn: #E2B08E; --stage-ink-2: #2B3440; --readout-rate: #6E2E04;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--surface); scroll-behavior: smooth; scroll-padding-top: 80px; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--surface); color: var(--ink); font-family: var(--font-text); font-size: var(--fs-body); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; text-wrap: pretty; }
+:focus-visible { outline: 2px solid var(--quantity); outline-offset: 2px; border-radius: 4px; }
+.skip:focus { position: fixed; left: 12px; top: 12px; z-index: 50; width: auto; height: auto; clip: auto; margin: 0; padding: 12px 16px; background: var(--ink); color: var(--surface); border-radius: 8px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.wrap { width: min(100% - 2 * var(--gutter), var(--max)); margin-inline: auto; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ---------- buttons and links ---------- */
+.btn-primary { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 28px; border-radius: 999px; background: var(--change); color: var(--on-change); font: 600 1.0625rem/1 var(--font-text); text-decoration: none; border: 0; transition: background-color .16s var(--ease-out), transform .12s var(--ease-out); }
+.btn-primary:hover { background: var(--change-hover); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-outline { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1.5px solid var(--ink); color: var(--ink); font: 600 0.9375rem/1 var(--font-text); text-decoration: none; transition: background-color .16s var(--ease-out); }
+.btn-outline:hover { background: var(--paper); }
+.link { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: var(--ink-3); font-weight: 600; }
+.link:hover { text-decoration-color: var(--ink); text-decoration-thickness: 2px; }
+.link-row { display: inline-flex; align-items: center; min-height: 44px; }
+.under-cta { margin-top: 12px; font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.6; }
+.under-cta a { color: var(--ink); font-weight: 600; text-underline-offset: 3px; display: inline-block; padding: 12px 2px; margin: -12px 0; }
+
+/* ---------- badges ---------- */
+.badges { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.badge { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; padding: 0 11px 0 9px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font-size: var(--fs-xs); font-weight: 600; line-height: 1.2; white-space: nowrap; }
+.badge::before { content: ""; width: 9px; height: 9px; border-radius: 50%; flex: none; box-sizing: border-box; }
+.badge.open::before { background: var(--built); }
+.badge.building::before { border: 2px solid var(--change); }
+.badge.after { color: var(--ink-2); }
+.badge.after::before { border: 2px solid var(--ink-3); }
+
+/* ---------- header ---------- */
+.site-header { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
+.site-header .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 16px; }
+.brand { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; text-decoration: none; }
+.wordmark { font: 800 1.875rem/1 var(--font-display); letter-spacing: -0.03em; position: relative; color: var(--ink); }
+.wordmark .i { position: relative; display: inline-block; }
+.wordmark .i::after { content: ""; position: absolute; left: 50%; top: 0.02em; width: 0.21em; height: 0.21em; border-radius: 50%; background: var(--change); transform: translateX(-50%); }
+.descriptor { display: none; font-size: var(--fs-sm); color: var(--ink-2); }
+.site-nav { display: none; gap: 4px; }
+.site-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; color: var(--ink-2); text-decoration: none; font-size: var(--fs-sm); border-radius: 999px; }
+.site-nav a:hover { color: var(--ink); background: var(--paper); }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.header-actions .signin { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; font-weight: 600; text-decoration: none; font-size: var(--fs-sm); }
+.header-actions .signin:hover { text-decoration: underline; text-underline-offset: 3px; }
+.header-actions .btn-outline { display: none; }
+@media (min-width: 640px) { .descriptor { display: inline; } }
+@media (min-width: 768px) { .site-nav { display: flex; } .site-header .wrap { height: 68px; } }
+@media (min-width: 1024px) { .header-actions .btn-outline { display: inline-flex; } }
+@media (min-width: 768px) and (max-width: 1100px) { .descriptor { display: none; } }
+
+/* ---------- sections ---------- */
+section { padding-block: var(--section-y); }
+.band-paper { background: var(--paper); }
+.band-surface { background: var(--surface); }
+.h2 { font: 800 var(--fs-h2)/1.08 var(--font-display); letter-spacing: -0.025em; max-width: 22ch; }
+.lead { margin-top: 16px; font-size: var(--fs-lead); color: var(--ink-2); max-width: 36em; }
+.step { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+.step .pip { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--ink); background: var(--pc); flex: none; }
+
+/* ---------- hero ---------- */
+.hero { padding-block: 28px 56px; }
+.hero-grid { display: grid; gap: 32px; }
+.hero h1 { font: 800 var(--fs-h1)/1.04 var(--font-display); letter-spacing: -0.03em; max-width: 15ch; }
+.hero .lead { margin-top: 18px; max-width: 46ch; }
+.hero .cta { margin-top: 24px; }
+.hero-demo .demo-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; font-weight: 600; font-size: var(--fs-sm); }
+.hero-demo .demo-label span { color: var(--ink-2); font-weight: 400; }
+.stage { position: relative; border-radius: var(--radius-stage); color: var(--ill-line); }
+.stage-learn { background: var(--stage-learn); }
+.stage-prep { background: var(--stage-prep); }
+.stage-contribute { background: var(--stage-contribute); }
+.stage-teach { background: var(--stage-teach); }
+.stage-earn { background: var(--stage-earn); }
+.plot-stage { padding: 12px 12px 16px; }
+.plot { touch-action: pan-y; cursor: ew-resize; user-select: none; width: 100%; height: auto; }
+.readout { padding: 8px 8px 0; font-size: 1.0625rem; color: var(--ill-line); }
+.readout b { font: 600 1.5rem/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.readout .q { color: #1D44A6; } .readout .r { color: var(--readout-rate, #9A440B); }
+.slider { display: block; width: 100%; height: 44px; margin: 4px 0 0; accent-color: var(--ill-dot); }
+.demo-caption { margin-top: 12px; font-size: var(--fs-sm); color: var(--ink-2); }
+.demo-foot { margin-top: 6px; font-size: var(--fs-sm); color: var(--ink); font-weight: 600; }
+@media (min-width: 1024px) {
+  .hero { padding-block: 56px 96px; }
+  .hero-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: center; }
+  .plot-stage { padding: 20px 20px 22px; }
+}
+
+/* ---------- journey ---------- */
+.journey-list { margin: 40px 0 0; position: relative; } .jrows { list-style: none; margin: 0; padding: 0; }
+.journey-line { position: absolute; left: 0; top: 34px; bottom: 60px; width: 48px; pointer-events: none; }
+.journey-line svg { width: 48px; height: 100%; }
+.jrow { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 16px; padding: 22px 0; border-top: 1px solid var(--line); }
+.jrow:last-child { border-bottom: 1px solid var(--line); }
+.jnode { grid-row: 1 / span 4; width: 48px; height: 48px; position: relative; z-index: 1; }
+.jlabel { font-size: var(--fs-sm); color: var(--ink-2); }
+.jtitle { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.jtitle h3 { font: 800 1.625rem/1.1 var(--font-display); letter-spacing: -0.02em; }
+.jfor { margin-top: 2px; font-size: var(--fs-sm); color: var(--ink-2); }
+.jline { margin-top: 10px; max-width: 52ch; }
+.jstatus { margin-top: 12px; }
+.jlink { margin-top: 4px; }
+.journey-dot { position: absolute; left: 0; top: 0; width: 48px; height: 48px; z-index: 2; pointer-events: none; transition: transform .38s var(--ease-hop); }
+.open-now-line { margin-top: 24px; max-width: 70ch; }
+.open-now-line b { font-weight: 600; }
+@media (min-width: 1024px) {
+  .jrow { grid-template-columns: 64px minmax(0, 15rem) minmax(0, 1fr) minmax(0, 17rem); column-gap: 28px; align-items: start; padding: 28px 0; }
+  .jnode { grid-row: auto; }
+  .jline { margin-top: 26px; }
+  .jside { margin-top: 22px; }
+  .jstatus { margin-top: 0; }
+}
+
+/* ---------- path sections ---------- */
+.path-grid { display: grid; grid-template-areas: "head" "stage" "items"; gap: 32px; }
+.path-head { grid-area: head; }
+.path-stage { grid-area: stage; }
+.path-items { grid-area: items; }
+.path-stage .stage { overflow: hidden; }
+.ill-btn { display: block; width: 100%; padding: 0; margin: 0; background: none; border: 0; color: inherit; font: inherit; text-align: inherit; border-radius: var(--radius-stage); cursor: pointer; }
+.ill-btn:focus-visible { outline-offset: -4px; }
+.stage-ui { padding: 0 16px 18px; color: var(--ill-line); }
+.stage-hint { display: inline-flex; align-items: center; gap: 8px; position: absolute; top: 14px; left: 16px; font-size: var(--fs-xs); font-weight: 600; color: var(--ill-line); background: var(--ill-paper); border: 1.5px solid var(--ill-line); border-radius: 999px; padding: 4px 10px 4px 8px; pointer-events: none; }
+.stage-hint::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ill-dot); border: 1.5px solid var(--ill-line); }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg button { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--ill-line); background: var(--ill-paper); color: var(--ill-line); font: 600 var(--fs-sm)/1 var(--font-text); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ill-line); color: var(--ill-paper); }
+.stage-note { margin-top: 10px; font-size: var(--fs-sm); color: var(--stage-ink-2); min-height: 1.5em; }
+.example { font-size: var(--fs-sm); color: var(--ill-line); }
+.example .tag { display: inline-block; font-weight: 600; margin-right: 6px; border-bottom: 2px solid var(--ill-line); }
+.items { list-style: none; margin: 0; padding: 0; }
+.items li { padding: 20px 0; border-top: 1px solid var(--line); }
+.items li:first-child { border-top: 0; padding-top: 0; }
+.item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 6px; }
+.items h3 { font: 600 var(--fs-h3)/1.25 var(--font-text); }
+.items p { color: var(--ink-2); max-width: 36em; }
+.items .after-p { margin-top: 10px; }
+.section-badge { margin-top: 16px; }
+.status-line { margin-top: 12px; padding-left: 14px; border-left: 3px solid var(--line-strong); color: var(--ink); font-size: var(--fs-sm); }
+.example-line { margin-top: 10px; font-size: var(--fs-sm); color: var(--ink-2); }
+.example-line b { color: var(--ink); font-weight: 600; }
+@media (min-width: 1024px) {
+  .path-grid { grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1.08fr); grid-template-areas: "rail head stage" "rail items stage"; column-gap: 28px; row-gap: 40px; align-items: start; }
+  .path-grid::before { content: ""; grid-area: rail; }
+  .path-stage { position: sticky; top: 100px; }
+}
+.rail { position: absolute; left: 0; top: calc(-1 * var(--section-y)); bottom: calc(-1 * var(--section-y)); width: 48px; pointer-events: none; }
+.rail svg { width: 48px; height: 100%; }
+.rail .rnode { position: absolute; top: calc(var(--section-y) - 4px); left: 0; width: 48px; height: 48px; }
+.path .wrap { position: relative; }
+.path#learn .rail { top: 0; }
+.path#learn .rail .rnode { top: -4px; }
+.path#earn .rail { bottom: auto; height: calc(var(--section-y) + 48px); }
+
+.rail { display: none; }
+@media (min-width: 1024px) { .path .rail { display: block; } }
+/* earn */
+.earn-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: var(--fs-sm); }
+.earn-table caption { text-align: left; padding-bottom: 8px; color: var(--ink-2); }
+.earn-table th, .earn-table td { text-align: left; vertical-align: top; padding: 14px 12px 14px 0; border-top: 1px solid var(--line); }
+.earn-table thead th { color: var(--ink-2); font-weight: 600; border-top: 0; padding-top: 0; }
+.earn-table tbody th { font-weight: 600; font-size: var(--fs-body); }
+.earn-wide { margin-top: 48px; }
+.earn-wide .h3x { font: 600 var(--fs-h3)/1.25 var(--font-text); margin-bottom: 14px; }
+.formula { list-style: none; margin: 0; padding: 0; counter-reset: f; display: grid; gap: 0; }
+.formula li { counter-increment: f; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 4px 14px; padding: 16px 0; border-top: 1px solid var(--line); }
+.formula li::before { content: counter(f); grid-row: span 2; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--ink); display: grid; place-items: center; font: 600 0.9375rem/1 var(--font-display); }
+.formula b { font-weight: 600; }
+.formula p { color: var(--ink-2); max-width: 62ch; }
+.worked { margin-top: 24px; padding: 18px 20px; border-left: 4px solid var(--change); background: var(--paper); border-radius: 0 var(--radius-card) var(--radius-card) 0; max-width: 70ch; }
+.worked .tag { font-weight: 600; display: block; margin-bottom: 4px; }
+.money p + p { margin-top: 12px; }
+.money { max-width: 70ch; color: var(--ink-2); }
+.cap-note { margin-top: 12px; font-size: var(--fs-sm); color: var(--ink-2); }
+.rates-note { margin-top: 10px; font-size: var(--fs-sm); color: var(--ink); font-weight: 600; }
+@media (max-width: 767px) {
+  .earn-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .earn-table, .earn-table tbody, .earn-table tr, .earn-table th, .earn-table td { display: block; }
+  .earn-table tr { padding: 16px 0; border-top: 1px solid var(--line); }
+  .earn-table th, .earn-table td { border: 0; padding: 4px 0; }
+  .earn-table td::before { content: attr(data-label); display: block; font-size: var(--fs-xs); color: var(--ink-2); font-weight: 600; }
+}
+@media (min-width: 1024px) { .earn-wide { display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 28px; } .earn-wide > * { grid-column: 2; } }
+
+/* calculator */
+.calc { display: grid; gap: 10px; }
+.calc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.calc-row label, .calc-row .lbl { font-size: var(--fs-sm); font-weight: 600; max-width: 22ch; }
+.stepper { display: inline-flex; align-items: center; border: 1.5px solid var(--ill-line); border-radius: 999px; background: var(--ill-paper); }
+.stepper button { width: 44px; height: 44px; border: 0; background: none; font: 600 1.25rem/1 var(--font-text); color: var(--ill-line); cursor: pointer; border-radius: 999px; }
+.stepper output, .stepper input { width: 3.6ch; text-align: center; font: 600 1.0625rem/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--ill-line); border: 0; background: none; }
+.calc input.num { width: 7ch; min-height: 44px; border: 1.5px solid var(--ill-line); border-radius: var(--radius-input); background: var(--ill-paper); color: var(--ill-line); text-align: right; padding: 0 10px; font: 600 1.0625rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.calc-out { display: flex; flex-wrap: wrap; gap: 4px 18px; padding-top: 10px; border-top: 1.5px solid var(--ill-line); font-size: var(--fs-sm); }
+.calc-out b { font: 600 1.375rem/1.1 var(--font-display); font-variant-numeric: tabular-nums; display: block; }
+
+/* ---------- trust (Bench) ---------- */
+.bench-band { background: var(--bench); color: var(--bench-ink); }
+.bench-band .h2 { color: var(--bench-ink); }
+.bench-band .lead { color: #B9C3CF; }
+.trust-grid { display: grid; gap: 40px; }
+.trust-rows { list-style: none; margin: 0; padding: 0; }
+.trust-rows li { padding: 20px 0; border-top: 1px solid var(--bench-line); }
+.trust-rows h3 { font: 600 var(--fs-h3)/1.25 var(--font-text); margin-bottom: 6px; }
+.trust-rows p { color: #B9C3CF; max-width: 62ch; }
+.bench-band .link { color: var(--bench-ink); text-decoration-color: #8D99A8; }
+.engine-stage { background: var(--bench-2); border: 1px solid var(--bench-line); border-radius: 8px; padding: 16px; }
+.engine-stage .bench-btn { min-height: 44px; padding: 0 18px; border-radius: 8px; border: 1.5px solid var(--bench-ink); background: transparent; color: var(--bench-ink); font: 600 var(--fs-sm)/1 var(--font-text); cursor: pointer; }
+.engine-stage .bench-btn:hover { background: var(--bench-line); }
+.engine-note { margin-top: 10px; font-size: var(--fs-sm); color: #B9C3CF; min-height: 3em; }
+.mono { font-family: var(--font-mono); }
+@media (min-width: 1024px) { .trust-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: start; } .trust-side { position: sticky; top: 100px; } }
+
+/* ---------- pricing ---------- */
+.price-table { width: 100%; border-collapse: collapse; margin-top: 36px; }
+.price-table th, .price-table td { text-align: left; vertical-align: top; padding: 14px 16px 14px 0; border-top: 1px solid var(--line); }
+.price-table thead th { border-top: 0; font: 800 1.375rem/1.1 var(--font-display); letter-spacing: -0.01em; padding-bottom: 16px; }
+.price-table thead th small { display: block; font: 400 var(--fs-sm)/1.4 var(--font-text); color: var(--ink-2); margin-top: 4px; letter-spacing: 0; }
+.price-table tbody th { font-weight: 600; width: 34%; }
+.price-table td.no { color: var(--ink-2); }
+.price-table .plus-col { background: var(--change-soft); padding-left: 16px; }
+.price-table thead .plus-col { border-radius: var(--radius-card) var(--radius-card) 0 0; padding-top: 16px; }
+.price-table tbody tr:last-child .plus-col { border-radius: 0 0 var(--radius-card) var(--radius-card); }
+.price-foot { margin-top: 20px; font-size: var(--fs-sm); color: var(--ink-2); max-width: 75ch; }
+.price-foot p + p { margin-top: 8px; }
+.price-foot .topup { color: var(--ink); }
+@media (max-width: 767px) {
+  .price-table thead { display: none; }
+  .price-table, .price-table tbody { display: block; }
+  .price-table tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; padding: 14px 0; border-top: 1px solid var(--line); }
+  .price-table th, .price-table td { border: 0; padding: 0; }
+  .price-table tbody th { grid-column: 1 / -1; width: auto; }
+  .price-table td::before { content: attr(data-label); display: block; font-size: var(--fs-xs); color: var(--ink-2); font-weight: 600; margin-bottom: 2px; }
+  .price-table .plus-col { padding: 6px 8px; border-radius: 8px !important; }
+  .price-table td { font-size: var(--fs-sm); }
+}
+
+/* ---------- faq ---------- */
+.faq-grid { display: grid; gap: 28px; }
+.faq-list { border-top: 1px solid var(--line); }
+.faq-list details { border-bottom: 1px solid var(--line); }
+.faq-list summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 60px; padding: 14px 0; font-weight: 600; font-size: 1.0625rem; }
+.faq-list summary::-webkit-details-marker { display: none; }
+.faq-list summary::after { content: ""; width: 12px; height: 12px; border-right: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: rotate(45deg) translate(-2px, -2px); flex: none; transition: transform .18s var(--ease-out); }
+.faq-list details[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+.faq-list details p { padding: 0 0 18px; color: var(--ink-2); max-width: 64ch; }
+.faq-group { margin-top: 28px; margin-bottom: 4px; font-size: var(--fs-sm); color: var(--ink-2); }
+@media (min-width: 1024px) { .faq-grid { grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 64px; } .faq-head { position: sticky; top: 100px; align-self: start; } }
+
+/* ---------- final ---------- */
+.final-grid { display: grid; gap: 28px; align-items: center; }
+.final-scene { max-width: 520px; width: 100%; }
+.final .lead { color: var(--ink-2); }
+.final .cta { margin-top: 24px; }
+@media (min-width: 1024px) { .final-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; } }
+
+/* ---------- footer ---------- */
+.site-footer { border-top: 1px solid var(--line); padding: 48px 0 calc(48px + 76px); background: var(--surface); font-size: var(--fs-sm); color: var(--ink-2); }
+.footer-grid { display: grid; gap: 28px; }
+.site-footer .wordmark { font-size: 2.25rem; }
+.site-footer .meaning { margin-top: 10px; color: var(--ink); }
+.site-footer .tagline { margin-top: 4px; font: 600 1.0625rem/1.3 var(--font-display); color: var(--ink); }
+.footer-links { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+.footer-links a { display: inline-flex; min-height: 44px; align-items: center; color: var(--ink); text-decoration: none; }
+.footer-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.footer-legal { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+@media (min-width: 768px) { .footer-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } .site-footer { padding-bottom: 48px; } }
+
+/* ---------- sticky mobile bar ---------- */
+.sticky-cta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line); padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: space-between; gap: 12px; transform: translateY(110%); visibility: hidden; transition: transform .22s var(--ease-out), visibility 0s .22s; }
+.sticky-cta.show { transform: none; visibility: visible; transition: transform .22s var(--ease-out); }
+.sticky-cta .signin { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.sticky-cta .btn-primary { min-height: 48px; flex: 1; max-width: 260px; }
+@media (min-width: 768px) { .sticky-cta { display: none; } }
+
+/* ---------- illustration motion ---------- */
+.anim, .perk, .pp { transform-box: fill-box; }
+.anim { transition: transform .42s var(--ease-hop), opacity .24s var(--ease-out); }
+.perk { transition: transform .18s var(--ease-out); transform-origin: 50% 100%; }
+.ill-btn:hover .perk, .ill-btn:focus-visible .perk { transform: scale(1.03, 1.05); }
+.fade { transition: opacity .2s var(--ease-out); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  .ill-btn:hover .perk, .ill-btn:focus-visible .perk { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<a class="sr-only skip" href="#main">Skip to content</a>
+
+<!-- 0. Header -->
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Ifiok, back to top">
+      <span class="wordmark" aria-hidden="true"><span class="i">ı</span>fiok</span>
+      <span class="descriptor" aria-hidden="true">the AI learning agent</span>
+    </a>
+    <nav class="site-nav" aria-label="Page sections">
+      <a href="#learn">Learn</a><a href="#prepare">Exam prep</a><a href="#earn">Earn</a><a href="#pricing">Pricing</a>
+    </nav>
+    <div class="header-actions">
+      <a class="signin" href="/sign-in">Sign in</a>
+      <a class="btn-outline" href="/sign-in?mode=signup">Start free</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- 1. Hero -->
+<section id="top" class="hero band-surface" aria-labelledby="hero-h">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <h1 id="hero-h">Learn any topic in your course with lessons you can move</h1>
+      <p class="lead">Ifiok is the AI learning agent for Nigerian university students. Find or create your course, add the outline, and open a lesson for any topic: drag the graph, answer the question, see why. Exam prep, virtual labs and ways to earn from what you know are being built now.</p>
+      <div class="cta">
+        <a class="btn-primary" id="hero-cta" href="/sign-in?mode=signup">Start learning free</a>
+        <p class="under-cta">Free. For university students 18 and over.<br>Already have an account? <a href="/sign-in">Sign in</a></p>
+      </div>
+    </div>
+
+    <div class="hero-demo">
+      <p class="demo-label" id="demo-label">Try it: drag the point</p>
+      <div class="stage stage-learn plot-stage">
+        <svg class="plot ill" id="plot" viewBox="0 0 600 400" role="img" aria-labelledby="plot-t plot-s">
+          <title id="plot-t">Graph of y = x squared with its tangent line</title>
+          <desc id="plot-s">A curve y = x² with a tangent line at a draggable point. The slope at the point equals 2x.</desc>
+          <defs><clipPath id="pclip"><rect width="600" height="400" rx="6"/></clipPath></defs>
+          <g stroke="#B9C7E6" stroke-width="1">
+            <line x1="100" x2="100" y1="0" y2="400"/><line x1="200" x2="200" y1="0" y2="400"/><line x1="400" x2="400" y1="0" y2="400"/><line x1="500" x2="500" y1="0" y2="400"/>
+            <line x1="0" x2="600" y1="280" y2="280"/><line x1="0" x2="600" y1="200" y2="200"/><line x1="0" x2="600" y1="120" y2="120"/><line x1="0" x2="600" y1="40" y2="40"/>
+          </g>
+          <g stroke="var(--ill-line)" stroke-width="1.5" opacity=".55"><line x1="0" x2="600" y1="360" y2="360"/><line x1="300" x2="300" y1="0" y2="400"/></g>
+          <g fill="var(--ill-line)" font-size="15" font-family="Atkinson Hyperlegible Next, sans-serif" class="tnum" opacity=".8">
+            <text x="100" y="381" text-anchor="middle">−2</text><text x="200" y="381" text-anchor="middle">−1</text><text x="400" y="381" text-anchor="middle">1</text><text x="500" y="381" text-anchor="middle">2</text>
+            <text x="290" y="285" text-anchor="end">2</text><text x="290" y="205" text-anchor="end">4</text><text x="290" y="125" text-anchor="end">6</text><text x="290" y="45" text-anchor="end">8</text>
+          </g>
+          <g clip-path="url(#pclip)">
+            <path d="M0,0 Q300,720 600,0" fill="none" stroke="var(--ill-learn)" stroke-width="5" stroke-linecap="round"/>
+            <line id="drop" x1="400" x2="400" y1="320" y2="360" stroke="var(--ill-line)" stroke-width="1.5" stroke-dasharray="4 5" opacity=".6"/>
+            <line id="tangent" x1="0" y1="640" x2="600" y2="160" stroke="var(--ill-dot)" stroke-width="4.5" stroke-linecap="round"/>
+          </g>
+          <text x="512" y="70" fill="#1D44A6" font-size="19" font-weight="600" font-family="Atkinson Hyperlegible Next, sans-serif">y = x²</text>
+          <!-- Dot: the tittle of the wordmark, standing on the tangent at the point -->
+          <g id="dot" transform="translate(400 320) rotate(-19.33)">
+            <ellipse cx="0" cy="0" rx="9" ry="9" fill="var(--ill-paper)" stroke="var(--ill-dot)" stroke-width="3.5"/>
+            <g id="dot-fig">
+              <path d="M-9 -9 L-12 -24 M9 -9 L12 -24" stroke="var(--ill-line)" stroke-width="3.5" stroke-linecap="round"/>
+              <g transform="translate(0 -50)">
+                <path id="arms-down" d="M-25 6 L-33 20 M25 6 L33 20" stroke="var(--ill-line)" stroke-width="3.5" stroke-linecap="round"/>
+                <path id="arms-out" d="M-25 0 L-44 -10 M25 0 L44 -10" stroke="var(--ill-line)" stroke-width="3.5" stroke-linecap="round" opacity="0"/>
+                <circle r="27" fill="var(--ill-dot)" stroke="var(--ill-line)" stroke-width="3.5"/>
+                <g class="eye" transform="translate(-9 -5)"><circle r="7" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/><circle class="pupil" r="3.4" fill="var(--ill-line)"/></g>
+                <g class="eye" transform="translate(9 -5)"><circle r="7" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/><circle class="pupil" r="3.4" fill="var(--ill-line)"/></g>
+                <path id="m-smile" d="M-7 10 Q0 16 7 10" fill="none" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round" opacity="0"/>
+                <path id="m-flat" d="M-5 12 L5 12" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round"/>
+                <ellipse id="m-o" cx="0" cy="12" rx="3.5" ry="4.5" fill="var(--ill-line)" opacity="0"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+        <p class="readout tnum" id="readout" aria-live="polite">At x = <b class="q" id="rx">1.00</b>, the slope is <b class="r" id="rm">2.00</b>.</p>
+        <input class="slider" id="slider" type="range" min="-2.5" max="2.5" step="0.05" value="1" aria-label="Point x" aria-describedby="readout">
+      </div>
+      <p class="demo-caption">The steepness of y = x² at the point you choose. Drag it, or use the slider.</p>
+      <p class="demo-foot">This is one screen of a real Ifiok lesson.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2. Journey -->
+<section id="journey" class="band-paper" aria-labelledby="journey-h">
+  <div class="wrap">
+    <h2 class="h2" id="journey-h">From your first lesson to getting paid for what you know</h2>
+    <p class="lead">Five steps, in the order most students take them. You teach and earn from topics you've Mastered, so it all starts with learning.</p>
+
+    <div class="journey-list" id="journey-list">
+      <div class="journey-line" aria-hidden="true"><svg viewBox="0 0 48 100" preserveAspectRatio="none"><path d="M24 0 C 21 18, 27 34, 23.5 52 C 21 68, 26.5 84, 24 100" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></div>
+      <div class="journey-dot" id="journey-dot" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="48" height="48" class="ill" style="overflow:visible"><g transform="translate(24 4)"><circle r="11" fill="var(--ill-dot)" stroke="var(--ill-line)" stroke-width="2.5"/><circle cx="-4" cy="-1.5" r="3.2" fill="#fff" stroke="var(--ill-line)" stroke-width="1.5"/><circle cx="4" cy="-1.5" r="3.2" fill="#fff" stroke="var(--ill-line)" stroke-width="1.5"/><circle cx="-4" cy="-1.2" r="1.5" fill="var(--ill-line)"/><circle cx="4" cy="-1.2" r="1.5" fill="var(--ill-line)"/></g></svg>
+      </div>
+      <ol class="jrows">
+      <li class="jrow" data-step="0" style="--pc: var(--ill-learn)">
+        <span class="jnode" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="30" r="17" fill="var(--ill-learn)" stroke="var(--ill-line)" stroke-width="2.5"/><path d="M14 24 Q24 46 34 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></span>
+        <div><p class="jlabel">Step 1</p><div class="jtitle"><h3>Learn</h3></div><p class="jfor">For: Starting a course or stuck on a topic</p></div>
+        <p class="jline">Lessons you can move for any topic in your course, at any university.</p>
+        <div class="jside"><div class="jstatus badges"><span class="badge open">Open now</span><span class="badge building">Your notes and Path: Building now</span></div><a class="link link-row jlink" href="#learn">See how lessons work →</a></div>
+      </li>
+      <li class="jrow" data-step="1">
+        <span class="jnode" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="30" r="17" fill="var(--ill-prep)" stroke="var(--ill-line)" stroke-width="2.5"/><rect x="16" y="22" width="13" height="16" rx="1.5" fill="#fff" stroke="var(--ill-line)" stroke-width="2"/><rect x="20" y="19" width="13" height="16" rx="1.5" fill="#fff" stroke="var(--ill-line)" stroke-width="2"/></svg></span>
+        <div><p class="jlabel">Step 2</p><div class="jtitle"><h3>Prepare</h3></div><p class="jfor">For: Exams coming up</p></div>
+        <p class="jline">See what your past papers asked, topic by topic, then follow a plan to your exam date.</p>
+        <div class="jside"><div class="jstatus badges"><span class="badge building">Building now</span></div><a class="link link-row jlink" href="#prepare">See exam prep →</a></div>
+      </li>
+      <li class="jrow" data-step="2">
+        <span class="jnode" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="30" r="17" fill="var(--ill-contribute)" stroke="var(--ill-line)" stroke-width="2.5"/><rect x="17" y="21" width="14" height="18" rx="2" fill="#fff" stroke="var(--ill-line)" stroke-width="2"/><path d="M20 27 H28 M20 31 H26" stroke="var(--ill-line)" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        <div><p class="jlabel">Step 3</p><div class="jtitle"><h3>Contribute</h3></div><p class="jfor">For: Good notes or past questions to share</p></div>
+        <p class="jline">Share them once; after checks, they help every student learning the topic.</p>
+        <div class="jside"><div class="jstatus badges"><span class="badge building">Building now</span></div><a class="link link-row jlink" href="#contribute">See how sharing works →</a></div>
+      </li>
+      <li class="jrow" data-step="3">
+        <span class="jnode" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="30" r="17" fill="var(--ill-teach)" stroke="var(--ill-line)" stroke-width="2.5"/><path d="M15 23 h18 a2 2 0 0 1 2 2 v8 a2 2 0 0 1 -2 2 h-10 l-5 4 v-4 h-3 a2 2 0 0 1 -2 -2 v-8 a2 2 0 0 1 2 -2z" fill="#fff" stroke="var(--ill-line)" stroke-width="2" stroke-linejoin="round"/></svg></span>
+        <div><p class="jlabel">Step 4</p><div class="jtitle"><h3>Teach</h3></div><p class="jfor">For: Strong in a subject</p></div>
+        <p class="jline">Explain topics you've Mastered in writing, voice or short video, and tutor them.</p>
+        <div class="jside"><div class="jstatus badges"><span class="badge building">Building now</span></div><a class="link link-row jlink" href="#teach">See how teaching works →</a></div>
+      </li>
+      <li class="jrow" data-step="4">
+        <span class="jnode" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="30" r="17" fill="var(--ill-earn)" stroke="var(--ill-line)" stroke-width="2.5"/><path d="M14 27 H34 C34 39 14 39 14 27Z" fill="#fff" stroke="var(--ill-line)" stroke-width="2" stroke-linejoin="round"/><path d="M17 31 l3 -2 l3 2 l3 -2 l3 2 l3 -2" fill="none" stroke="var(--ill-line)" stroke-width="1.5"/></svg></span>
+        <div><p class="jlabel">Step 5</p><div class="jtitle"><h3>Earn</h3></div><p class="jfor">For: Want income from what you know</p></div>
+        <p class="jline">Points and Units when your work helps others; cash payouts and tutoring income after launch.</p>
+        <div class="jside"><div class="jstatus badges"><span class="badge building">Points and Units: Building now</span><span class="badge after">Cash: After launch</span></div><a class="link link-row jlink" href="#earn">See how pay works →</a></div>
+      </li>
+      </ol>
+    </div>
+    <p class="open-now-line"><b>Open now:</b> find or create your course, add the outline (snap it, type it, or let Ifiok draft one for you to check) and open shared lessons for any topic.</p>
+  </div>
+</section>
+
+<!-- 3. Learn -->
+<section id="learn" class="path band-surface" aria-labelledby="learn-h">
+  <div class="wrap path-grid">
+    <div class="rail" aria-hidden="true"><svg viewBox="0 0 48 100" preserveAspectRatio="none"><path d="M24 0 C 21.5 25, 26.5 50, 24 100" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg><svg class="rnode" viewBox="0 0 48 48"><circle cx="24" cy="24" r="15" fill="var(--ill-learn)" stroke="var(--ill-line)" stroke-width="2.5"/></svg></div>
+    <div class="path-head">
+      <p class="step" style="--pc: var(--ill-learn)"><span class="pip" aria-hidden="true"></span>Step 1 · Learn</p>
+      <h2 class="h2" id="learn-h">Learn: lessons you can move, for any topic</h2>
+      <p class="lead">Every lesson starts with something to look at or move, one idea per screen. You try first, then see the explanation, with the reason right under your answer.</p>
+    </div>
+
+    <div class="path-stage">
+      <div class="stage stage-learn">
+        <span class="stage-hint" aria-hidden="true">Tap the page</span>
+        <button class="ill-btn" type="button" id="page-btn" aria-label="Show the next screen of the lesson" aria-describedby="page-note">
+          <svg class="ill" viewBox="0 0 400 290" aria-hidden="true">
+            <ellipse cx="200" cy="268" rx="84" ry="7" fill="var(--ill-line)" opacity=".1"/>
+            <g class="perk" id="page-char">
+              <path d="M175 230 L170 262 M225 230 L230 262" stroke="var(--ill-line)" stroke-width="4" stroke-linecap="round"/>
+              <ellipse cx="166" cy="264" rx="10" ry="4.5" fill="var(--ill-line)"/><ellipse cx="234" cy="264" rx="10" ry="4.5" fill="var(--ill-line)"/>
+              <path d="M128 150 L102 178 M272 132 L300 112" stroke="var(--ill-line)" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="300" cy="111" r="6" fill="var(--ill-line)"/>
+              <path d="M140 46 H246 L264 64 V222 Q264 232 254 232 H140 Q130 232 130 222 V56 Q130 46 140 46Z" fill="var(--ill-learn)" stroke="var(--ill-line)" stroke-width="4" stroke-linejoin="round"/>
+              <path d="M246 46 V58 Q246 64 252 64 H264" fill="#9DB4F0" stroke="var(--ill-line)" stroke-width="4" stroke-linejoin="round"/>
+              <g class="eye" transform="translate(180 76)"><circle r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="4.2" fill="var(--ill-line)"/></g>
+              <g class="eye" transform="translate(214 76)"><circle r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="4.2" fill="var(--ill-line)"/></g>
+              <rect x="148" y="98" width="98" height="116" rx="8" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/>
+              <!-- screen 1: drag the graph -->
+              <g class="fade scr" data-scr="0">
+                <path d="M158 116 Q197 250 236 116" fill="none" stroke="var(--ill-learn)" stroke-width="3.5" stroke-linecap="round"/>
+                <path d="M176 196 L232 140" stroke="var(--ill-dot)" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="212" cy="160" r="7" fill="var(--ill-dot)" stroke="var(--ill-line)" stroke-width="2"/>
+                <path d="M200 200 h24 M204 196 l-4 4 l4 4 M220 196 l4 4 l-4 4" fill="none" stroke="var(--ill-line)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+              <!-- screen 2: answer the question -->
+              <g class="fade scr" data-scr="1" opacity="0">
+                <path d="M184 128 q13 -14 26 0 q0 12 -13 16 v8" fill="none" stroke="var(--ill-line)" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="197" cy="164" r="3" fill="var(--ill-line)"/>
+                <rect x="160" y="178" width="34" height="22" rx="11" fill="var(--stage-learn)" stroke="var(--ill-line)" stroke-width="2"/>
+                <rect x="200" y="178" width="34" height="22" rx="11" fill="#fff" stroke="var(--ill-line)" stroke-width="2"/>
+              </g>
+              <!-- screen 3: see why -->
+              <g class="fade scr" data-scr="2" opacity="0">
+                <path d="M166 150 l14 14 l26 -30" fill="none" stroke="var(--ill-contribute)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M162 186 H232 M162 198 H214" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+              </g>
+            </g>
+          </svg>
+        </button>
+        <div class="stage-ui">
+          <div class="seg" role="group" aria-label="Lesson screens">
+            <button type="button" data-go="0" aria-pressed="true">Drag the graph</button>
+            <button type="button" data-go="1" aria-pressed="false">Answer the question</button>
+            <button type="button" data-go="2" aria-pressed="false">See why</button>
+          </div>
+          <p class="stage-note" id="page-note" aria-live="polite">Screen 1 of 3: something to move.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="path-items">
+      <ul class="items">
+        <li><div class="item-head"><h3>Your course, at your university</h3></div><p>Search for your course or create it in under a minute. Add the outline three ways: snap a photo, type the topics, or let Ifiok draft one for you to check against your course. There's no fixed course list, so nothing waits for anyone else to add your course.</p></li>
+        <li><div class="item-head"><h3>Built once, then shared with every student</h3></div><p>The first student to open a topic waits about a minute while its lesson is built. Every student after that, at any university, opens it at once.</p></li>
+        <li><div class="item-head"><h3>Lessons from your own notes</h3><span class="badge building">Building now</span></div><p>Next: add your lecture notes or textbook pages and get lessons built from them, citing your own pages. PDFs will be read on your phone, and only the pages you pick are sent.</p></li>
+        <li><div class="item-head"><h3>A Path through the whole course</h3><span class="badge building">Building now</span></div><p>Next: your outline becomes a Path, every topic in order with your level on each: Not started, Familiar, Proficient, Mastered.</p></li>
+        <li><div class="item-head"><h3>Practice that finds your weak areas</h3><span class="badge building">Building now</span></div><p>Next: practice questions for every topic, and a weak-areas list that shows what you keep missing and what to do about it.</p></li>
+        <li><div class="item-head"><h3>Virtual labs for your practicals</h3><span class="badge building">Building now</span></div><p>Next: virtual labs from your lab manual or a topic. Take readings, plot the graph, work out g or R, and get a lab report.</p></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Prepare -->
+<section id="prepare" class="path band-paper" aria-labelledby="prepare-h">
+  <div class="wrap path-grid">
+    <div class="rail" aria-hidden="true"><svg viewBox="0 0 48 100" preserveAspectRatio="none"><path d="M24 0 C 26.5 30, 21.5 60, 24 100" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg><svg class="rnode" viewBox="0 0 48 48"><circle cx="24" cy="24" r="15" fill="var(--ill-prep)" stroke="var(--ill-line)" stroke-width="2.5"/></svg></div>
+    <div class="path-head">
+      <p class="step" style="--pc: var(--ill-prep)"><span class="pip" aria-hidden="true"></span>Step 2 · Prepare</p>
+      <h2 class="h2" id="prepare-h">Prepare: get ready for your exam with your past questions</h2>
+      <div class="section-badge"><span class="badge building">Building now</span></div>
+      <p class="lead">This is being built now. Here is what it will do, so you can start your course today and have it ready when exam prep opens.</p>
+    </div>
+
+    <div class="path-stage">
+      <div class="stage stage-prep">
+        <span class="stage-hint" aria-hidden="true">Tap the papers</span>
+        <button class="ill-btn" type="button" id="papers-btn" aria-pressed="false" aria-label="Spread out four example past papers">
+          <svg class="ill" viewBox="0 0 400 280" aria-hidden="true" id="papers">
+            <ellipse cx="200" cy="262" rx="120" ry="7" fill="var(--ill-line)" opacity=".1"/>
+            <g class="anim pp" data-i="0" style="transform: translate(196px,50px) rotate(8deg)">
+              <rect width="80" height="104" rx="5" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/>
+              <rect x="10" y="40" width="60" height="12" rx="3" fill="var(--ill-prep)"/>
+              <path d="M12 22 H62 M12 46 H58 M12 70 H54 M12 86 H44" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round"/>
+            </g>
+            <g class="anim pp" data-i="1" style="transform: translate(184px,46px) rotate(3deg)">
+              <rect width="80" height="104" rx="5" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/>
+              <rect x="10" y="64" width="60" height="12" rx="3" fill="var(--ill-prep)"/>
+              <path d="M12 22 H62 M12 46 H58 M12 70 H54 M12 86 H44" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round"/>
+            </g>
+            <g class="anim pp" data-i="2" style="transform: translate(122px,56px) rotate(-7deg)">
+              <rect width="80" height="104" rx="5" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/>
+              <path d="M12 22 H62 M12 46 H58 M12 70 H54 M12 86 H44" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round"/>
+            </g>
+            <g class="anim pp" data-i="3" style="transform: translate(150px,60px) rotate(0deg)">
+              <path d="M16 104 L12 150 M64 104 L68 150" stroke="var(--ill-line)" stroke-width="4" stroke-linecap="round"/>
+              <ellipse cx="9" cy="152" rx="10" ry="4.5" fill="var(--ill-line)"/><ellipse cx="71" cy="152" rx="10" ry="4.5" fill="var(--ill-line)"/>
+              <rect width="100" height="112" rx="6" fill="var(--ill-prep)" stroke="var(--ill-line)" stroke-width="4"/>
+              <g class="eye" transform="translate(34 34)"><circle r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="4.2" fill="var(--ill-line)"/></g>
+              <g class="eye" transform="translate(66 34)"><circle r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="4.2" fill="var(--ill-line)"/></g>
+              <path d="M40 56 Q50 64 60 56" fill="none" stroke="var(--ill-line)" stroke-width="3.5" stroke-linecap="round"/>
+              <path d="M18 80 H82 M18 94 H66" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round"/>
+            </g>
+            <!-- ticks shown when fanned: 3 of 4 papers asked it -->
+            <g class="fade tk" opacity="0"><g transform="translate(64 80)"><circle r="13" fill="var(--ill-contribute)" stroke="var(--ill-line)" stroke-width="2.5"/><path d="M-6 0 l4 4 l8 -8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="translate(152 80)"><circle r="13" fill="var(--ill-contribute)" stroke="var(--ill-line)" stroke-width="2.5"/><path d="M-6 0 l4 4 l8 -8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="translate(336 80)"><circle r="13" fill="var(--ill-contribute)" stroke="var(--ill-line)" stroke-width="2.5"/><path d="M-6 0 l4 4 l8 -8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="translate(244 80)"><circle r="13" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/><path d="M-5 0 H5" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round"/></g></g>
+          </svg>
+        </button>
+        <div class="stage-ui">
+          <p class="example"><span class="tag">Example</span>Projectile motion · asked in 3 of 4 papers · about 24% of marks</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="path-items">
+      <ul class="items">
+        <li><div class="item-head"><h3>What your past papers asked</h3></div><p>Each topic shows how often it was asked and its share of the marks across the papers you upload, and the question styles that keep coming back. It counts what was asked. It never says what will be asked.</p></li>
+        <li><div class="item-head"><h3>A study plan to your exam date</h3></div><p>Set your exam date. Ifiok puts the topics with the most marks and the most mistakes first, and lays out daily sessions of lessons, practice and past questions up to the day.</p></li>
+        <li><div class="item-head"><h3>Worked solutions you can follow</h3></div><p>Every step shown, with the method. Numbers are computed by the maths engine; anything it couldn't check is labelled "Unchecked".</p></li>
+        <li><div class="item-head"><h3>Timed practice papers</h3></div><p>Sit a timed paper made from your past questions plus similar questions on your weak topics. Multiple choice and numeric answers are marked for you; for theory, you compare with the worked solution and mark yourself: Got it, Partly or Missed. Your plan updates from the result.</p></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Contribute -->
+<section id="contribute" class="path band-surface" aria-labelledby="contribute-h">
+  <div class="wrap path-grid">
+    <div class="rail" aria-hidden="true"><svg viewBox="0 0 48 100" preserveAspectRatio="none"><path d="M24 0 C 21.5 35, 26 65, 24 100" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg><svg class="rnode" viewBox="0 0 48 48"><circle cx="24" cy="24" r="15" fill="var(--ill-contribute)" stroke="var(--ill-line)" stroke-width="2.5"/></svg></div>
+    <div class="path-head">
+      <p class="step" style="--pc: var(--ill-contribute)"><span class="pip" aria-hidden="true"></span>Step 3 · Contribute</p>
+      <h2 class="h2" id="contribute-h">Contribute: share notes that help every student on the topic</h2>
+      <div class="section-badge"><span class="badge building">Building now</span></div>
+      <p class="lead">Your notes, past questions, lab manuals and worked solutions can make every student's lessons on a topic better. You choose what to share; everything else stays private.</p>
+    </div>
+
+    <div class="path-stage">
+      <div class="stage stage-contribute">
+        <span class="stage-hint" aria-hidden="true">Tap the note</span>
+        <button class="ill-btn" type="button" id="note-btn" aria-label="Send an example note through the checks" aria-describedby="checks">
+          <svg class="ill" viewBox="0 0 400 250" aria-hidden="true">
+            <ellipse cx="110" cy="232" rx="60" ry="6" fill="var(--ill-line)" opacity=".1"/>
+            <!-- lessons that receive snippets -->
+            <g>
+              <rect x="316" y="70" width="58" height="44" rx="6" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/>
+              <rect x="316" y="126" width="58" height="44" rx="6" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/>
+              <rect x="316" y="182" width="58" height="44" rx="6" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/>
+              <path d="M326 84 H364 M326 140 H364 M326 196 H364" stroke="var(--ill-line)" stroke-width="2.5" stroke-linecap="round" opacity=".5"/>
+              <g class="fade snip" opacity="0"><rect x="326" y="94" width="26" height="10" rx="3" fill="var(--ill-contribute)"/><rect x="326" y="150" width="26" height="10" rx="3" fill="var(--ill-contribute)"/><rect x="326" y="206" width="26" height="10" rx="3" fill="var(--ill-contribute)"/></g>
+            </g>
+            <!-- Note character -->
+            <g id="note-char" class="anim">
+              <g class="perk">
+                <path d="M92 196 L88 228 M128 196 L132 228" stroke="var(--ill-line)" stroke-width="4" stroke-linecap="round"/>
+                <ellipse cx="84" cy="230" rx="10" ry="4.5" fill="var(--ill-line)"/><ellipse cx="136" cy="230" rx="10" ry="4.5" fill="var(--ill-line)"/>
+                <path d="M62 120 L44 146 M158 120 L176 104" stroke="var(--ill-line)" stroke-width="4" stroke-linecap="round"/>
+                <rect x="60" y="68" width="100" height="130" rx="8" fill="var(--ill-contribute)" stroke="var(--ill-line)" stroke-width="4"/>
+                <g fill="none" stroke="var(--ill-line)" stroke-width="3"><circle cx="80" cy="66" r="6"/><circle cx="100" cy="66" r="6"/><circle cx="120" cy="66" r="6"/><circle cx="140" cy="66" r="6"/></g>
+                <g class="eye" transform="translate(94 100)"><circle r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="4.2" fill="var(--ill-line)"/></g>
+                <g class="eye" transform="translate(126 100)"><circle r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="4.2" fill="var(--ill-line)"/></g>
+                <path d="M76 132 H144 M76 148 H134 M76 164 H140 M76 180 H118" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
+              </g>
+            </g>
+            <!-- gate -->
+            <path d="M226 60 V230 M276 60 V230 M218 60 H284" stroke="var(--ill-line)" stroke-width="4" stroke-linecap="round"/>
+            <g id="lamps">
+              <circle cx="251" cy="90" r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/><circle cx="251" cy="124" r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/><circle cx="251" cy="158" r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/><circle cx="251" cy="192" r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/>
+            </g>
+          </svg>
+        </button>
+        <div class="stage-ui">
+          <ol class="checks" id="checks" aria-live="polite">
+            <li data-c="0">Names and contact details removed</li>
+            <li data-c="1">Readable and on the topic</li>
+            <li data-c="2">Copyright signs checked</li>
+            <li data-c="3">Duplicates checked</li>
+            <li data-c="4" class="approved">Approved</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="path-items">
+      <ul class="items">
+        <li><div class="item-head"><h3>What you can share</h3></div><p>Notes you wrote, past questions, lab manuals and worked solutions. Published textbooks can never be shared, and textbook pages you add for yourself stay private.</p></li>
+        <li><div class="item-head"><h3>What happens before anyone sees it</h3></div><p>Ifiok removes names and contact details, checks that it's readable and on the topic, looks for copyright signs and checks for duplicates. Then it's approved, or held with the reason.</p></li>
+        <li><div class="item-head"><h3>What other students see</h3></div><p>Short, cited snippets inside their lessons, never your whole document. Past questions are used for their questions only and never shown as a file.</p></li>
+        <li><div class="item-head"><h3>What you get</h3></div><p>Approved uploads will earn Units and points toward the contribution pool. <a class="link" href="#earn">See how pay works →</a></p></li>
+      </ul>
+      <p class="after-p"><a class="link link-row" href="/terms">Read what you can and can't share</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- 6. Teach -->
+<section id="teach" class="path band-paper" aria-labelledby="teach-h">
+  <div class="wrap path-grid">
+    <div class="rail" aria-hidden="true"><svg viewBox="0 0 48 100" preserveAspectRatio="none"><path d="M24 0 C 26.5 30, 22 70, 24 100" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg><svg class="rnode" viewBox="0 0 48 48"><circle cx="24" cy="24" r="15" fill="var(--ill-teach)" stroke="var(--ill-line)" stroke-width="2.5"/></svg></div>
+    <div class="path-head">
+      <p class="step" style="--pc: var(--ill-teach)"><span class="pip" aria-hidden="true"></span>Step 4 · Teach</p>
+      <h2 class="h2" id="teach-h">Teach: explain topics you've Mastered, and tutor them</h2>
+      <p class="lead">When you reach Mastered on a topic, you can teach it. Mastered comes from your answers, checked on our server; nobody can just claim it.</p>
+    </div>
+
+    <div class="path-stage">
+      <div class="stage stage-teach">
+        <span class="stage-hint" aria-hidden="true">Pick a level</span>
+        <svg class="ill" viewBox="0 0 400 270" aria-hidden="true" id="ladder">
+          <ellipse cx="200" cy="254" rx="170" ry="6" fill="var(--ill-line)" opacity=".1"/>
+          <rect x="30" y="220" width="78" height="30" rx="4" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/>
+          <rect x="114" y="190" width="78" height="60" rx="4" fill="var(--ill-built-1)" stroke="var(--ill-line)" stroke-width="3"/>
+          <rect x="198" y="160" width="78" height="90" rx="4" fill="var(--ill-built-2)" stroke="var(--ill-line)" stroke-width="3"/>
+          <rect x="282" y="130" width="78" height="120" rx="4" fill="var(--ill-contribute)" stroke="var(--ill-line)" stroke-width="3"/>
+          <!-- teach banner (Mastered only) -->
+          <g id="teach-banner" class="fade">
+            <rect x="24" y="22" width="220" height="64" rx="12" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/>
+            <path d="M206 86 L226 104 L222 86" fill="#fff" stroke="var(--ill-line)" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M210 84 H222" stroke="#fff" stroke-width="4"/>
+            <g transform="translate(40 40)"><path d="M0 22 L4 10 L18 -4 L26 4 L12 18 Z" fill="var(--ill-prep)" stroke="var(--ill-line)" stroke-width="2.5" stroke-linejoin="round"/></g>
+            <g transform="translate(104 54)" stroke="var(--ill-line)" stroke-width="3.5" stroke-linecap="round"><path d="M0 -6 V6 M8 -14 V14 M16 -9 V9 M24 -16 V16 M32 -5 V5"/></g>
+            <g transform="translate(172 38)"><rect width="52" height="34" rx="6" fill="var(--ill-teach)" stroke="var(--ill-line)" stroke-width="2.5"/><path d="M21 9 L33 17 L21 25 Z" fill="#fff" stroke="var(--ill-line)" stroke-width="2" stroke-linejoin="round"/></g>
+          </g>
+          <!-- Bubble character -->
+          <g id="bubble" class="anim" style="transform: translate(321px,130px)">
+            <g class="perk">
+              <path d="M-10 -6 L-12 -1 M10 -6 L12 -1" stroke="var(--ill-line)" stroke-width="4" stroke-linecap="round"/>
+              <ellipse cx="-14" cy="0" rx="9" ry="4" fill="var(--ill-line)"/><ellipse cx="14" cy="0" rx="9" ry="4" fill="var(--ill-line)"/>
+              <path d="M-30 -84 h60 a12 12 0 0 1 12 12 v44 a12 12 0 0 1 -12 12 h-18 l-4 10 l-12 -10 h-26 a12 12 0 0 1 -12 -12 v-44 a12 12 0 0 1 12 -12z" fill="var(--ill-teach)" stroke="var(--ill-line)" stroke-width="4" stroke-linejoin="round"/>
+              <g class="eye" transform="translate(-13 -58)"><circle r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="4.2" fill="var(--ill-line)"/></g>
+              <g class="eye" transform="translate(15 -58)"><circle r="9" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="4.2" fill="var(--ill-line)"/></g>
+              <path id="bub-mouth" d="M-8 -38 Q1 -30 10 -38" fill="none" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round"/>
+            </g>
+          </g>
+        </svg>
+        <div class="stage-ui">
+          <div class="seg" role="group" aria-label="Mastery level">
+            <button type="button" data-lv="0" aria-pressed="false">Not started</button>
+            <button type="button" data-lv="1" aria-pressed="false">Familiar</button>
+            <button type="button" data-lv="2" aria-pressed="false">Proficient</button>
+            <button type="button" data-lv="3" aria-pressed="true">Mastered</button>
+          </div>
+          <p class="stage-note" id="teach-note" aria-live="polite">Mastered: write, record a voice note or a short video.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="path-items">
+      <ul class="items">
+        <li><div class="item-head"><h3>Explainers in your own words</h3><span class="badge building">Building now</span></div><p>Write a walkthrough, record a voice note up to 5 minutes, or a short video up to 3 minutes. Every explainer is checked before anyone sees it, and voice and video get captions. Videos never play on their own and show their size first, and data-saver gives the transcript and audio instead. You earn a point for each student who finishes it, once per student a month.</p></li>
+        <li><div class="item-head"><h3>Tutoring</h3></div><p>Tutor students who book you on topics you've Mastered. To tutor, your account must be at least 30 days old, with Mastered in each topic you offer and a verified payout account in your own name. You set your price within a range and keep 85% of it.</p>
+          <p class="status-line">Tutoring: Building now. Bookings and payments: After launch.</p>
+          <p class="example-line"><b>Example price:</b> On a ₦2,000 session you receive ₦1,700 and Ifiok keeps ₦300 (15%). Tutors set their own price.</p></li>
+        <li><div class="item-head"><h3>Curating lessons</h3><span class="badge after">After launch</span></div><p>Check and fix AI lessons in a subject you know. Curators need Mastered in at least 5 topics of the subject and must pass a short check: find and fix three planted mistakes. ₦1,500 for each accepted review, paid monthly.</p></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Earn -->
+<section id="earn" class="path band-surface" aria-labelledby="earn-h">
+  <div class="wrap">
+    <div class="path-grid">
+      <div class="rail" aria-hidden="true"><svg viewBox="0 0 48 100" preserveAspectRatio="none"><path d="M24 0 C 22 40, 25 70, 24 100" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg><svg class="rnode" viewBox="0 0 48 48"><circle cx="24" cy="24" r="15" fill="var(--ill-earn)" stroke="var(--ill-line)" stroke-width="2.5"/></svg></div>
+      <div class="path-head">
+        <p class="step" style="--pc: var(--ill-earn)"><span class="pip" aria-hidden="true"></span>Step 5 · Earn</p>
+        <h2 class="h2" id="earn-h">Earn: how Ifiok pays students</h2>
+        <p class="rates-note">Launch rates, may change.</p>
+        <p class="lead">Learning earns Units, which you spend inside Ifiok and can't cash out. Work that other students use earns cash once payouts open. Keeping the two apart means nobody can cash out by grinding lessons.</p>
+      </div>
+
+      <div class="path-stage">
+        <div class="stage stage-earn">
+          <svg class="ill" viewBox="0 0 410 256" aria-labelledby="pool-t" role="img" id="pool">
+            <title id="pool-t">A month's pool split by points among five example contributors; one share stops at 20% and the rest carries to next month.</title>
+            <!-- the pool calabash -->
+            <g class="perk">
+              <path d="M120 26 L114 14 M280 26 L286 14" stroke="var(--ill-line)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M110 30 H290 C290 108 110 108 110 30Z" fill="var(--ill-earn)" stroke="var(--ill-line)" stroke-width="4" stroke-linejoin="round"/>
+              <path d="M124 54 l12 -9 l12 9 l12 -9 l12 9 l12 -9 l12 9 l12 -9 l12 9 l12 -9 l12 9 l12 -9 l12 9" fill="none" stroke="var(--ill-line)" stroke-width="2.5" stroke-linejoin="round"/>
+              <g class="eye" transform="translate(182 72)"><circle r="8" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="3.8" fill="var(--ill-line)"/></g>
+              <g class="eye" transform="translate(218 72)"><circle r="8" fill="#fff" stroke="var(--ill-line)" stroke-width="3"/><circle class="pupil" r="3.8" fill="var(--ill-line)"/></g>
+            </g>
+            <path d="M200 100 V116 M200 116 H52 M200 116 H310 M52 116 V140 M118 116 V140 M184 116 V140 M250 116 V140 M310 116 V140" fill="none" stroke="var(--ill-line)" stroke-width="2.5" stroke-dasharray="2 6" stroke-linecap="round"/>
+            <!-- five bowls: fill height = share / 20% -->
+            <defs>
+              <clipPath id="b0"><path d="M24 150 H80 C80 208 24 208 24 150Z"/></clipPath>
+              <clipPath id="b1"><path d="M90 150 H146 C146 208 90 208 90 150Z"/></clipPath>
+              <clipPath id="b2"><path d="M156 150 H212 C212 208 156 208 156 150Z"/></clipPath>
+              <clipPath id="b3"><path d="M222 150 H278 C278 208 222 208 222 150Z"/></clipPath>
+              <clipPath id="b4"><path d="M288 150 H344 C344 208 288 208 288 150Z"/></clipPath>
+            </defs>
+            <g fill="var(--ill-earn)">
+              <rect clip-path="url(#b0)" x="24" y="150" width="56" height="44"/>
+              <rect clip-path="url(#b1)" x="90" y="174" width="56" height="20"/>
+              <rect clip-path="url(#b2)" x="156" y="181" width="56" height="13"/>
+              <rect clip-path="url(#b3)" x="222" y="185" width="56" height="9"/>
+              <rect clip-path="url(#b4)" x="288" y="187" width="56" height="7" id="you-fill" fill="var(--ill-dot)"/>
+            </g>
+            <g fill="none" stroke="var(--ill-line)" stroke-width="3" stroke-linejoin="round">
+              <path d="M24 150 H80 C80 208 24 208 24 150Z"/><path d="M90 150 H146 C146 208 90 208 90 150Z"/><path d="M156 150 H212 C212 208 156 208 156 150Z"/><path d="M222 150 H278 C278 208 222 208 222 150Z"/><path d="M288 150 H344 C344 208 288 208 288 150Z" stroke-width="4"/>
+            </g>
+            <!-- overflow from the capped bowl to next month -->
+            <path d="M24 150 C 10 156, 8 176, 12 214" fill="none" stroke="var(--ill-earn)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="3 6"/>
+            <path d="M352 196 H392 C392 226 352 226 352 196Z" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5" stroke-dasharray="4 4"/>
+            <g font-family="Atkinson Hyperlegible Next, sans-serif" font-size="13" fill="var(--ill-line)" font-weight="600" text-anchor="middle">
+              <text x="52" y="232">20% cap</text><text x="316" y="232" font-size="14">You</text><text x="372" y="244" font-weight="400" font-size="12">Next month</text>
+            </g>
+          </svg>
+          <div class="stage-ui">
+            <form class="calc" id="calc" onsubmit="return false" aria-labelledby="calc-t">
+              <p id="calc-t" style="font-weight:600"><span class="tag" style="border-bottom:2px solid var(--ill-line);margin-right:6px">Example</span>Work out your points</p>
+              <div class="calc-row"><span class="lbl" id="u-l">Students who used your uploads</span><span class="stepper"><button type="button" data-k="u" data-d="-1" aria-label="Fewer students who used your uploads">−</button><output id="u" aria-labelledby="u-l">30</output><button type="button" data-k="u" data-d="1" aria-label="More students who used your uploads">+</button></span></div>
+              <div class="calc-row"><span class="lbl" id="e-l">Students who finished your explainers</span><span class="stepper"><button type="button" data-k="e" data-d="-1" aria-label="Fewer students who finished your explainers">−</button><output id="e" aria-labelledby="e-l">12</output><button type="button" data-k="e" data-d="1" aria-label="More students who finished your explainers">+</button></span></div>
+              <div class="calc-row"><label for="all">All contributors' points</label><input class="num" id="all" inputmode="numeric" value="1,400"></div>
+              <div class="calc-out" aria-live="polite"><span>Your points<b id="pts">42</b></span><span>Your share<b id="share">3%</b></span><span id="capped" style="align-self:end">of the pool</span></div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="earn-wide">
+      <div class="earn-table-wrap"><table class="earn-table">
+          <caption class="sr-only">Ways to earn on Ifiok</caption>
+          <thead><tr><th scope="col">Way to earn</th><th scope="col">What you get</th><th scope="col">Paid from</th><th scope="col">Status</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Verified uploads</th><td data-label="What you get">+5 Units when approved · +1 Unit for each student who learns from it each month · points toward the pool</td><td data-label="Paid from">Contribution pool</td><td data-label="Status"><div class="badges"><span class="badge building">Points and Units: Building now</span><span class="badge after">Cash: After launch</span></div></td></tr>
+            <tr><th scope="row">Explainers</th><td data-label="What you get">A point for each student who finishes it, once per student a month</td><td data-label="Paid from">Contribution pool</td><td data-label="Status"><div class="badges"><span class="badge building">Points and Units: Building now</span><span class="badge after">Cash: After launch</span></div></td></tr>
+            <tr><th scope="row">Curating</th><td data-label="What you get">₦1,500 per accepted review</td><td data-label="Paid from">Ifiok's budget</td><td data-label="Status"><span class="badge after">After launch</span></td></tr>
+            <tr><th scope="row">Tutoring</th><td data-label="What you get">85% of your session price</td><td data-label="Paid from">The learner's payment</td><td data-label="Status"><span class="badge after">After launch</span></td></tr>
+            <tr><th scope="row">Learning</th><td data-label="What you get">+3 Units when a topic reaches Mastered (up to 10 topics a month), +5 for a 7-day streak</td><td data-label="Paid from">Units only, never cash</td><td data-label="Status"><span class="badge building">Building now</span></td></tr>
+          </tbody>
+        </table>
+        <p class="cap-note">Earned Units are capped at 40 a month and last 90 days.</p></div>
+      <h3 class="h3x" style="margin-top:56px">How your share of the pool is worked out</h3>
+      <ol class="formula">
+        <li><b>A student learns from your work.</b><p>They finish a lesson screen that cites your upload, answer a question built from it, or finish your explainer. That's one point.</p></li>
+        <li><b>Points are counted fairly.</b><p>One point per student, per item, per month. Your own use never counts. Only active students count: an account at least 3 days old, a verified email and 3 study sessions in the last 14 days.</p></li>
+        <li><b>The pool is set at month end.</b><p>35% of Ifiok's margin for the month (what students paid for what they used, minus payment fees and AI costs). If the margin is zero, the pool is zero, and we say so.</p></li>
+        <li><b>The pool is split by points.</b><p>Your share is your points divided by all contributors' points, up to 20% of the pool. Anything above that stays in the pool for next month.</p></li>
+        <li><b>Checks, then a hold.</b><p>Unusual patterns are held for review, and the month's top earners are checked by hand. Earnings are held for 30 days, then you can withdraw ₦2,000 or more to an account in your own name.</p></li>
+      </ol>
+      <div class="worked"><span class="tag">Example</span>30 students learn from your notes this month and 12 finish your voice explainer: 42 points. If all contributors have 1,400 points together, your share is 3% of the pool. Your 2 approved uploads earn 10 Units and the 30 students earn you 30 more: 40 Units, the monthly cap.</div>
+
+      <h3 class="h3x" style="margin-top:48px">When money starts to move</h3>
+      <div class="money">
+        <p>Points and Units start being recorded when sharing and explainers open.</p>
+        <p>Cash payouts, curator pay and tutoring bookings open after launch, once payments are set up and the terms have had legal review. Cash shares from the pool start once the pool has reached ₦250,000 a month for two months in a row, so each share is worth withdrawing. Until then, contributors are rewarded in Units.</p>
+      </div>
+      <p class="after-p" style="margin-top:12px"><a class="link link-row" href="/terms">Read our terms (contributor rules are added before any money moves)</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Trust (Bench) -->
+<section id="trust" class="bench-band" aria-labelledby="trust-h">
+  <div class="wrap trust-grid">
+    <div>
+      <h2 class="h2" id="trust-h">Every number is computed, not guessed</h2>
+      <p class="lead">AI is good at explaining and bad at arithmetic, so Ifiok doesn't let it do the maths.</p>
+      <ul class="trust-rows" style="margin-top:32px">
+        <li><h3>The maths engine has the last word</h3><p>Every number you see comes from a maths engine, not the AI's memory. A lesson whose maths doesn't check out isn't published, and a practice question whose answer disagrees with the engine is dropped.</p></li>
+        <li><h3>You can see where it came from</h3><p>Explanations cite their source. Anything not from a source says so, and marks from AI are labelled estimates.</p></li>
+        <li><h3>Students can flag a wrong step</h3><p>Every block in a lesson has a flag. Lessons in medicine, nursing, pharmacy and law are checked by a person before anyone sees them.</p></li>
+        <li><h3>Your files stay yours</h3><p>When uploads open, PDFs will be read on your phone and only the pages you choose sent. Your textbook is never uploaded.</p></li>
+        <li><h3>Light on your data</h3><p>Ifiok runs in your phone's browser; there's nothing to install. Lessons are small data files, not video.</p></li>
+      </ul>
+      <p style="margin-top:8px"><a class="link link-row" href="/ai">Read how Ifiok uses AI</a></p>
+    </div>
+    <div class="trust-side">
+      <div class="engine-stage">
+        <svg viewBox="0 0 400 230" aria-hidden="true" class="ill" id="engine">
+          <!-- AI draft bubble -->
+          <path d="M20 40 h170 a12 12 0 0 1 12 12 v54 a12 12 0 0 1 -12 12 h-120 l-18 16 v-16 h-32 a12 12 0 0 1 -12 -12 v-54 a12 12 0 0 1 12 -12z" fill="#1D2733" stroke="#EEF1F5" stroke-width="2.5" stroke-linejoin="round"/>
+          <text x="36" y="70" fill="#B9C3CF" font-size="14" font-family="Atkinson Hyperlegible Next, sans-serif">AI draft</text>
+          <text x="36" y="100" fill="#EEF1F5" font-size="22" font-family="Atkinson Hyperlegible Next, sans-serif" font-weight="600">2 × 1.5 = <tspan id="ai-num">3.5</tspan></text>
+          <path id="strike" d="M144 93 H184" stroke="#F08A45" stroke-width="4" stroke-linecap="round" opacity="0"/>
+          <path d="M210 82 H238" stroke="#7FA2F0" stroke-width="2.5" stroke-dasharray="4 5" stroke-linecap="round"/>
+          <path d="M232 76 l7 6 l-7 6" fill="none" stroke="#7FA2F0" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- the engine -->
+          <g id="eng" class="perk">
+            <path d="M268 182 V200 M352 182 V200" stroke="#EEF1F5" stroke-width="4" stroke-linecap="round"/>
+            <rect x="248" y="30" width="128" height="154" rx="10" fill="#2C3848" stroke="#EEF1F5" stroke-width="3"/>
+            <g transform="translate(286 62)"><circle r="14" fill="#131B26" stroke="#EEF1F5" stroke-width="2.5"/><path class="needle" d="M0 0 L-6 -8" stroke="#4FBF96" stroke-width="3" stroke-linecap="round"/></g>
+            <g transform="translate(338 62)"><circle r="14" fill="#131B26" stroke="#EEF1F5" stroke-width="2.5"/><path class="needle" d="M0 0 L6 -8" stroke="#4FBF96" stroke-width="3" stroke-linecap="round"/></g>
+            <rect x="262" y="96" width="100" height="44" rx="4" fill="#0B1118" stroke="#EEF1F5" stroke-width="2"/>
+            <text id="eng-read" x="350" y="126" text-anchor="end" fill="#4FBF96" font-size="22" font-family="JetBrains Mono, monospace">– – –</text>
+            <g fill="#131B26" stroke="#EEF1F5" stroke-width="2"><rect x="266" y="152" width="22" height="16" rx="3"/><rect x="298" y="152" width="22" height="16" rx="3"/><rect x="330" y="152" width="28" height="16" rx="3" fill="#F08A45"/></g>
+          </g>
+          <text x="312" y="222" text-anchor="middle" fill="#B9C3CF" font-size="13" font-family="Atkinson Hyperlegible Next, sans-serif">Maths engine</text>
+        </svg>
+        <button class="bench-btn" type="button" id="check-btn">Check the step</button>
+        <p class="engine-note" id="engine-note" aria-live="polite">The AI wrote a step. The engine hasn't checked it yet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Pricing -->
+<section id="pricing" class="band-surface" aria-labelledby="pricing-h">
+  <div class="wrap">
+    <h2 class="h2" id="pricing-h">Free to learn. Plus for ₦500 a month.</h2>
+    <p class="lead">Core learning is free for good. Plus is for students who study heavily from their own notes. Plus opens with payments; until then everything is free.</p>
+    <table class="price-table">
+      <caption class="sr-only">What each plan includes</caption>
+      <thead><tr><td></td><th scope="col">Free<small>₦0, for good</small></th><th scope="col" class="plus-col">Ifiok Plus<small>₦500 a month or ₦1,500 a semester</small></th><th scope="col">Units for extras<small>From ₦500</small></th></tr></thead>
+      <tbody>
+        <tr class="price-row-mobile"><th scope="row">Price</th><td data-label="Free">₦0, for good</td><td data-label="Plus" class="plus-col">₦500 a month or ₦1,500 a semester</td><td data-label="Units">From ₦500</td></tr>
+        <tr><th scope="row">Lessons for any topic, your Path, labs and practice</th><td data-label="Free">Included</td><td data-label="Plus" class="plus-col">Included</td><td data-label="Units" class="no">No</td></tr>
+        <tr><th scope="row">Exam patterns and your study plan</th><td data-label="Free">Included</td><td data-label="Plus" class="plus-col">Included</td><td data-label="Units" class="no">No</td></tr>
+        <tr><th scope="row">Private lessons from your own notes</th><td data-label="Free">A small allowance each month</td><td data-label="Plus" class="plus-col">Unlimited</td><td data-label="Units">Extra private lessons</td></tr>
+        <tr><th scope="row">Practice papers and mocks</th><td data-label="Free">A weekly allowance</td><td data-label="Plus" class="plus-col">Unlimited</td><td data-label="Units">Extra mocks</td></tr>
+        <tr><th scope="row">Tutor messages (coming later)</th><td data-label="Free">A small allowance</td><td data-label="Plus" class="plus-col">More each day</td><td data-label="Units">Extra messages</td></tr>
+        <tr><th scope="row">Lesson builds</th><td data-label="Free">Standard queue</td><td data-label="Plus" class="plus-col">Priority</td><td data-label="Units" class="no">No</td></tr>
+        <tr><th scope="row">Billing</th><td data-label="Free">Nothing to pay</td><td data-label="Plus" class="plus-col">Opens with payments</td><td data-label="Units">Opens with payments</td></tr>
+      </tbody>
+    </table>
+    <div class="price-foot">
+      <p class="topup">Top up from ₦500: ₦500 → 50 Units · ₦1,000 → 105 Units · ₦2,000 → 220 Units. Units you buy never expire. Units pay for extras inside Ifiok; they can't be cashed out or transferred.</p>
+      <p>Exact allowances are shown in the app and may change. · Units you earn last 90 days. · Prices include any tax that applies.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10. FAQ -->
+<section id="faq" class="band-paper" aria-labelledby="faq-h">
+  <div class="wrap faq-grid">
+    <div class="faq-head"><h2 class="h2" id="faq-h">Questions students ask</h2></div>
+    <div>
+      <div class="faq-list">
+        <details><summary>What is Ifiok?</summary><p>Ifiok is an AI learning agent for Nigerian university students. Pick your course or type a topic and learn it with lessons you can move: drag, try, then see why. Exam prep, virtual labs and ways to earn by sharing and teaching are being added. The name means wisdom and knowledge in Ibibio.</p></details>
+        <details><summary>Is Ifiok free?</summary><p>Yes. Lessons for any topic, your Path, labs, practice, exam patterns and your study plan are free for good. Ifiok Plus (₦500 a month or ₦1,500 a semester) adds unlimited private lessons from your notes, unlimited practice papers and mocks, and priority lesson builds. Plus opens with payments; until then everything is free.</p></details>
+        <details><summary>Does Ifiok have my course and my university?</summary><p>Yes, because there's no fixed list. Search for your course at your university; if nobody has added it, create it and add the outline by photo, by typing the topics, or with a draft from Ifiok that you check. Lessons are shared by topic, so many are ready the first time you open them.</p></details>
+        <details><summary>How do I use past questions to prepare for exams on Ifiok?</summary><p>Exam prep is being built now. You'll upload past papers, see how often each topic was asked and its share of marks, follow a study plan to your exam date and sit timed practice papers. Start your course now so its topics are ready when it opens.</p></details>
+        <details><summary>Does Ifiok predict exam questions?</summary><p>No. Ifiok shows what your past papers asked, such as "asked in 3 of 4 papers, about 24% of marks", and helps you practise in that style. It never says a question will come out.</p></details>
+        <details><summary>Can the AI be wrong? How are the numbers checked?</summary><p>Yes, AI can be wrong, so it doesn't do the maths. Every number comes from a maths engine; lessons that fail the check aren't published and practice questions that disagree with it are dropped. Explanations cite their sources, marks are labelled estimates and every block has a flag button.</p></details>
+        <details><summary>Can I do my physics practical and lab report on Ifiok?</summary><p>Virtual labs are being built now: from your lab manual or a topic like the simple pendulum, you'll take readings, plot the graph, work out the result and get a lab report. Activities that can't be measured honestly will be declined, not faked.</p></details>
+        <details><summary>How can I make money as a student on Ifiok?</summary><p>Four ways: uploads other students learn from, explainers, curating AI lessons and tutoring topics you've Mastered. Uploads and explainers earn points toward a monthly pool and Units. Curators get ₦1,500 per accepted review and tutors keep 85% of their price. These are launch rates; cash payouts, curating and tutoring bookings open after launch.</p></details>
+        <details><summary>When do cash payouts start?</summary><p>After launch, once payments are set up and our terms have had legal review. Cash shares from the contribution pool begin when the pool has reached ₦250,000 a month for two months running. Until then contributors are rewarded in Units. Earnings are held 30 days, and the minimum withdrawal is ₦2,000.</p></details>
+        <details><summary>How is my share of the contribution pool worked out?</summary><p>Each month, 35% of Ifiok's margin forms the pool. You get one point when a student learns from one of your items, once per student, per item, per month; your own use never counts. Your share is your points divided by all contributors' points, capped at 20% of the pool.</p></details>
+        <details><summary>Can I share notes I didn't write, or past questions?</summary><p>Share notes you wrote yourself, not someone else's handout. Past questions are fine: Ifiok uses the questions only and never shows the file. Published textbooks are never accepted. Every upload is checked for copyright signs and duplicates, and a duplicate earns nothing.</p></details>
+        <details><summary>Is my textbook uploaded or shared?</summary><p>When uploads open: No. Ifiok reads your PDF on your phone and sends only the text of the pages you choose, with personal details removed. Lessons from your materials are for you alone, and textbook pages can never be shared.</p></details>
+        <details><summary>Who can tutor, and how much do tutors keep?</summary><p>Tutors need an account at least 30 days old, Mastered in each topic they offer, and a verified payout account in their own name. They set a price within a range and keep 85% of it. Tutoring bookings open after launch.</p></details>
+        <details><summary>Will it use a lot of data? Does it work on my phone?</summary><p>Ifiok runs in your phone's browser, so there's nothing to install, and it's built for mid-range Android phones. Lessons are small data files, not video. Student video explainers never play on their own, show their size first, and data-saver gives you the transcript and audio instead.</p></details>
+        <details><summary>Why is Ifiok 18+ only?</summary><p>Our AI providers' terms and Nigeria's data protection law set extra rules for under-18s, including a parent's or guardian's consent. Until we can meet them properly, Ifiok is for students 18 and over. If someone under 18 signs up, the account is deleted at once.</p></details>
+        <details><summary>Is Ifiok a "solve it for me" app?</summary><p>No. Ifiok teaches: you move the idea, try the question and see why the answer is right or wrong. Worked solutions show every step so you learn the method. It's built to get you to Mastered, not to hand you answers.</p></details>
+        <details><summary>What works today, and what's coming?</summary><p>Today: find or create your course, add the outline, and open lessons for any topic. Being built now: lessons from your notes, your Path, practice and weak areas, exam prep, virtual labs, sharing, explainers and earnings. After launch, when payments are set up: Plus billing, Units top-ups, cash payouts, paid curating and tutoring bookings.</p></details>
+      </div>
+      <p class="faq-group">For judges and developers</p>
+      <div class="faq-list">
+        <details><summary>How does Ifiok use AI?</summary><p>AI drafts lessons, practice questions and lab set-ups, reads past questions and reviews explainers. It outputs data, never code, and a maths engine computes every number. In the pilot, text runs on GPT-OSS models on Groq, with Google Gemini for photos and as backup. Every call goes through our server, never your browser.</p></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11. Final CTA -->
+<section id="start" class="final band-surface" aria-labelledby="start-h">
+  <div class="wrap final-grid">
+    <div>
+      <h2 class="h2" id="start-h">Start with one topic tonight</h2>
+      <p class="lead">Type a topic or find your course. If another student has opened it before, your lesson is ready at once; if it's new, it takes about a minute.</p>
+      <div class="cta">
+        <a class="btn-primary" href="/sign-in?mode=signup">Start learning free</a>
+        <p class="under-cta">Free. For university students 18 and over.<br>Already have an account? <a href="/sign-in">Sign in</a></p>
+      </div>
+    </div>
+    <button class="ill-btn final-scene" type="button" id="final-btn" aria-label="Put the dot back on the i">
+      <svg viewBox="0 0 520 260" aria-hidden="true" class="ill">
+        <path d="M18 228 C 120 222, 260 232, 502 226" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+        <text x="40" y="214" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="190" letter-spacing="-6" fill="var(--ink)">ıfiok</text>
+        <g id="final-dot" class="anim" style="transform: translate(452px, 228px)">
+          <path d="M-9 -9 L-11 -2 M9 -9 L11 -2" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+          <g class="dot-body" transform="translate(0 -40)">
+            <path class="wave" d="M27 -2 L44 -22" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+            <path d="M-27 4 L-35 18" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+            <circle r="28" fill="var(--change)" stroke="var(--ink)" stroke-width="3.5"/>
+            <g class="eye" transform="translate(-9 -5)"><circle r="7" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/><circle class="pupil" r="3.4" fill="var(--ill-line)"/></g>
+            <g class="eye" transform="translate(9 -5)"><circle r="7" fill="#fff" stroke="var(--ill-line)" stroke-width="2.5"/><circle class="pupil" r="3.4" fill="var(--ill-line)"/></g>
+            <path d="M-7 10 Q0 16 7 10" fill="none" stroke="var(--ill-line)" stroke-width="3" stroke-linecap="round"/>
+          </g>
+        </g>
+      </svg>
+    </button>
+  </div>
+</section>
+
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <span class="wordmark" role="img" aria-label="Ifiok"><span class="i" aria-hidden="true">ı</span><span aria-hidden="true">fiok</span></span>
+        <p class="meaning">Ifiok is Ibibio for wisdom and knowledge.</p>
+        <p class="tagline">See it. Try it. Master it.</p>
+        <p style="margin-top:14px;max-width:46ch">Ifiok is an AI and it can be wrong. Numbers are checked by a maths engine; marks are estimates.</p>
+      </div>
+      <nav aria-label="Footer">
+        <ul class="footer-links">
+          <li><a href="/sign-in?mode=signup">Create account</a></li>
+          <li><a href="/sign-in">Sign in</a></li>
+          <li><a href="/terms">Terms of use</a></li>
+          <li><a href="/privacy">Privacy notice</a></li>
+          <li><a href="/ai">How Ifiok uses AI</a></li>
+          <li><a href="mailto:privacy@example.invalid">Privacy questions</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="footer-legal"><span>© 2026 Ifiok</span></div>
+  </div>
+</footer>
+
+<!-- Sticky mobile bar -->
+<div class="sticky-cta" id="sticky" role="region" aria-label="Start or sign in">
+  <a class="signin" href="/sign-in">Sign in</a>
+  <a class="btn-primary" href="/sign-in?mode=signup" tabindex="-1">Start learning free</a>
+</div>
+
+<style>
+/* checks list (contribute) */
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: var(--fs-sm); }
+.checks li { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+.checks li::before { content: ""; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ill-line); background: var(--ill-paper); flex: none; box-sizing: border-box; }
+.checks li.done::before { background: var(--ill-contribute) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M5 9.5l2.6 2.6L13 6.5' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat; }
+.checks li.approved { font-weight: 600; margin-top: 4px; }
+.checks li.approved::before { border-radius: 4px; }
+@media (max-width: 767px) { .price-table thead + tbody .price-row-mobile { display: grid; } }
+@media (min-width: 768px) { .price-row-mobile { display: none; } }
+</style>
+
+<script>
+(() => {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---- Hero: Dot on the tangent. Every number shown is computed here. ---- */
+  const X0 = -3, X1 = 3, Y0 = -1, Y1 = 9, W = 600, H = 400;
+  const sx = x => (x - X0) / (X1 - X0) * W, sy = y => (Y1 - y) / (Y1 - Y0) * H;
+  const plot = document.getElementById("plot"), slider = document.getElementById("slider");
+  const dot = document.getElementById("dot"), tan = document.getElementById("tangent"), drop = document.getElementById("drop");
+  const fmt = n => (Math.abs(n) < 1e-9 ? 0 : n).toFixed(2).replace("-", "−");
+  const set = (id, attr, v) => document.getElementById(id).setAttribute(attr, v);
+  function draw(a) {
+    a = Math.round(Math.min(2.5, Math.max(-2.5, a)) / 0.05) * 0.05;
+    const y = a * a, m = 2 * a, px = sx(a), py = sy(y);
+    tan.setAttribute("x1", 0); tan.setAttribute("y1", sy(y + m * (X0 - a)));
+    tan.setAttribute("x2", W); tan.setAttribute("y2", sy(y + m * (X1 - a)));
+    drop.setAttribute("x1", px); drop.setAttribute("x2", px); drop.setAttribute("y1", py);
+    const ang = Math.max(-28, Math.min(28, Math.atan2(-m * (H / (Y1 - Y0)), W / (X1 - X0)) * 90 / Math.PI));
+    dot.setAttribute("transform", `translate(${px} ${py}) rotate(${ang.toFixed(2)})`);
+    const steep = Math.abs(m) > 3.4, flat = Math.abs(m) < 0.3;
+    set("arms-out", "opacity", steep ? 1 : 0); set("arms-down", "opacity", steep ? 0 : 1);
+    set("m-o", "opacity", steep ? 1 : 0); set("m-smile", "opacity", flat ? 1 : 0); set("m-flat", "opacity", !steep && !flat ? 1 : 0);
+    document.getElementById("rx").textContent = fmt(a); document.getElementById("rm").textContent = fmt(m);
+    slider.value = a;
+  }
+  let dragging = false;
+  const toA = e => { const r = plot.getBoundingClientRect(); return X0 + (e.clientX - r.left) / r.width * (X1 - X0); };
+  plot.addEventListener("pointerdown", e => { dragging = true; plot.setPointerCapture(e.pointerId); draw(toA(e)); });
+  plot.addEventListener("pointermove", e => { if (dragging) draw(toA(e)); });
+  ["pointerup", "pointercancel"].forEach(t => plot.addEventListener(t, () => dragging = false));
+  slider.addEventListener("input", () => draw(+slider.value));
+
+  /* ---- Eyes follow the pointer (max 2.4 units), per svg ---- */
+  if (!reduce) {
+    const eyes = [...document.querySelectorAll(".eye")];
+    let tx = innerWidth / 2, ty = innerHeight / 3, raf = 0;
+    const look = () => {
+      raf = 0;
+      for (const g of eyes) {
+        const r = g.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) continue;
+        const dx = tx - (r.left + r.width / 2), dy = ty - (r.top + r.height / 2), d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 160) * 2.4;
+        g.querySelector(".pupil").setAttribute("transform", `translate(${(dx / d * k).toFixed(2)} ${(dy / d * k).toFixed(2)})`);
+      }
+    };
+    addEventListener("pointermove", e => { tx = e.clientX; ty = e.clientY; if (!raf) raf = requestAnimationFrame(look); }, { passive: true });
+    addEventListener("pointerdown", e => { tx = e.clientX; ty = e.clientY; if (!raf) raf = requestAnimationFrame(look); }, { passive: true });
+  }
+
+  /* ---- Journey: Dot hops to the row you point at ---- */
+  const list = document.getElementById("journey-list"), jdot = document.getElementById("journey-dot");
+  const rows = [...list.querySelectorAll(".jrow")];
+  let cur = 0;
+  const yOf = i => rows[i].offsetTop + rows[i].querySelector(".jnode").offsetTop;
+  function hop(i) { cur = i; jdot.style.transform = `translateY(${yOf(i)}px)`; }
+  const place = () => { jdot.style.transition = "none"; jdot.style.transform = `translateY(${yOf(cur)}px)`; jdot.offsetHeight; jdot.style.transition = ""; };
+  place(); addEventListener("resize", place);
+  rows.forEach((r, i) => { r.addEventListener("pointerenter", () => hop(i)); r.addEventListener("focusin", () => hop(i)); });
+
+  /* ---- Learn: Page flips through screens ---- */
+  const scr = [...document.querySelectorAll(".scr")], segL = [...document.querySelectorAll("[data-go]")];
+  const notes = ["Screen 1 of 3: something to move.", "Screen 2 of 3: you try first.", "Screen 3 of 3: the reason, right under your answer."];
+  let s = 0; const pageChar = document.getElementById("page-char");
+  function goScreen(n) {
+    s = n; scr.forEach((g, i) => g.setAttribute("opacity", i === n ? 1 : 0)); segL.forEach((b, i) => b.setAttribute("aria-pressed", i === n));
+    document.getElementById("page-note").textContent = notes[n];
+    if (!reduce && pageChar.animate) pageChar.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(.86)" }, { transform: "scaleX(1)" }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" });
+  }
+  document.getElementById("page-btn").addEventListener("click", () => goScreen((s + 1) % 3));
+  segL.forEach(b => b.addEventListener("click", () => goScreen(+b.dataset.go)));
+
+  /* ---- Prepare: papers fan out ---- */
+  const papersBtn = document.getElementById("papers-btn"), pp = [...document.querySelectorAll(".pp")], tk = document.querySelector(".tk");
+  const stack = ["translate(196px,50px) rotate(8deg)", "translate(184px,46px) rotate(3deg)", "translate(122px,56px) rotate(-7deg)", "translate(150px,60px) rotate(0deg)"];
+  const fan = ["translate(24px,104px) rotate(-4deg)", "translate(112px,108px) rotate(2deg)", "translate(204px,104px) rotate(-1deg)", "translate(286px,96px) rotate(3deg) scale(.8)"];
+  papersBtn.addEventListener("click", () => {
+    const on = papersBtn.getAttribute("aria-pressed") !== "true"; papersBtn.setAttribute("aria-pressed", on);
+    pp.forEach((g, i) => { g.style.transitionDelay = on && !reduce ? i * 50 + "ms" : "0ms"; g.style.transform = (on ? fan : stack)[i]; });
+    tk.setAttribute("opacity", on ? 1 : 0); tk.style.transitionDelay = on && !reduce ? "300ms" : "0ms";
+  });
+
+  /* ---- Contribute: note goes through the checks ---- */
+  const noteBtn = document.getElementById("note-btn"), noteChar = document.getElementById("note-char");
+  const lamps = [...document.querySelectorAll("#lamps circle")], checks = [...document.querySelectorAll(".checks li")], snip = document.querySelector(".snip");
+  let running = false;
+  noteBtn.addEventListener("click", () => {
+    if (running) return; running = true;
+    const reset = noteChar.style.transform === "translateX(34px)";
+    if (reset) { noteChar.style.transform = ""; lamps.forEach(l => l.setAttribute("fill", "#fff")); checks.forEach(c => c.classList.remove("done")); snip.setAttribute("opacity", 0); running = false; return; }
+    noteChar.style.transform = "translateX(34px)";
+    const step = reduce ? 0 : 260;
+    [0, 1, 2, 3, 4].forEach(i => setTimeout(() => {
+      if (i < 4) lamps[i].setAttribute("fill", "var(--ill-contribute)");
+      checks[i].classList.add("done");
+      if (i === 4) { snip.setAttribute("opacity", 1); running = false; }
+    }, (reduce ? 0 : 380) + i * step));
+  });
+
+  /* ---- Teach: Bubble climbs the mastery ladder ---- */
+  const bubble = document.getElementById("bubble"), banner = document.getElementById("teach-banner"), lv = [...document.querySelectorAll("[data-lv]")];
+  const pos = [[69, 220], [153, 190], [237, 160], [321, 130]];
+  const tnotes = ["Not started: teaching opens at Mastered.", "Familiar: teaching opens at Mastered.", "Proficient: teaching opens at Mastered.", "Mastered: write, record a voice note or a short video."];
+  lv.forEach((b, i) => b.addEventListener("click", () => {
+    bubble.style.transform = `translate(${pos[i][0]}px,${pos[i][1]}px)`;
+    banner.setAttribute("opacity", i === 3 ? 1 : 0);
+    document.getElementById("bub-mouth").setAttribute("d", i === 3 ? "M-8 -38 Q1 -30 10 -38" : "M-6 -35 L8 -35");
+    lv.forEach((x, j) => x.setAttribute("aria-pressed", j === i)); document.getElementById("teach-note").textContent = tnotes[i];
+  }));
+
+  /* ---- Earn: points calculator (points and % only, no naira) ---- */
+  const val = { u: 30, e: 12 }, all = document.getElementById("all"), youFill = document.getElementById("you-fill");
+  function calc() {
+    const pts = val.u + val.e; let tot = parseInt(all.value.replace(/[^0-9]/g, ""), 10) || 0; if (tot < pts) tot = pts;
+    const raw = tot ? pts / tot : 0, share = Math.min(raw, 0.2), pct = share * 100;
+    document.getElementById("u").textContent = val.u; document.getElementById("e").textContent = val.e; document.getElementById("pts").textContent = pts;
+    document.getElementById("share").textContent = (pct < 10 ? pct.toFixed(1).replace(/\.0$/, "") : pct.toFixed(0)) + "%";
+    document.getElementById("capped").textContent = raw > 0.2 ? "of the pool, capped at 20%" : "of the pool";
+    const h = Math.max(2, 44 * share / 0.2); youFill.setAttribute("y", 194 - h); youFill.setAttribute("height", h);
+  }
+  document.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.k; val[k] = Math.max(0, Math.min(999, val[k] + +b.dataset.d)); calc(); }));
+  all.addEventListener("input", calc); all.addEventListener("blur", () => { const n = parseInt(all.value.replace(/[^0-9]/g, ""), 10) || 0; all.value = n.toLocaleString("en-NG"); calc(); });
+  calc();
+
+  /* ---- Trust: the engine checks the AI's step ---- */
+  const checkBtn = document.getElementById("check-btn"); let checked = false;
+  checkBtn.addEventListener("click", () => {
+    checked = !checked; const r = 2 * 1.5;
+    document.getElementById("eng-read").textContent = checked ? r.toFixed(2) : "– – –";
+    document.getElementById("strike").setAttribute("opacity", checked ? 1 : 0);
+    document.getElementById("engine-note").textContent = checked ? `The engine computed 2 × 1.5 = ${r}. The step that said 3.5 is dropped.` : "The AI wrote a step. The engine hasn't checked it yet.";
+    checkBtn.textContent = checked ? "Reset" : "Check the step";
+  });
+
+  /* ---- Final: Dot hops back onto the i ---- */
+  const fbtn = document.getElementById("final-btn"), fdot = document.getElementById("final-dot"); let home = false;
+  fbtn.addEventListener("click", () => {
+    home = !home; fdot.style.transform = home ? "translate(62px, 92px)" : "translate(452px, 228px)";
+    fbtn.setAttribute("aria-label", home ? "Let the dot jump down again" : "Put the dot back on the i");
+  });
+
+  /* ---- Sticky mobile bar ---- */
+  const sticky = document.getElementById("sticky"), heroCta = document.getElementById("hero-cta"), start = document.getElementById("start");
+  if ("IntersectionObserver" in window) {
+    let heroOut = false, endIn = false;
+    const upd = () => { const on = heroOut && !endIn; sticky.classList.toggle("show", on); sticky.querySelector(".btn-primary").tabIndex = on ? 0 : -1; };
+    new IntersectionObserver(([e]) => { heroOut = !e.isIntersecting && e.boundingClientRect.top < 0; upd(); }).observe(heroCta);
+    new IntersectionObserver(([e]) => { endIn = e.isIntersecting; upd(); }, { threshold: .15 }).observe(start);
+  }
+})();
+</script>
+</body>
+</html>

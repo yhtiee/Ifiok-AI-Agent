@@ -25,6 +25,8 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
 
   const providers = await authProviders();
   const errorKey = typeof params.error === "string" ? params.error : null;
+  // "Start learning free" links here with ?mode=signup so the form opens on Create account.
+  const initialMode = params.mode === "signup" ? "signup" : "signin";
 
   return (
     <SignInForm
@@ -33,6 +35,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
       codesEnabled={emailCodesEnabled()}
       resetEnabled={passwordResetEnabled()}
       initialError={errorKey ? (ERRORS[errorKey] ?? null) : null}
+      initialMode={initialMode}
     />
   );
 }

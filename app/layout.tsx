@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import { getSiteUrl } from "@/lib/env";
 import "./globals.css";
-import "katex/dist/katex.min.css";
 
 // specifications/07-brand-ui-ux.md §3.3 typography: display, text, instrument readings only.
 const bricolage = Bricolage_Grotesque({
@@ -28,41 +28,33 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
   subsets: ["latin"],
   weight: ["400"],
-  display: "swap",
+  // Only instrument readouts use it (labs, the landing Trust band): don't preload it on every page.
+  display: "optional",
+  preload: false,
 });
 
-// Absolute base for canonical and share-image URLs. Set NEXT_PUBLIC_SITE_URL per deploy
-// (the production domain is open question Q7 in specifications/12-review-log.md §4).
-// Without it, share previews only resolve locally.
-const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
-
+// Share text: specifications/landing/04 §3.7 (WhatsApp first). Pages set their own title,
+// description and canonical; the root keeps the defaults and the share card.
 const description =
-  "Your course, made easy to see, try and master. Lessons you can move, labs you can run and practice that adapts, for Nigerian university students.";
+  "Interactive lessons for any topic in your course, built for Nigerian university students. Free, 18+.";
+const shareTitle = "Ifiok · the AI learning agent for students";
+const shareDescription =
+  "Lessons you can move for any topic in your course. Free for Nigerian university students, 18+.";
 
 export const metadata: Metadata = {
-  metadataBase: siteUrl,
+  // Absolute base for canonical and share-image URLs (NEXT_PUBLIC_SITE_URL, required in production).
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "Ifiok · the AI learning agent",
     template: "%s · Ifiok",
   },
   description,
   applicationName: "Ifiok",
-  keywords: [
-    "Ifiok",
-    "AI learning agent",
-    "Nigerian university students",
-    "interactive lessons",
-    "virtual lab",
-    "past questions",
-    "exam revision",
-    "AI tutor",
-  ],
   category: "education",
-  alternates: { canonical: "/" },
   formatDetection: { telephone: false, email: false, address: false },
   openGraph: {
-    title: "Ifiok · the AI learning agent",
-    description: "See it. Try it. Master it. Your course, made easy to see, try and master.",
+    title: shareTitle,
+    description: shareDescription,
     url: "/",
     siteName: "Ifiok",
     locale: "en_NG",
@@ -70,8 +62,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ifiok · the AI learning agent",
-    description: "See it. Try it. Master it. Your course, made easy to see, try and master.",
+    title: shareTitle,
+    description: shareDescription,
   },
   appleWebApp: { title: "Ifiok", statusBarStyle: "default" },
 };

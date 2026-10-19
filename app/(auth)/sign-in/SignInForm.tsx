@@ -30,10 +30,19 @@ type Props = {
   /** Password reset by emailed code, only once an email provider is connected (12 §4 Q29). */
   resetEnabled: boolean;
   initialError: string | null;
+  /** "signup" when the visitor came from a "Start learning free" link (`/sign-in?mode=signup`). */
+  initialMode?: "signin" | "signup";
 };
 
-export function SignInForm({ next, googleEnabled, codesEnabled, resetEnabled, initialError }: Props) {
-  const [mode, setMode] = useState<Mode>("signin");
+export function SignInForm({
+  next,
+  googleEnabled,
+  codesEnabled,
+  resetEnabled,
+  initialError,
+  initialMode = "signin",
+}: Props) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   // Keep what the student typed when they switch between sign in and create account.
   const [email, setEmail] = useState("");
 

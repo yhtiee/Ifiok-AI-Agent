@@ -32,6 +32,61 @@
   --bench-quantity: #7fa2f0;
   --bench-change: #f08a45;
   --bench-built: #4fbf96;
+
+  /* Landing page (specifications/landing/05 §2, 12 §4 Q47) */
+  --line-strong: #c3cad3; /* badge outline, status-line rule */
+  --change-hover: #963f07; /* primary button hover */
+  --prep: #f0b429; /* Prepare identity fill (never text on light) */
+  --prep-soft: #fdf1d3;
+  --prep-ink: #7a5300; /* Prepare text */
+  --teach: #a3366b; /* zobo: Teach identity, text-safe */
+  --teach-soft: #f8e5ee;
+  --bench-ink-2: #b9c3cf; /* body text on the Bench */
+  --bench-ink-3: #8d99a8; /* link underline on the Bench */
+  --bench-screen: #0b1118; /* instrument readout window */
+
+  /* Path identity (always paired with "Step n · Name") */
+  --path-learn: var(--ill-learn);
+  --path-prepare: var(--ill-prep);
+  --path-contribute: var(--ill-contribute);
+  --path-teach: var(--ill-teach);
+  --path-earn: var(--ill-earn);
+
+  /* Illustration colours: fixed in both themes (the stage is always lit, 05 §10 D8) */
+  --ill-line: #131b26;
+  --ill-white: #ffffff;
+  --ill-paper: #fbfcfd;
+  --ill-dot: #c2581a;
+  --ill-learn: #3f6ad8;
+  --ill-learn-2: #9db4f0; /* folded corner */
+  --ill-grid: #b9c7e6; /* plot grid on the learn stage */
+  --ill-prep: #f0b429;
+  --ill-contribute: #2e9a72;
+  --ill-teach: #c2457f;
+  --ill-earn: #d0661f;
+  --ill-built-1: #cdebdd;
+  --ill-built-2: #7cc4a6;
+
+  /* Stage fields (light; mid tints in dark) */
+  --stage-learn: #e2eafb;
+  --stage-prep: #fdf1d3;
+  --stage-contribute: #ddf2e9;
+  --stage-teach: #f8e5ee;
+  --stage-earn: #f8e8db;
+  --stage-ink-2: #3e4856;
+  --readout-quantity: #1d44a6;
+  --readout-rate: #9a440b;
+
+  /* Fluid display sizes and the stage radius */
+  --fs-h1: clamp(2rem, 1.35rem + 2.9vw, 3.5rem);
+  --fs-h2: clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem);
+  --stage-radius: 24px;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --stage-radius: 32px;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -52,6 +107,20 @@
     --ok: #4fbf7a;
     --warn: #e0a040;
     --bad: #f07a6a;
+    --line-strong: #3a4757;
+    --change-hover: #f5a26b;
+    --prep: #f2c14e;
+    --prep-soft: #30260f;
+    --prep-ink: #f2c14e;
+    --teach: #f08dbf;
+    --teach-soft: #371a2a;
+    --stage-learn: #a9bdeb;
+    --stage-prep: #e3cb86;
+    --stage-contribute: #9acdb7;
+    --stage-teach: #dda9c3;
+    --stage-earn: #e2b08e;
+    --stage-ink-2: #2b3440;
+    --readout-rate: #6e2e04;
     color-scheme: dark;
   }
 }
@@ -74,6 +143,20 @@
   --ok: #4fbf7a;
   --warn: #e0a040;
   --bad: #f07a6a;
+  --line-strong: #3a4757;
+  --change-hover: #f5a26b;
+  --prep: #f2c14e;
+  --prep-soft: #30260f;
+  --prep-ink: #f2c14e;
+  --teach: #f08dbf;
+  --teach-soft: #371a2a;
+  --stage-learn: #a9bdeb;
+  --stage-prep: #e3cb86;
+  --stage-contribute: #9acdb7;
+  --stage-teach: #dda9c3;
+  --stage-earn: #e2b08e;
+  --stage-ink-2: #2b3440;
+  --readout-rate: #6e2e04;
   color-scheme: dark;
 }
 
@@ -101,12 +184,33 @@
   --color-bench-quantity: var(--bench-quantity);
   --color-bench-change: var(--bench-change);
   --color-bench-built: var(--bench-built);
+  --color-line-strong: var(--line-strong);
+  --color-change-hover: var(--change-hover);
+  --color-prep: var(--prep);
+  --color-prep-soft: var(--prep-soft);
+  --color-prep-ink: var(--prep-ink);
+  --color-teach: var(--teach);
+  --color-teach-soft: var(--teach-soft);
+  --color-bench-ink-2: var(--bench-ink-2);
+  --color-path-learn: var(--path-learn);
+  --color-path-prepare: var(--path-prepare);
+  --color-path-contribute: var(--path-contribute);
+  --color-path-teach: var(--path-teach);
+  --color-path-earn: var(--path-earn);
+  --color-ill-line: var(--ill-line);
+  --color-ill-paper: var(--ill-paper);
+  --color-ill-dot: var(--ill-dot);
+  --color-stage-learn: var(--stage-learn);
+  --color-stage-prep: var(--stage-prep);
+  --color-stage-contribute: var(--stage-contribute);
+  --color-stage-teach: var(--stage-teach);
+  --color-stage-earn: var(--stage-earn);
 
   --font-display: var(--font-bricolage);
   --font-sans: var(--font-atkinson);
   --font-mono: var(--font-jetbrains);
 
-  /* Type scale (mobile): 13 / 15 / 17 body / 20 / 24 / 32 / 44 */
+  /* Type scale (mobile): 13 / 15 / 17 body / 20 / 24 / 32 / 44; landing desktop adds 56 */
   --text-xs: 0.8125rem;
   --text-sm: 0.9375rem;
   --text-base: 1.0625rem;
@@ -114,11 +218,14 @@
   --text-xl: 1.5rem;
   --text-2xl: 2rem;
   --text-3xl: 2.75rem;
+  --text-4xl: 2.75rem; /* landing H2 on desktop */
+  --text-5xl: 3.5rem; /* landing H1 on desktop (05 §10 D6) */
 
-  /* Radius by role: 6 inputs, 8 Bench, 12 cards, 999 chips and primary button */
+  /* Radius by role: 6 inputs, 8 Bench, 12 cards, 999 chips and primary button, 24/32 landing stages */
   --radius-input: 6px;
   --radius-bench: 8px;
   --radius-card: 12px;
+  --radius-stage: var(--stage-radius); /* landing illustration stages, 24 phone / 32 desktop (D4) */
 }
 
 html {
