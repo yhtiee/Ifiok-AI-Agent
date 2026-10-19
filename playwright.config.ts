@@ -33,5 +33,7 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
+    // Production builds need the site origin (lib/env getSiteUrl); CI sets it, local runs default to this server.
+    env: { NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? `http://localhost:${PORT}` },
   },
 });

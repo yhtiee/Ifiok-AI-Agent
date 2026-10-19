@@ -123,11 +123,11 @@ Type scale (mobile): 13 / 15 / 17 (body) / 20 / 24 / 32 / 44. Line height 1.5 bo
 
 ## 4. Information architecture
 
-Bottom navigation (students, 4 items): **Today · Courses · Practice · Me**. Labs, the bank, the wallet and groups are reached from inside these (fewer tabs on small phones).
-- **Today:** timeline of the day (lectures, plan tasks), streak, the morning brief.
-- **Courses:** "What do you want to learn?" search at the top (find or create a course, or type any topic), then the student's courses and followed topics → course home (Path, Outline, Library of sources, Exam mode, Group).
-- **Practice:** due reviews, weak spots, snap-and-mark (camera button), mocks.
-- **Me:** progress, wallet (P2), contributions (P2), settings.
+Bottom navigation (students, 4 items): **Today · Courses · Practice · Me**. The four pillars live inside these (fewer tabs on small phones): Learn in Courses, Prepare in Courses (Exam prep) and Practice, Practise (labs) in Courses, Teach and earn in Me.
+- **Today:** Continue, Next up, the next study-plan session, top weak areas.
+- **Courses:** "What do you want to learn?" search at the top (find or create a course, or type any topic), then the student's courses and followed topics → course home (Path · Materials · Exam prep · Labs). Stage 3 adds explainers under each topic.
+- **Practice:** weak areas, practice sets, practice papers; later spaced review and check-my-working (camera).
+- **Me:** progress, settings; Stage 3 adds **Earn** (wallet, my contributions, curating, my explainers, tutoring).
 - Tutor: a persistent "Ask Ifiok" button (bottom-right, above the nav) that opens a full-height sheet with context from the current screen.
 
 ## 5. Key screens (mobile-first, 360–412 px width)
@@ -170,20 +170,26 @@ Camera with a crop frame for one question → "Check my reading" (editable trans
 ### 5.6 Practice
 Sections: Due now (count and start), Weak spots (micro-skills with a short reason), Snap a question, Mock exams (P2).
 
-### 5.7 Wallet (Moniepoint/PiggyVest patterns; P2)
+### 5.7 Wallet (Moniepoint/PiggyVest patterns; Stage 3)
 Two stacked balance cards: **Units** (with "38 earned Units expire on 12 Jan") and **Earnings** (Available · Pending, with release dates). Primary: **Add money**. Secondary: Withdraw, Convert to Units. History list with statuses and a receipt view.
 
-### 5.8 Contribute (bank, P2)
+### 5.8 Contribute: share to the library (Stage 3)
 Upload → choose course and kind → attestation ("I made this or have the right to share it. It isn't a published textbook.") → progress → result with a reason when rejected. "My contributions" shows points this month and the earnings estimate.
 
-### 5.9 Lecturer: Teach (Linear density, desktop-first but responsive)
-Left list of courses; course view tabs: Outline (confirm and lock) · Materials · Lessons (flagged and new, for their subject) · Class insight. Class insight: mastery distribution per topic (stacked bars using role colours), top error tags, "Not enough data" for n < 5.
+### 5.8b Explainers: create and watch (Stage 3, F18)
+**Create** (from a topic the student has Mastered): choose Write · Record voice · Record video; recording shows a timer and the limit (5 min voice, 3 min video), then a preview with the compressed size; submit → "In review" with an expected time; result with a reason when held. **Watch** (under a topic, after a wrong answer, in exam prep): a list row shows author display name, format, length and size ("Video · 2:10 · 9 MB"); opening it shows the transcript first with a **Play audio** button and a **Load video (9 MB)** button; never auto-play; captions on by default; data-saver hides the video button. Each explainer has Flag and "This helped".
+
+### 5.8c Earn (Stage 3, in Me)
+One screen, four rows that each open their own page: **Wallet**, **My contributions** (uploads and explainers, points this month, estimate), **Curating** (queue count in your subjects, accepted reviews and pay this month), **Tutoring** (your profile, upcoming sessions, held and released payments). One primary action per page.
+
+### 5.9 Lecturer: Teach (deferred, `12` §4 Q39)
+Not built while lecturers are not served. The design below stays for later: left list of courses; tabs Outline · Materials · Lessons · Class insight (aggregate only, "Not enough data" for n < 5).
 
 ### 5.10 Admin
-Queues (lessons, bank, reports, lecturers, payouts), AI spend (today, by skill, top users), kill switches, config. ⌘K command menu.
+Queues (lessons, contribution pool, explainers, reports, tutoring disputes, payouts), AI spend (today, by skill, top users), kill switches, config. ⌘K command menu.
 
 ### 5.11 Landing page
-Hero = a live mini-lesson: drag a point on y = x² and watch the tangent; one line under it ("Your course, made easy to see, try and master."); one action ("Start learning free"). Below: three real screenshots (lesson, lab, snap-and-mark) with one-sentence captions; a short "How Ifiok pays contributors" section; FAQ. No stock imagery.
+Hero = a live mini-lesson: drag a point on y = x² and watch the tangent; one line under it ("Your course, made easy to see, try and master."); one action ("Start learning free"). Below: four real screenshots, one per pillar (Path, exam prep, lab, Earn) with one-sentence captions; a short "How students earn on Ifiok" section; FAQ. No stock imagery.
 
 ## 6. Interaction details
 - **Touch targets** ≥ 44 × 44 px; primary actions in the thumb zone (bottom third).

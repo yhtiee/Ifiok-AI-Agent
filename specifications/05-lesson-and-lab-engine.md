@@ -187,12 +187,45 @@ interface LabProps<P, R> {
 - Physics and simulation logic lives in pure functions (`labs/<slug>/model.ts`) with unit tests; the UI only renders the state.
 - Hidden values come from `seed` (seeded PRNG), so runs are reproducible for marking and support.
 - Every lab has an accessible text mode (steps list plus readings table) and a 2D fallback if it is 3D.
-- **P1a labs (2D):** `ohms-law` (port from the Ohm's law prototype) and `simple-pendulum` (PHY 107: measure period vs length, plot T² against L, find g; with reaction-time error and amplitude effects).
-- **P1b lab (3D):** `pc-build` (port from the three.js prototype; 2D fallback = top-down board with tap-to-place), for computer-engineering and CSC courses.
-- **P3 candidates:** `supply-demand` (economics), `trial-balance` (accounting), `titration`, `logic-gates`, `moot-court` (an AI role-play lab: the only lab using the LLM at runtime, with strict scripts).
+- **Stage 1 (MVP):** the `experiment` engine (§9), which covers the measure-and-analyse practicals students request from a manual or a topic (pendulum, Ohm's law, Hooke's law, Snell's law, Boyle's law, specific heat, …).
+- **Grow:** richer hand-built labs where measurement alone isn't enough: `ohms-law` with circuit building (port from the prototype), `pc-build` in 3D (port from the three.js prototype; 2D fallback = top-down board with tap-to-place), `titration`, `logic-gates`, `supply-demand`, `trial-balance`. (`moot-court`, an AI role-play lab, is out of scope: labs never run the LLM at runtime.)
 
 **3D guidelines** (`pc-build` and later)
 - @react-three/fiber with `frameloop="demand"` when idle (saves battery); DPR capped at 1.75; one shadow-casting light at 1,024 px shadow maps only when `deviceMemory ≥ 4`.
 - Procedural geometry in P1 (no external models). Later models: glTF with Draco/Meshopt compression, ≤ 400 KB each, served from `public-assets`.
 - Held part rendered in an overlay scene so it is never hidden (as in the prototype).
 - Dispose geometries and materials on unmount; test for memory growth across 5 enter/exit cycles.
+
+## 9. Virtual experiment engine (Stage 1, MVP-05; `12` §4 Q38, Q40)
+
+One hand-built lab module, `components/labs/experiment/`, whose behaviour is fully described by a configuration the AI extracts from a student's lab manual or a requested lab topic (`lab_extract`, `04` §4.8). The AI never writes lab code; every reading comes from the engine.
+
+```ts
+// packages/core/labs/experiment.ts (zod; shared with the worker)
+type ExperimentConfig = {
+  title: string; aim: string;
+  apparatus: string[];                  // shown, not simulated
+  independent: { symbol: string; label: string; unit: string; min: number; max: number; step: number };
+  measured:    { symbol: string; label: string; unit: string; resolution: number };  // instrument resolution
+  relation: string;                     // mathjs expression for the measured quantity, e.g. "2*pi*sqrt(L/g)"
+  hidden: Record<string, number>;       // true constants used by the relation (e.g. { g: 9.81 }), never shown before analysis
+  noise: { kind: 'gaussian' | 'reaction_time' | 'uniform'; sd: number };  // added per reading, seeded
+  repeats: number; min_readings: number;
+  analysis: {                           // straight-line analysis the student performs
+    x: string; y: string;               // mathjs expressions of the variables, e.g. x = "L", y = "T^2"
+    derive: { symbol: string; from: 'gradient' | 'intercept'; expr: string; unit: string };  // e.g. g = 4*pi^2/gradient
+    accepted: number; tolerance_pct: number;
+  };
+  precautions: string[]; viva: { q: string; a: string }[];
+  source: 'manual' | 'topic';
+};
+```
+
+**Verifier (before a lab is saved):**
+1. zod-valid; every expression passes the allow-list (`05` §6) and uses only declared symbols.
+2. The relation evaluates to finite values over the whole independent range.
+3. With noise-free readings, the straight-line fit of (x, y) recovers `derive` within 0.5% of the hidden value, and `analysis.accepted` agrees with the hidden value within its tolerance.
+4. With noise on, a correct procedure (≥ `min_readings`, all repeats) lands within `tolerance_pct` for at least 95% of 50 seeds.
+5. Anything else → the lab is declined ("not available as a virtual lab"), never faked.
+
+**Run:** the student sets the independent variable, takes readings (engine: relation + seeded noise, rounded to the instrument resolution), the results table and plot fill in, the student fits the line and computes the derived quantity; Ifiok compares it with the accepted value and explains the gap (random error, too few readings, range too narrow). Report: aim, apparatus, method, results table, graph, calculation, error discussion, precautions; print-to-PDF. Text mode: steps as a list, readings as a table. Saved to `lab_runs` (`lab_slug = 'experiment'`, config hash, seed, readings, result).

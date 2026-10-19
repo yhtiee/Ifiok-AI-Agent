@@ -42,6 +42,7 @@ Not legal advice. Items marked **[confirm]** need a Nigerian data-protection law
 | Withdrawals | 1 pending withdrawal per user; 2 per month |
 
 ### 2.5 Uploads
+- **Stage 1 (MVP-01):** PDFs are read on the device with pdf.js; only the text of the pages the student picks is sent (`POST /api/materials`, personal data stripped by `redact.ts`) and no file is stored. The rules below apply to files that are stored (photos, explainer media, later uploads).
 - Allowed: PDF, JPEG, PNG; ≤ 20 MB (bank), ≤ 2 MB (snap photos after client compression). Check **magic bytes** on the server, not just the extension or MIME type.
 - Photos are re-encoded on the device through a canvas before upload, which **strips EXIF data (including GPS)**. The server rejects JPEGs that still carry GPS tags.
 - Files live in private buckets and are served only through 60-second signed URLs after an RLS check, with `Content-Disposition: attachment` for downloads. PDFs are shown in our pdf.js viewer, never the browser's native viewer from our origin.
@@ -61,10 +62,28 @@ Not legal advice. Items marked **[confirm]** need a Nigerian data-protection law
 - AI output never contains executable code that runs on the client (Lesson DSL only, `05`).
 - The `curate_classify` skill gets the upload text with any line that looks like an instruction to the model left in place but flagged; uploads that contain prompt-injection patterns ("ignore previous instructions", "system prompt") go to `needs_review`.
 
+### 2.5c Explainer media (Stage 3, F18)
+- Voice: WebM/Opus or MP4/AAC ≤ 5 min; video: MP4/WebM ≤ 3 min, 480p, ≤ 40 MB. The browser compresses before upload; the server checks magic bytes, duration and size and rejects anything else.
+- Upload goes straight to a **private** object-storage bucket with a short-lived signed URL tied to the author and a pending explainer row; nothing is playable by others until review passes; playback uses short-lived signed URLs.
+- Video metadata (including location) is stripped by re-encoding on the device; uploads that still carry GPS metadata are rejected.
+- Withdrawn or rejected media is deleted within 7 days; transcripts of rejected media are deleted with it.
+
 ### 2.7 Payments
 - Paystack webhook: verify `x-paystack-signature` (HMAC-SHA512 of the **raw** request body with the secret key) using a constant-time compare before parsing JSON. Then call **Verify Transaction** and compare amount, currency and reference with our `topups` row (`06` §6). Optionally also allow-list Paystack's published webhook IPs at the Cloudflare layer.
 - All economy functions are idempotent on a key; replaying a webhook changes nothing (pgTAP test).
 - Bank account numbers are never stored in full: we keep Paystack's `recipient_code`, bank code, last 4 digits and the resolved account name.
+
+### 2.7c PayPal (MVP, sandbox; `12` §4 Q43)
+- Sandbox credentials only; the app refuses to start PayPal calls when `PAYPAL_ENV` isn't `sandbox` until Stage 3 legal review approves live mode.
+- Webhooks: verify with PayPal's verify-webhook-signature API (transmission id, time, cert URL, auth algo, signature, our webhook id) against the **raw** body, then fetch the order or payout from PayPal, then post via SQL (guardrail 12's pattern).
+- All PayPal state changes go through idempotent `security definer` functions keyed on the PayPal ID (guardrail 5); payout and booking tables are not client-writable.
+- PayPal emails are personal data: stored only for payouts, never sent to AI, covered by export and deletion.
+
+### 2.7b Tutoring escrow (Stage 3, F17)
+- Tutoring payments go to a **licensed escrow/payment partner**; Ifiok never receives or holds those funds. We store bookings, state transitions and the partner's references only.
+- Partner callbacks are verified like Paystack's (signature on the raw body, then a server-side status lookup) before a booking changes state; every transition is idempotent on the booking id.
+- Release, refund and dispute rules are enforced server-side (`06` §12); the client can only confirm, cancel within the allowed window or open a dispute.
+- Tutors need a name-matched payout account (`06` §5 rule 7) and are 18+; the chat filters contact details until a booking is paid.
 
 ### 2.8 Secrets and keys
 - Secrets live only in Cloudflare (Worker secrets), Supabase (function secrets) and GitHub Actions (CI). `.env.local` is git-ignored; `lib/env.ts` validates at boot and refuses to start with a missing secret.
@@ -143,18 +162,22 @@ The Nigeria Data Protection Act 2023 is enforced by the Nigeria Data Protection 
 - **Reports:** any lesson block, item, source, post or user can be reported (`reports`). Targets reported by 3 distinct users are auto-hidden pending admin review (lesson blocks via `lesson_flags`).
 - **Academic integrity:** no help during flagged timed assessments; snap-and-mark gives hints first and a worked solution only after an attempt; exam features never claim to predict questions.
 
+## 7b. Voice and video moderation (Stage 3, F18)
+- **Before publication:** Whisper transcript → `explainer_review` on the transcript (harassment, sexual content, hate, contact details, personal data, copied material, accuracy) and on sampled video frames (nudity, violence, other people's faces, visible personal data, copied slides); any issue holds the explainer for a human. Each author's first 3 explainers always get a curator's review.
+- **After publication:** Flag on every explainer; 3 flags from distinct students hide it pending review; repeat violations remove publishing rights.
+- **People in videos:** authors may show only themselves; anyone else needs their consent; no recordings of lectures, classmates or exam papers.
+- **Data:** transcripts and media are personal data of the author; they are covered by export and deletion (§6) and by the retention table (§5).
+
 ## 8. Copyright and takedown
 - Private textbooks never leave the device as files; only the text of confirmed pages is sent and stored, for the owner only (F3). This is personal study use; no redistribution.
 - The bank rejects published textbooks (attestation + detection, F11). Uploaders grant a non-exclusive licence (F11-FR5).
 - **Takedown:** a public form (`/takedown`) → creates a report with the claimant's details → item hidden within 24 hours → review within 7 days → restore or remove, notify both sides. Repeat infringers (3 upheld takedowns) lose upload rights.
 - Lesson `source_quote` blocks are capped at 40 words, which keeps quotes short and attributed.
 
-## 9. Lecturer recordings (P3)
-- Lecturer-only microphone access on the recording route. A consent screen covers: the lecturer's own consent, a duty to announce recording to the class (template notice provided), no recording of student voices on purpose, and the option to pause.
-- Audio uploads straight to a private bucket → Groq Whisper transcription (paid tier, no training on data **[confirm terms at P3]**) → the lecturer reviews and edits the transcript → only the approved transcript becomes a source. Raw audio deleted 7 days after approval.
-- Student names in transcripts are redacted by a regex plus the lecturer's review.
+## 9. Lecturer recordings (deferred, `12` §4 Q39)
+Lecturers are not served for now; the earlier design (lecturer-only microphone, consent screen, transcript review, raw audio deleted after 7 days) stays in `archive/10-build-plan-v1.md` context and returns with F12. Student voice and video explainers follow §2.5c and §7b instead.
 
-## 10. Security checklist per phase (exit gates)
-- **P0:** RLS on every table (CI query: `select relname from pg_class … where relrowsecurity = false` returns no public tables), service-role grep check, env validation, CSP report-only, Turnstile on auth, admin MFA.
-- **P1:** NDPC Ordinary-High registration filed and DPO contact named, CSP enforced, rate-limit rule live, nightly R2 backups with one restore drill, DPIA written, privacy notice and terms published, breach runbook, data export and deletion working, under-18 tests passing.
-- **P2:** Supabase Pro, webhook signature and replay tests, ledger pgTAP invariants, withdrawal name-match, NDPC tier upgraded (Extra-High) before 1,000 users, accountant review of Units/VAT, takedown form live, admin audit review weekly.
+## 10. Security checklist per stage (exit gates)
+- **Stage 1 · MVP:** RLS on every table (CI query: `select relname from pg_class … where relrowsecurity = false` returns no public tables), service-role grep check, env validation, under-18 tests passing, no stored PDFs, private materials never retrievable by another user (pgTAP), no prompts or content in logs; shared uploads stripped of personal data before approval; explainer media private until reviewed and approved (§2.5c, §7b), signed URLs only; textbook pages never shareable.
+- **Stage 2 · Launch:** NDPC Ordinary-High registration filed and DPO contact named, CSP enforced, Turnstile on auth, admin MFA, rate-limit rules live, nightly backups with one restore drill, DPIA written, privacy notice and terms published, breach runbook, data export and deletion working.
+- **Stage 3 · Earn:** Supabase Pro, Paystack webhook signature and replay tests, escrow partner callback tests, ledger pgTAP invariants, withdrawal name-match, explainer review before publication (tests), media deletion on withdrawal, NDPC tier upgraded (Extra-High) before 1,000 users, accountant review of Units/VAT and tutor income, lawyer review of contributor, explainer and tutor terms, takedown form live, admin audit review weekly.

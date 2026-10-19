@@ -1,11 +1,25 @@
 # 06 · Economy: Units, rewards, contributor pool, payouts
 
-**Phase:** P2. Nothing in this file ships until Supabase is on Pro (daily backups), the business is registered (Paystack live mode needs a verified business), and an accountant has reviewed §10.
+**Stage:** 3 · Earn (`10` E-01–E-06). Nothing that moves money ships until Supabase is on Pro (daily backups), the business is registered (Paystack live mode needs a verified business), an accountant has reviewed §10, and a lawyer has reviewed the contributor, explainer and tutor terms (OWN-E1, OWN-E2).
 
-**Staged rollout (decided after peer review, `12` R15):**
-- **Owner decision (12 §4 Q39):** lecturers are not served for now, so the lecturer licence payments below are **deferred**; students earn from contributing (Units, then the cash pool), from curating (§13) and from tutoring (§12).
-- **P2 launch:** Units (top-ups, spending, earning) for everyone. Contributors (students) are rewarded in **Units**. ~~Lecturers are paid in **cash under direct content licences**~~ (deferred, Q39) (signed agreement; manual monthly transfer; fee basis in `app_config.licence_fee`, default ₦500 per published lesson that cites their materials and ₦2 per qualified student who used their materials that month, capped at ₦50,000 per lecturer per month; posted to `licence_fees`). No automated cash pool, no user withdrawals.
-- **P2b (automatic cash pool):** switched on with `app_config.cash_pool_enabled` only when the computed pool has been **≥ ₦250,000 for 2 consecutive months** and a lawyer has reviewed the contributor terms. Until then a pool smaller than that would leave most contributors below the ₦2,000 withdrawal minimum while carrying the full KYC, transfer and tax burden.
+## 0. How students earn (owner decisions `12` §4 Q39, Q40, Q41)
+
+Ifiok serves students only for now; lecturer licences are deferred (the lecturer rows below stay for later). Students earn four ways, built in this order:
+
+| Way to earn | What counts | Paid in | Funded by | Section | Ticket |
+|---|---|---|---|---|---|
+| **Verified uploads** | Notes, past questions, lab manuals and worked solutions shared to the contribution pool, approved by curation, used by other students | Units at first; cash once the pool is switched on | Contribution pool (35% of margin) | §2, §3, §4 | E-01, E-03, E-06 |
+| **Curating** | Accepted reviews and fixes of AI lessons in subjects the student has mastered | Cash per accepted review | Ifiok's budget (a cost line) | §13 | E-02 |
+| **Explainers** | Written, voice or short video explainers that other students finish | Usage points → Units, then cash | Contribution pool | §4, §14 | E-04 |
+| **Tutoring** | Paid sessions with students who book them | Cash, minus Ifiok's commission | The learner's payment, held in escrow by a licensed partner | §12 | E-05 |
+
+**Principle (unchanged):** learning earns credits (Units, never cashable); contributions other people use earn cash. Nobody can cash out by grinding lessons.
+
+**Staged rollout:**
+- **MVP (Q42):** sharing, explainers and usage points are live; Units earned are recorded as pending (`earned_units_pending`, append-only, server-written) and move into the wallet when it ships; **no cash moves and no naira estimates are shown** before a contribution pool exists. Tutor profiles exist; bookings don't.
+- **Earn launch:** Units (top-ups, spending, earning) for everyone; contributors and explainer authors rewarded in **Units**; curators paid per accepted review by manual monthly transfer. ~~Lecturers are paid in cash under direct content licences~~ (deferred, Q39; fee basis kept in `app_config.licence_fee` for later).
+- **Tutoring:** switched on once the escrow partner and tutor terms are in place (§12).
+- **Automatic cash pool:** switched on with `app_config.cash_pool_enabled` only when the computed pool has been **≥ ₦250,000 for 2 consecutive months** and a lawyer has reviewed the contributor terms. Until then a pool smaller than that would leave most contributors below the ₦2,000 withdrawal minimum while carrying the full KYC, transfer and tax burden.
 
 ## 1. Two currencies
 
@@ -20,6 +34,8 @@
 Learning earns **credits**. Contributions that others use earn **cash**. This separation stops farming: nobody can cash out by grinding lessons.
 
 ## 2. Prices and allowances (defaults in `app_config`; test in the pilot)
+
+**Plans shown publicly (owner decision `12` §4 Q44):** **Free** forever (Path, shared lessons, labs, practice, exam patterns, study plan, a small monthly allowance of private lessons and tutor messages) and **Ifiok Plus ₦500/month or ₦1,500/semester** (unlimited private lessons from your own notes, unlimited practice papers and mocks, more tutor messages, priority lesson builds). Units top-ups (below) stay for extras and never expire. Plus is billed only once payments go live (Stage 3); until then the page says "Plus opens with payments" and everything is free. Exact allowances live in `app_config`.
 
 **Top-up bundles** (VAT-inclusive placeholder prices; see §10): ₦500 → 50 Units · ₦1,000 → 105 Units · ₦2,000 → 220 Units. Minimum top-up ₦500 (keeps Paystack fees ≤ 1.5% plus no flat fee under ₦2,500). One Unit ≈ ₦9.1–10.
 
@@ -47,7 +63,8 @@ A point is recorded by `record_usage(kind, resource_id, consumer)` (server-side 
 | Contribution | Event that records a point |
 |---|---|
 | Bank source (notes, past paper, lab manual, solution) | Consumer completes a lesson screen whose block cites a chunk from that source, or attempts an item/exam question derived from it |
-| Lecturer source | Same, at **weight 2.0** |
+| Student explainer (F18) | Consumer finishes the explainer (reaches the end of a written walkthrough, or plays ≥ 80% of the audio/video) |
+| Lecturer source (deferred, Q39) | Same as a bank source, at **weight 2.0** |
 | Accepted group answer (P3) | Another member taps "This helped" (max once per member) |
 
 - **Dedupe:** one point per (resource, consumer, month) via a unique constraint. Re-reading the same thing doesn't add points.
@@ -152,3 +169,16 @@ Admin creates a campaign `{sponsor, amount, course(s), rule (e.g. top 20 mastery
 - **Who:** students with **Mastered** in at least 5 concepts of a subject who pass a short curator check (fix three seeded lesson errors); verified payout account as in §5 rule 7.
 - **Work:** the curator queue (flagged and `new` lessons in their subject, F2-FR6); a fix publishes a new version through `/api/lessons/:id` (verification gate, audit). Non-STEM lessons without sources go to curators first, which also answers the invented-facts risk (Q36 f).
 - **Pay:** a fixed amount per **accepted** review (`app_config.curator_fee_per_review`; the `09` §7 placeholder is ₦1,500), paid monthly by transfer from Ifiok's budget (a cost line, not the contributor pool). A second curator spot-checks 1 in 10 reviews; rejected reviews are unpaid; monthly cap per curator in config.
+
+## 14. Student explainers (owner decisions 12 §4 Q40, Q41; F18)
+- **What:** a student who has mastered a concept (Mastered, server-written evidence) publishes an explainer for it: a written walkthrough, a voice note (≤ 5 min) or a **short video (≤ 3 min, 480p, ≤ 40 MB after on-device compression)**. Every voice and video explainer is transcribed so it has captions and can be searched and reviewed.
+- **Checks before others see it:** AI review of the text or transcript, and of sampled video frames (`08` §7b); numbers checked by the engine where possible; curator review for each author's first 3 explainers; reports and the 3-flag hide rule apply.
+- **Pay:** explainers earn usage points like uploads (§4: one point per qualified consumer per month who finishes it), so pay comes from the contribution pool, never from a price set by the author. Fairness comes from the same rules as uploads: one point per (explainer, consumer, month), qualified consumers only, no self-use, and the pool's 20% cap per person (§3).
+- **Rights:** the author grants Ifiok the same licence as uploads (F11-FR5) and can withdraw it; withdrawn media is deleted from storage within 7 days.
+- **Costs:** media storage and delivery are a cost line (`09` §2); one transcription per explainer.
+
+## 15. PayPal sandbox for the hackathon (owner decision 12 §4 Q43; MVP-07)
+- **Scope:** sandbox (test money) only, to demonstrate the full loop for the PayPal AI Hackathon. Real payouts still wait for Stage 3 (registered business, legal review, `06` §0 prerequisites); the production rails (Paystack, PayPal, or both) are chosen then.
+- **Contribution pool:** for the demo, the pool is funded in the sandbox by the platform account (there is no Units revenue yet), and split by usage points with the §3 rules (20% cap). This is the real formula applied to test money; the screens say "Sandbox: test money".
+- **Tutoring:** Orders v2 with `intent = AUTHORIZE` at booking (nothing captured), capture after confirmation or 24 h, void on tutor no-show; the tutor is paid out minus `tutoring_take_rate`. In production the lawyer decides whether this model (capture to the platform, then payout) is acceptable or whether a marketplace/escrow product is required so Ifiok never holds tutoring funds (§12).
+- **Ledger:** sandbox payouts and bookings are recorded in their own tables with `environment = 'sandbox'` and never mix with production balances.

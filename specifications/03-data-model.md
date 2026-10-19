@@ -7,7 +7,7 @@ Rules:
 - Timestamps: `timestamptz`, UTC. Display in Africa/Lagos.
 - Naira amounts are **integers in kobo**. Units are **integers**.
 
-The SQL below is the target schema, grouped into sections named `0001`–`0009`. **Build order follows the phases, and migrations are append-only:** P0 creates `0001`–`0005`, each migration carrying the RLS policies for its own tables (the policies are collected in §8 for reading); the jobs functions come next; the economy (`0006`, `0007`) arrives in P2 and the groups (`0008`) in P3, each with its own RLS policies in the same migration. Use the CLI's timestamped filenames (`supabase migration new <name>`); the section numbers here are names, not required filenames. It was loaded into PostgreSQL 16 with pgvector and tested with pgTAP (see `checks/README.md`).
+The SQL below is the target schema, grouped into sections named `0001`–`0009`. **Migrations are append-only and follow the stages (`10`):** `0001`–`0005` and the job runtime are built (the applied migrations in `supabase/migrations` are the truth where they differ from the SQL below); Stage 1 adds materials, items, exam and lab tables or columns as its tickets need; the economy (`0006`, `0007`) and the Earn tables in §10 arrive in Stage 3; groups (`0008`) are deferred (Q40); lecturer-only parts (lecturer roles, `handout` uploads, licence fees, class insight) stay in the schema but are unused while lecturers are not served (Q39). Each migration carries the RLS policies for its own tables (collected in §8 for reading). Use the CLI's timestamped filenames (`supabase migration new <name>`); the section numbers here are names, not required filenames. It was loaded into PostgreSQL 16 with pgvector and tested with pgTAP (see `checks/README.md`).
 
 ## 1. Extensions and enums (`0001_base.sql`)
 
@@ -891,7 +891,7 @@ grant execute on function post_txn(text, text, jsonb, jsonb) to service_role;
 
 Higher-level economy functions (all `security definer`, implemented in `0007_economy_functions.sql`, contract defined in `06` §8): `ensure_user_accounts(uid)`, `confirm_topup(reference, amount_kobo, fee_kobo)`, `spend_units(uid, feature, amount, idem)`, `earn_units(uid, reason, amount, idem)`, `expire_units()`, `record_usage(kind, resource_id, consumer)`, `compute_period(period)`, `approve_period(period)`, `release_earnings()`, `request_withdrawal(amount_kobo, idem)` (user-callable; checks `auth.uid()`), `settle_withdrawal(transfer_code, success, fee_kobo)`, `convert_earnings(amount_kobo, idem)` (user-callable).
 
-## 7. Groups (P3, `0008_groups.sql`)
+## 7. Groups (deferred, `12` §4 Q40; `0008_groups.sql`)
 
 ```sql
 create table groups (
@@ -1269,3 +1269,21 @@ grant execute on function match_chunks(uuid, uuid, uuid, text, vector, int) to s
 ```
 
 The function filters explicitly by `p_user` and is callable only by the service role, so a server bug that uses the admin client cannot leak another user's private chunks. `lib/ai/retrieve.ts` always passes the authenticated user's id (never an id from the request body). Queued jobs check that every chunk id in a payload belongs to the job owner or is shared. Reciprocal-rank fusion with k = 60. Exact vector scan (no HNSW) until ~200k chunks; the `(concept_id, visibility)` and `(course_id, visibility)` indexes keep the scan small. Requires at least one of `p_course` / `p_concept` (the API enforces it).
+
+## 10. Planned tables for later stages (design notes; final SQL lands with each ticket)
+
+Each table below gets RLS and pgTAP in the migration that creates it, and every money-moving write goes through an idempotent `security definer` function (guardrail 5).
+
+**Stage 1 (MVP)**
+- `sources` / `chunks`: already exist; MVP-01 writes private sources with `storage_path` null (text only, `kind` from the upload type) and page-aware chunks with embeddings.
+- `lessons`: private lessons from a student's materials use `owner_id = student` (already supported by RLS).
+- `exam_plans` (`user_id`, `course_id`, `exam_date`, `plan jsonb`, `created_at`): the deterministic study plan to the exam date; owner-only.
+- `lab_configs` (`id`, `owner_id`, `course_id`, `source_id` null for topic-built labs, `config jsonb`, `config_hash`, `status 'ready'|'declined'`, `decline_reason`): verified virtual experiment configurations; owner-only in Stage 1 (shared by concept later). `lab_runs` already exists (`lab_slug = 'experiment'`).
+
+- `explainers`, `earned_units_pending` (`user_id`, `reason` (approved_upload, consumer, …), `units`, `resource_id`, `period`, unique on (`user_id`, `reason`, `resource_id`, `period`)), `tutor_profiles` and usage points (`06` §4) move into Stage 1 with MVP-06 (Q42); their designs follow.
+
+**Stage 3 (Earn)**
+- `explainers` (`id`, `author_id`, `concept_id`, `format 'text'|'voice'|'video'`, `body_md` for text, `media_key`, `duration_s`, `size_bytes`, `transcript`, `status 'pending'|'in_review'|'published'|'held'|'rejected'|'withdrawn'`, `review jsonb`, `published_at`): authors read their own; anyone adult reads `published`; status changes only through server functions.
+- `curator_reviews` (`id`, `curator_id`, `lesson_id`, `result 'accepted'|'rejected'`, `spot_checked_by`, `amount_kobo`, `period`): one payable line per accepted review, unique on (`curator_id`, `lesson_id`); curators read their own; writes server-only.
+- `tutor_profiles` (`user_id`, `concepts uuid[]` limited to Mastered concepts, `price_kobo`, `availability jsonb`, `status`), `tutoring_bookings` (`id`, `learner_id`, `tutor_id`, `concept_id`, `starts_at`, `price_kobo`, `commission_kobo`, `state 'pending_payment'|'held'|'released'|'refunded'|'disputed'`, `partner_ref`, timestamps), `tutoring_events` (append-only state transitions with the partner's references): learner and tutor read their own bookings; state changes only through idempotent server functions keyed on the booking id; no escrow balances are stored (the partner holds the money).
+- Usage points (`06` §4) gain a `resource_kind` value for explainers.

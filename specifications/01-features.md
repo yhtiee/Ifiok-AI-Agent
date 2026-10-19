@@ -1,12 +1,36 @@
 # 01 · Features
 
-Format for each feature: **Purpose · Phase · User stories · Functional requirements (FR) · Acceptance criteria (AC) · Edge cases · Trade-offs · Cost notes.**
-IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
+Format for each feature: **Purpose · Stage · User stories · Functional requirements (FR) · Acceptance criteria (AC) · Edge cases · Trade-offs · Cost notes.**
+IDs are stable; reference them in commits and tests (e.g. `F5-FR3`). Stages and tickets: `10-build-plan.md`. Pillars: `00` §1b.
+
+## Feature map (by pillar and stage)
+
+| Pillar | Feature | Stage 1 · MVP | Later |
+|---|---|---|---|
+| Foundation | **F0** Accounts, age gate, onboarding | Built | Email verification, Turnstile (Launch) |
+| 1 · Learn | **F2** Lessons on demand, shared by concept | Built; private lessons from the student's materials (MVP-02) | Curator queue, trusted promotion, refresh (Earn) |
+| 1 · Learn | **F3** Materials read on the device (all PDFs) | Page picker and text extraction (MVP-01) | Private textbook page matching (Grow) |
+| 1 · Learn | **F5** Practice and progress | Items, `/api/sync`, mastery, weak areas (MVP-02, MVP-03) | Spaced review FSRS (Grow) |
+| 1 · Learn | **F7** Diagnosis; check my working | Error tags and weak areas (MVP-03) | Snap-and-mark of handwritten working (Grow) |
+| 1 · Learn | **F1** Grounded tutor | Stretch: "Ask about this" | Full tutor (Grow) |
+| 2 · Prepare | **F8** Exam mode | Extraction, patterns, practice papers (MVP-04) | Style templates, mocks by blueprint (Grow) |
+| 2 · Prepare | **F6** Goals and plan | Study plan to the exam date (MVP-04) | Full adaptive planner (Grow) |
+| 3 · Practise | **F4** Virtual labs | Virtual experiment engine from a manual or a topic (MVP-05) | More engines, 3D PC build (Grow) |
+| 4 · Teach and earn | **F11** Contribution pool (shared library) | Share, automatic checks, approval, usage points (MVP-06) | Curators, takedowns, cash shares (Earn) |
+| 4 · Teach and earn | **F13** Units wallet and rewards | Units earned recorded as pending (MVP-06) | Wallet, top-ups, spending, payouts (Earn) |
+| 4 · Teach and earn | **F18** Student explainers (text, voice, video) | Publish with AI + admin review, captions, usage points (MVP-06) | Curator review, scale (Earn) |
+| 4 · Teach and earn | **F17** Peer tutoring (paid) | Tutor profiles only (MVP-06) | Bookings with escrow (Earn) |
+| Platform | **F14** Access and low-data | — | PWA basics (Launch), full (Grow) |
+| Platform | **F15** Admin and moderation | — | Launch |
+| Platform | **F16** Notifications | — | Grow |
+| Platform | **F9** Lecture preview and recap | — | Grow (learning parts only) |
+| Not planned | **F10** Study groups | — | Deferred (Q40) |
+| Not planned | **F12** Lecturers | — | Deferred (Q39) |
 
 ---
 
 ## F0 · Accounts, age gate and onboarding
-**Purpose:** Get a student from install to their first "aha" (a lesson they can move) in under 3 minutes. **Phase:** P0/P1.
+**Purpose:** Get a student from install to their first "aha" (a lesson they can move) in under 3 minutes. **Stage:** built (MVP); email verification and Turnstile at Launch.
 
 **Stories**
 - As a student, I sign up with Google or email code, confirm I'm 18+, tell Ifiok my university and what I want to learn (a course or any topic), and land on Today with a first lesson ready or being built.
@@ -32,7 +56,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F1 · AI Tutor (grounded, verified)
-**Purpose:** Answer questions and explain topics using the student's course material, with maths that is computed, not guessed. **Phase:** P1.
+**Purpose:** Answer questions and explain topics using the student's course material, with maths that is computed, not guessed. **Stage:** MVP stretch ("Ask about this"); full tutor in Grow.
 
 **Stories**
 - I ask "Why is the derivative of x² equal to 2x?" and get a short explanation, a moving graph, and a link to the page in my notes.
@@ -63,7 +87,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F2 · Lessons on demand for any course or topic (generated once, shared by concept)
-**Purpose:** A student names what they want to learn (any course, any topic, any faculty) and gets an interactive lesson for it. Nothing is pre-loaded or curated by Ifiok. The first request for a concept generates the lesson; every later student who needs that concept, at any university, reuses it. **Phase:** P1.
+**Purpose:** A student names what they want to learn (any course, any topic, any faculty) and gets an interactive lesson for it. Nothing is pre-loaded or curated by Ifiok. The first request for a concept generates the lesson; every later student who needs that concept, at any university, reuses it. **Stage:** built; private lessons from the student's own materials in MVP (MVP-02); curator queue, trusted promotion and refresh in Earn (E-02).
 
 **Stories**
 - I type "MTH 101 at Uniuyo". It doesn't exist yet, so I create it and snap the course outline from my handout. Ifiok turns it into a list of topics and I fix two of them. I open week 3, "Limits", and get a lesson in about a minute.
@@ -106,8 +130,8 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 
 ---
 
-## F3 · Textbook → private interactive lessons
-**Purpose:** Turn the topics a student is studying into lessons from their own textbook, without storing or sharing the book. **Phase:** P1b (after the P1a pilot core is stable).
+## F3 · Materials read on the device (textbooks and every PDF)
+**Purpose:** Turn the topics a student is studying into lessons from their own textbook, without storing or sharing the book. **Stage:** MVP for on-device extraction of every PDF upload (MVP-01, Q38: notes, past questions and lab manuals use the same page picker, so nothing is stored as a file); private textbook page matching in Grow.
 
 **Stories**
 - I pick my textbook PDF. Ifiok shows which chapters match this week's topics. I confirm, and a lesson is built from those pages for me.
@@ -131,7 +155,9 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F4 · Virtual Lab (2D and 3D)
-**Purpose:** Run practicals that behave like the real apparatus. **Phase:** P1 (two labs), P3 (more).
+**Purpose:** Run practicals that behave like the real apparatus, on request, for practicals the student's lab can't run. **Stage:** MVP (virtual experiment engine, MVP-05); more engines and the 3D PC build in Grow.
+
+> **Amended by `12` §4 Q38/Q40:** besides hand-built labs, the hand-built **virtual experiment engine** (`05` §9) is configured by AI from a student's lab manual or a requested lab topic. The AI outputs only a configuration (variables, governing relation, noise, procedure, analysis, accepted value); every reading comes from the engine; configurations whose analysis doesn't recover their constant are rejected, and non-measurement activities are declined.
 
 **Stories**
 - I wire the Ohm's law circuit, take readings, plot V against I, find R, and get a lab report.
@@ -158,7 +184,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F5 · Practice and progress
-**Purpose:** Make learning stick through practice at the right time, and show students where they stand. **Phase:** P1.
+**Purpose:** Make learning stick through practice at the right time, and show students where they stand. **Stage:** MVP (items, server-graded attempts, mastery, weak areas); spaced review in Grow.
 
 **FR**
 1. **Items** (practice questions) per concept (shared across courses and universities): types `mcq`, `numeric`, `expression`, `short_text`, `order`, `match`. Each has a verification spec (`05` §6). Items come from (a) lesson checkpoints, (b) batch generation per topic (shared), (c) past papers (F8), (d) bank (F11).
@@ -180,7 +206,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F6 · Learning agent (goals, plan, adapting)
-**Purpose:** The student says what they want; Ifiok decides what to do today and changes course when needed. **Phase:** P1.
+**Purpose:** The student says what they want; Ifiok decides what to do today and changes course when needed. **Stage:** MVP for a deterministic study plan to an exam date (MVP-04); goals, triggers and the adaptive daily plan in Grow.
 
 **FR**
 1. **Goals:** `understand_topic(topic, by?)`, `practical_ready(lab, date)`, `master_course(course, by)`, `exam(course, date)` (P2). Max 3 active goals.
@@ -207,7 +233,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F7 · Snap-and-mark and root-cause diagnosis
-**Purpose:** Mark a photo of handwritten working line by line, and find the real gap behind repeated mistakes. **Phase:** P1 (maths), P3 (theory/essays).
+**Purpose:** Mark a photo of handwritten working line by line, and find the real gap behind repeated mistakes. **Stage:** diagnosis from practice and exam attempts in MVP (MVP-03); photo marking in Grow. Framed as "check my working": it marks the student's own steps and names the mistake, never just hands over an answer (Q40).
 
 **FR — capture**
 1. Camera or gallery → crop to one question → client compresses to max 1,600 px longest side, JPEG q=0.7 (~150–250 KB).
@@ -236,7 +262,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F8 · Exam mode
-**Purpose:** When an exam is coming, show what gets asked and practise in that style. **Phase:** P2.
+**Purpose:** When an exam is coming, show what gets asked and practise in that style. **Stage:** MVP (moved up from P2 by Q38): extraction, patterns (topic frequency, share of marks, question styles), study plan to the exam date, worked solutions, practice papers (MVP-04). The exam map's "≥ 3 papers" rule applies to the recency-weighted map; with fewer papers, show plain counts.
 
 **FR**
 1. Past paper ingestion: photo/PDF → vision extraction to `exam_questions` `{year, number, sub, text_latex, marks, type: calc|theory|definition|proof|diagram}`. The student reviews the extraction (editable table) before saving.
@@ -254,7 +280,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F9 · Course space (timetable, lecture preview and recap)
-**Purpose:** Fit Ifiok around the real week and make every lecture count. **Phase:** P2.
+**Purpose:** Fit Ifiok around the real week and make every lecture count. **Stage:** Grow, learning parts only (preview and recap); no standalone timetable or reminder product (Q40).
 
 **FR**
 1. Timetable: per course, entries `{weekday, starts, ends, venue, week_range}`; scheme week ↔ date comes from `course_terms`. Course reps/lecturers can publish the class timetable; students can override privately.
@@ -267,17 +293,19 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 
 ---
 
-## F10 · Study groups (P3)
+## F10 · Study groups
+> **Deferred (owner decision, `12` §4 Q40):** general group chat is a library/workspace app's lane. Peer help happens through tutoring (F17) and explainers (F18).
+
 **FR:** auto course group plus private groups (≤ 50 members); threads of question → answers; the asker accepts an answer; Ifiok checks answers (Flash-Lite with course sources) and labels them "Ifiok agrees / has a concern / unsure", with reasons; accepted answers earn Units (F13) and usage points if reused; report and moderation; Supabase Realtime for live updates (falls back to polling).
 **AC:** toxicity filter blocks slurs/harassment before posting; posts load in < 1 s for 50 items.
 
 ---
 
-## F11 · Resource Bank (crowd-sourced material)
-**Purpose:** Students and lecturers upload notes, past questions, lab manuals and worked solutions so the AI learns each concept better for everyone: grounding for the tutor, sources and citations for lessons, real question styles for practice and exam maps. Contributors are rewarded when their material helps others. **Phase:** uploads and curation from **P1** (no rewards yet); rewards from P2.
+## F11 · Contribution pool (shared library of verified student materials)
+**Purpose:** Students and lecturers upload notes, past questions, lab manuals and worked solutions so the AI learns each concept better for everyone: grounding for the tutor, sources and citations for lessons, real question styles for practice and exam maps. Contributors are rewarded when their material helps others. **Stage:** MVP (MVP-06, Q42): a student can share their own materials to the contribution pool, where automatic checks approve or hold them and usage is recorded as points and Units; Earn (E-01) adds curators, takedowns and cash shares.
 
 **FR**
-1. Upload kinds: `notes` (students: **your own notes only**, not lecturer handouts), `past_paper`, `lab_manual`, `handout` (lecturer only), `solution` (worked solutions). **Not allowed:** published textbooks or copyrighted books (attestation checkbox plus detection).
+1. Upload kinds: `notes` (students: **your own notes only**, not lecturer handouts), `past_paper`, `lab_manual`, `solution` (worked solutions). **Not allowed:** published textbooks or copyrighted books (attestation checkbox plus detection).
    - **Past papers** are used for their extracted questions and statistics only (exam map, item style). The file itself is never shown to other students.
    - Uploads start as private sources; `submit_to_bank(source_id)` (server) moves them into curation. Clients can never set `review`, `visibility` or the lecturer flag (`03` §8).
 2. Pipeline (`curate` queue job): file type/size check (PDF/JPG/PNG, ≤ 20 MB) → text extraction/OCR → checks: readable (OCR confidence), on-topic and **concept tagging** (classifier maps pages to concepts, using the course outline when the upload came from a course), duplicate (SHA-256 + MinHash/embedding similarity ≥ 0.92 against existing), copyright signals (ISBN, publisher names, "All rights reserved", match against a list of known textbook titles) → decision: `approved`, `needs_review` or `rejected` (with a reason shown to the uploader).
@@ -309,7 +337,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F13 · Rewards and Units wallet
-**Purpose:** Steady learners use Ifiok free; heavy users pay small amounts; contributors earn cash. **Phase:** P2. Full rules in `06`.
+**Purpose:** Steady learners use Ifiok free; heavy users pay small amounts; contributors earn cash. **Stage:** Earn (E-03, E-06). Full rules in `06`.
 
 **FR (summary)**
 1. Wallet screen: Units balance (purchased + earned, earned shown with expiry), Earnings balance (₦, pending vs available), history.
@@ -323,21 +351,27 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 ---
 
 ## F14 · Access and low-data
-**Phase:** P1 basics, P3 full.
+**Stage:** basics at Launch (L-05: PWA, pinned topics, offline sync); full in Grow.
 **FR:** installable PWA (Serwist); data-saver mode (no images except essential, system fonts, no 3D auto-load); **pin a topic** for offline (lesson JSON, items, lab code cached); offline attempts queue in IndexedDB; P3: English/Pidgin toggle for explanations; WhatsApp nudges.
 **AC:** a pinned lesson and its practice work in airplane mode; Today shows the offline state clearly; attempts sync exactly once.
 
 ---
 
 ## F15 · Admin and moderation
-**Phase:** P1 minimal, P2 full.
+**Stage:** Launch (L-02), extended in Earn (payout approval, curator and explainer review).
 **FR:** admin dashboard (Linear-style density): lessons in `review` and flagged lessons, concept merges and blocked names, course merges, curator approvals, bank review queue, user reports, lecturer verification, payout approval, AI spend dashboard (daily cost by feature, top users), feature flags, kill switches (disable a feature or model instantly).
 **AC:** every admin action is audit-logged (`admin_audit`).
 
 ---
 
+## F16 · Notifications
+**Stage:** Grow (study-plan reminders, preview/recap, email digests).
+**FR:** Web Push (VAPID, free); email via Resend free tier (verify the limit at signup); quiet hours 22:00–07:00; max 3 pushes/day; every notification type can be turned off in settings.
+
+---
+
 ## F17 · Peer tutoring (paid)
-**Purpose:** Students who have mastered a topic earn by teaching it to other students; students who are stuck get a human who has just learned the same course. **Phase:** P2 (needs a registered business, Paystack live mode, a licensed escrow/payment partner and legal review of the terms). Owner decision `12` §4 Q39.
+**Purpose:** Students who have mastered a topic earn by teaching it to other students; students who are stuck get a human who has just learned the same course. **Stage:** Earn (E-05; needs a registered business, Paystack live mode, a licensed escrow/payment partner and legal review of the terms). Owner decision `12` §4 Q39.
 
 **Stories**
 - I'm stuck on "Thermodynamic cycles" two days before the test. I book Ada, a 300-level student who mastered it on Ifiok, for 45 minutes. I pay ₦X; the money is held until the session ends; afterwards I confirm and she is paid.
@@ -358,6 +392,23 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`).
 
 ---
 
-## F16 · Notifications
-**Phase:** P1 web push (plan reminder), P2 preview/recap and email digests.
-**FR:** Web Push (VAPID, free); email via Resend free tier (verify the limit at signup); quiet hours 22:00–07:00; max 3 pushes/day; every notification type can be turned off in settings.
+## F18 · Student explainers (text, voice, video)
+**Purpose:** Students who have mastered a topic teach it once and get paid every time it helps another student; learners get a peer's explanation in the form that works for them. **Stage:** MVP (MVP-06, Q42) for publishing with AI review plus admin approval, captions and usage points; Earn (E-04) for curator review and converting points into Units and cash. Owner decisions `12` §4 Q40, Q41, Q42.
+
+**Stories**
+- I finally understood Kirchhoff's laws. I record a 2-minute video on my phone showing how I set up the loop equations; after review it appears under the topic, and I earn when other students finish it.
+- I'm on a small data bundle. Ifiok shows me the explainer's transcript and plays the audio only.
+
+**FR**
+1. **Who can publish:** an adult, active account with **Mastered** in the concept (server-written evidence); explainer terms accepted (licence as F11-FR5; withdraw any time).
+2. **Formats:** written walkthrough (Markdown with inline maths); voice note (≤ 5 min); **short video (≤ 3 min, 480p, ≤ 40 MB)** recorded in the browser or uploaded, compressed on the device before upload. One explainer covers one concept.
+3. **Processing:** media goes to object storage behind a CDN (`02` §1); the worker transcribes voice and video with Whisper (Groq) for captions, search and review; a poster frame and duration are recorded.
+4. **Review before anyone sees it:** AI review of the text or transcript (on-topic, accurate against the concept, no harassment, sexual content, hate, contact details or personal data) and of sampled video frames (`08` §7b); any number stated is checked by the engine where it can be, otherwise the explainer is labelled "Numbers not checked"; each author's first 3 explainers also need a curator's approval. Reports and the 3-flag hide rule apply.
+5. **Playback:** never auto-play; captions on by default; data-saver mode and slow networks show the transcript and the audio track only; a "Load video (≈ N MB)" button shows the size first.
+6. **Where explainers appear:** under the topic in the Path, after a wrong answer on that topic ("A student explains this"), and in exam prep for that topic. Shared lessons stay the primary teaching; explainers are optional.
+7. **Pay:** usage points when a qualified consumer finishes an explainer (`06` §4, §14), so pay follows real use, from the contribution pool.
+8. **Rules:** no faces of other people without their consent; no material copied from textbooks or lecturers' slides; no selling or contact details; 18+ only.
+
+**AC:** no explainer is visible before it passes review (test); every video has captions from its transcript; data-saver never downloads video bytes (Playwright); one usage point per (explainer, consumer, month) (pgTAP); a student without Mastered cannot publish for that concept (test).
+**Trade-offs:** video costs data, storage and moderation effort; short limits, on-device compression, transcript-first playback and review-before-publish keep it within the data-light principle.
+**Cost notes:** storage and CDN egress for video (`09` §2); one Whisper transcription per explainer (free tier during the pilot).

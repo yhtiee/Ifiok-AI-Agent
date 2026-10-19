@@ -6,9 +6,10 @@
 |---|---|---|---|
 | Unit | **Vitest** | `packages/core` (DSL schema, verifier, chunker), `lib/agent` (planner, mastery, FSRS wrapper), lab models (`components/labs/*/model.ts`), budgets, prompt builders | Every PR |
 | Component | Vitest + Testing Library + `jest-axe` | Each lesson block renderer, practice item types, UI kit | Every PR |
-| Database | **pgTAP** (`supabase test db`) | Every RLS policy, column grants, `enqueue_job`, ledger invariants, economy functions | Every PR |
-| API | Vitest against `supabase start` + route handlers with mocked AI providers | `/api/tutor`, `/api/sync`, `/api/jobs/enqueue`, Paystack webhook | Every PR |
-| End-to-end | **Playwright** (Chromium, Pixel 7 viewport; one run on a throttled "Slow 4G" profile) | Sign-up → onboarding → lesson → checkpoint; practice offline; snap flow with a fixture photo; top-up in Paystack test mode (P2) | Every PR (smoke), nightly (full) |
+| Database | **pgTAP**: `pnpm test:db:local` (PGlite, in `pnpm check`), `pnpm test:db:remote` (hosted, rolled back), `supabase test db` in CI | Every RLS policy, column grants, job runtime (pgmq), ledger invariants, economy functions | Every PR |
+| API | Vitest with fake repos and providers; job handlers and the worker runner tested with in-memory queues | `/api/sync`, `/api/materials`, `/api/jobs/enqueue`, job handlers; Stage 3: Paystack webhook, escrow callbacks | Every PR |
+| Worker | `pnpm check:worker` (Deno typecheck) and live checks after `pnpm deploy:worker` | The Edge Function bundle and its imports | Before each deploy |
+| End-to-end | **Playwright** (Chromium, Pixel 7 viewport; one run on a throttled "Slow 4G" profile) | Stage 1: the demo story (sign-up → materials → Path → lesson → weak areas → exam prep → lab); Stage 2: offline practice; Stage 3: top-up in Paystack test mode, explainer upload in data-saver | Every PR (smoke), nightly (full) |
 | Performance | Bundle check, Lighthouse CI | Budgets in `02` §7 | Every PR |
 | AI evals | `evals/` runner (Vitest-based, real providers, staging) | Skill quality (§3) | PRs touching a skill; weekly full run |
 
@@ -16,18 +17,21 @@
 
 ## 2. Must-have tests (by risk)
 
-### Money (P2)
+### Money (Stage 3)
 1. Each `06` §9 invariant as a pgTAP test.
 2. Webhook replay ×3 → one credit.
 3. Concurrent `spend_units` from two connections against a balance that covers only one → exactly one succeeds.
 4. `request_withdrawal` with amount > available → error, nothing posted.
 5. A simulated month: seeded revenue, AI cost and usage → payout lines sum ≤ pool; no line > 20%; margin ≤ 0 → pool 0.
+6. Tutoring: escrow callbacks replayed ×3 → one state change; release exactly once per booking; refunds and auto-release follow `06` §12; no tutoring funds posted to an Ifiok account.
+7. Curator pay: one payable line per accepted review (idempotent); rejected reviews pay nothing.
 
 ### Privacy and access
 1. For every table: user B cannot read user A's private rows (generated test that iterates over owner-scoped tables).
-2. A lecturer cannot read private lessons, attempts, tutor messages or submissions of students in their course.
+2. Another student cannot read a student's private materials, chunks, private lessons, attempts or tutor messages; private chunks never ground another student's lesson (MVP-01, MVP-02).
 3. An under-18 profile receives 403 from every AI route and Edge Function (test loops over the route list).
-4. The F3 network test: Playwright records requests during a textbook flow; no request body contains text from unconfirmed pages (use a fixture PDF with a unique marker string on each page).
+4. The F3 network test: Playwright records requests during a materials upload; no request body contains text from unpicked pages (fixture PDF with a unique marker string on each page), and no PDF file is sent.
+6. Explainers (Stage 3): nothing is playable before review passes; data-saver never downloads video bytes; withdrawn media is deleted.
 5. JPEG with GPS EXIF rejected; re-encoded photos have no EXIF.
 
 ### Integrity (from the peer review)
@@ -42,7 +46,9 @@
 2. Every lesson in `content/` and every published lesson in the seed passes `verifyLesson`.
 3. Mastery boundaries (0.30, 0.60, 0.85, the 3-day review rule).
 4. Planner determinism: snapshot tests for 12 fixed student states.
-5. Lab models: Ohm's law R within ±2% for correct procedure across 50 seeds; every PC build failure mode.
+5. Labs: the virtual experiment verifier (`05` §9) recovers each hidden constant from noise-free readings; a correct procedure lands within tolerance for ≥ 95% of 50 seeds (pendulum g ±3%, Ohm's law R ±2%, Hooke's law k); non-measurement activities are declined.
+6. Study plan to the exam date: every topic scheduled before the date; high-share weak topics first (snapshot tests).
+7. Exam copy never contains "predicted" or "likely to appear" (string test over exam screens and prompts).
 
 ## 3. AI evaluation sets
 
@@ -60,9 +66,11 @@ Stored in `evals/<skill>/cases.jsonl`; expected outputs or rubrics alongside. Re
 | `transcribe_working` | 40 handwritten photos (varied handwriting, lighting, paper), ground-truth LaTeX (OWN-04) | Line accuracy (equivalence per line), confidence calibration. **Run on Flash-Lite and Flash**; Flash-Lite becomes the route if it passes | ≥ 92% line accuracy after confirmation; lines with confidence ≥ 0.75 are correct ≥ 97% |
 | snap-and-mark end-to-end | same 40 + 10 fully correct solutions (including squaring, substitution, `let u = …` and `= …` continuation lines) | First-error localisation; `wrong` outcomes on correct work; share of lines `unchecked` | ≥ 85% localisation; **0** `wrong` steps on correct solutions after confirmation; ≤ 15% of maths lines `unchecked` |
 | `explain_error` | 30 flagged steps | Tag in vocabulary; hint helpful (rubric) | 100% valid tags; ≥ 80% helpful |
-| `exam_extract` (P2) | 10 past papers | Question boundaries and marks | ≥ 90% |
-| `exam_classify` (P2) | 200 labelled questions | Top-1 accuracy at confidence ≥ 0.6 | ≥ 85% |
-| `curate_classify` (P1, OWN-09) | 60 uploads (on/off topic, textbook pages, duplicates, injections, uploads containing names, phone numbers and matric numbers) | Correct decision; concept tags; personal data left in approved chunks | ≥ 90%; **0** personal-data items left; 100% of textbook pages not auto-approved |
+| `exam_extract` (Stage 1) | 10 past papers | Question boundaries and marks | ≥ 90% |
+| `exam_classify` (Stage 1) | 200 labelled questions | Top-1 accuracy at confidence ≥ 0.6 | ≥ 85% |
+| `lab_extract` (Stage 1) | 15 real lab-manual excerpts and 10 lab topics (owner-collected), plus 5 non-measurement activities | Configurations that pass the verifier; correct declines | ≥ 80% of measurement practicals produce a passing lab; **100%** of non-measurement activities declined |
+| `explainer_review` (Stage 3) | 40 explainers (text, voice transcripts, video frames) with planted harassment, contact details, personal data, copied slides and inaccuracies (OWN-E3) | Issues caught | ≥ 95% of planted issues held; ≤ 10% clean explainers held |
+| `curate_classify` (Stage 3, OWN-09) | 60 uploads (on/off topic, textbook pages, duplicates, injections, uploads containing names, phone numbers and matric numbers) | Correct decision; concept tags; personal data left in approved chunks | ≥ 90%; **0** personal-data items left; 100% of textbook pages not auto-approved |
 | `teach_back_check` | 30 student explanations with human labels | Agreement on ideas covered | ≥ 80% |
 
 **Rules**
@@ -71,10 +79,11 @@ Stored in `evals/<skill>/cases.jsonl`; expected outputs or rubrics alongside. Re
 - Promote a cheaper model for a skill only after it passes the same gates twice in a row.
 - Grader-model scores are checked by a human on a 10% sample every week during the pilot; disagreement > 10% → fix the rubric before trusting scores.
 
-## 4. Pilot quality monitoring (P1)
+## 4. Quality monitoring (from Launch)
 - Lesson flags confirmed as "wrong" per 1,000 lesson screens (target < 1% of blocks, `00` §7).
 - Tutor thumbs-down rate and reasons; weekly review of 30 random tutor threads by the owner (with consent at signup for quality review of anonymised samples).
-- Snap-and-mark disputes ("This mark is wrong") reviewed within 48 hours during the pilot.
+- Lab results students dispute, and labs declined, reviewed weekly.
+- From Stage 3: explainer reports and curator spot-check disagreements reviewed weekly.
 - AI cost per WAL per week against `09` §5.
 
 ## 5. Definition of done (every ticket)

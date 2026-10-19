@@ -13,19 +13,21 @@ Exchange-rate assumption: **₦1,500 = $1** (update in `app_config.fx_ngn_per_us
 
 | Service | Plan we use | What's included (verify) | What breaks first | Upgrade trigger |
 |---|---|---|---|---|
-| Cloudflare Workers | **Paid, $5/mo** from P1 | 10M requests/mo, 30M CPU-ms; Worker size up to 64 MiB on all plans (raised Sept 2026) | CPU time per SSR request if pages aren't cached | — |
-| Supabase | **Free** in P0–P1 (2 projects: prod + staging) | 500 MB DB, 1 GB storage, 50k MAU, ~5 GB egress, Edge Functions 500k invocations/mo, 150 s wall clock; **pauses after 1 week of inactivity; no backups** | DB size (chunks + embeddings), storage (photos), no backups | Move to **Pro ($25/mo; 8 GB DB, 100 GB storage, daily backups, no pausing)** before P2 payments, or when DB > 350 MB |
-| Gemini API | **Paid tier only** with real users (free tier = synthetic dev data only) | Pay per token; Batch 50% off | Spend | Caps in §6 |
+| Vercel | **Hobby/Free** for the MVP; Pro ($20/seat) if commercial-use terms or limits require it at Launch (`12` §4 Q17) | Generous bandwidth and functions for a pilot | Commercial-use terms; function duration | Move to Cloudflare Workers Paid ($5/mo) in Grow |
+| Cloudflare Workers | **Paid, $5/mo** in Grow (target host) | 10M requests/mo, 30M CPU-ms; Worker size up to 64 MiB on all plans (raised Sept 2026) | CPU time per SSR request if pages aren't cached | — |
+| Supabase | **Free** for the MVP and Launch (2 projects: prod + staging) | 500 MB DB, 1 GB storage, 50k MAU, ~5 GB egress, Edge Functions 500k invocations/mo, 150 s wall clock; **pauses after 1 week of inactivity; no backups** | DB size (chunks + embeddings), storage (photos), no backups | Move to **Pro ($25/mo; 8 GB DB, 100 GB storage, daily backups, no pausing)** before Stage 3 payments, or when DB > 350 MB |
+| Groq API | **Free tier** in the pilot (owner decision `12` §4 Q35), primary for text skills | Per model: ~8,000 tokens/min and **1,000 requests/day** | The daily request limit on `gpt-oss-20b` (every moderation, topic match and check uses it) | Paid tier ($0.15 / $0.60 per 1M on gpt-oss-120b) when calls fall back to Gemini daily |
+| Gemini API | **Free tier** in the pilot (Q25, with disclosure and redaction); image skills and the fallback | Free-tier rate limits; Batch 50% off when paid | 503 "high demand" on the newest models (Q34) | Paid tier before Stage 3 or when rate limits bite |
 | Anthropic API | Pay as you go (fallback) | Claude Haiku 4.5 $1 / $5 per 1M tokens | — | — |
 | Paystack | No monthly fee | Local cards 1.5% + ₦100, ₦100 waived under ₦2,500, capped at ₦2,000; transfers ₦10 / ₦25 / ₦50 | — | — |
 | Resend | Free | 3,000 emails/mo, 100/day | Daily limit once email-code sign-ins grow | Pro (~$20/mo) when > 70/day for a week; prefer Google sign-in and long sessions first |
-| Cloudflare R2 | Free | 10 GB storage | — | Backups beyond 10 GB |
+| Cloudflare R2 | Free | 10 GB storage, **no egress fees** | Explainer video (Stage 3) | ~$0.015/GB-month beyond 10 GB; at 3 min × 480p ≈ 10–40 MB per video, 10 GB holds ≈ 300–1,000 videos |
 | Cloudflare Turnstile, WAF rule | Free | 1 rate-limiting rule | — | — |
 | Sentry | Developer (free) | ~5k errors/mo | Error storms | Sample at 10% |
 | PostHog | Free | 1M events/mo | Event volume | Sample or trim events |
 | GitHub Actions | Free (private repo minutes) | 2,000 min/mo | Playwright + backups | Trim the matrix |
 | Domain | `.com` or `.ng` | ~$10–20/year | — | — |
-| Groq Whisper (P3) | Pay per use | ~$0.04 per audio hour | — | — |
+| Groq Whisper (Stage 3) | Free tier in the pilot; then pay per use | ~$0.04 per audio hour | — | One transcription per explainer |
 
 **Region:** Supabase has no African region. Choose `eu-west-2` (London) or `eu-central-1` (Frankfurt) after measuring latency from Lagos/Uyo on MTN and Airtel (pick the lower p50).
 
@@ -132,14 +134,16 @@ Monthly net result, thousands of naira (A = ₦1,000, F = ₦75,000):
 | Eval runs | $2 per run; PR runs only for changed skills; weekly full run | same |
 | Kill switches | Per skill and per model (`app_config`) | same |
 
-## 7. Phase budgets
+## 7. Stage budgets
 
-| Phase | Fixed / month | AI / month | One-off | Notes |
+| Stage | Fixed / month | AI / month | One-off | Notes |
 |---|---|---|---|---|
-| **P0 build (8–10 weeks)** | $0–5 | $5–10 (evals; Gemini free tier only with synthetic data) | Domain ~$15 | Local Supabase in Docker for most work |
-| **P1 pilot (1 semester, any course or topic)** | $5 Cloudflare + $0 Supabase Free | ~$35–75 (≈ 100 WAL × $0.14–0.23, library growth $4–18, evals), hard cap $3/day | Optional cache warming ≤ $20; NDPC Ordinary-High registration ₦10,000; optional paid curators for the busiest subjects ≈ ₦1,500 per checked lesson (budget ₦60,000) | Total ≈ **$40–80/month** plus ≈ ₦70,000 one-off |
-| **P2 paid launch** | ~$30 (Supabase Pro $25 + Cloudflare $5) + Resend Pro if needed; compliance and accounting ≈ ₦28k/month averaged | Capped by §6 | CAC registration, accountant, NDPC Extra-High (₦100,000) when > 1,000 users, DPCO audit fee **[confirm]**; keep the staging project in a separate free organisation so it doesn't bill as Pro | Payments go live only after Pro + registration |
-| **P3 growth** | Supabase compute add-on and PITR only when metrics need them | Same rule | Glyph designer, cultural advisor (brand, `07`) | — |
+| **1 · MVP (hackathon)** | $0 (Vercel free, Supabase Free, R2 free 10 GB for explainer media) | ≈ $0 on free tiers (Groq + Gemini + Whisper); hard cap $3/day stays on | Domain ~$15 | Synthetic or permitted demo materials (OWN-H1) |
+| **2 · Launch (free, one or two universities)** | $0–20 (Vercel Pro only if required) + $0 Supabase Free | Free tiers while limits hold; budget $35–75 if paid tiers are needed (≈ 100 WAL × $0.14–0.23 plus library growth), hard cap $3/day | NDPC Ordinary-High registration ₦10,000; optional cache warming ≤ $20 | Watch Groq's 1,000 requests/day per model |
+| **3 · Earn** | ~$45 (Supabase Pro $25 + Vercel/Cloudflare + R2 beyond 10 GB) + Resend Pro if needed; compliance and accounting ≈ ₦28k/month averaged | Paid AI tiers, capped by §6 | CAC registration, accountant, lawyer review of contributor/explainer/tutor terms, escrow partner onboarding **[confirm fees]**, NDPC Extra-High (₦100,000) when > 1,000 users; curator pay budget (₦1,500 per accepted review placeholder, capped monthly) | Money moves only after Pro + registration + legal review |
+| **4 · Grow** | Supabase compute add-on and PITR only when metrics need them; Cloudflare Workers Paid ($5) replaces Vercel | Same rule | Glyph designer, cultural advisor (brand, `07`) | — |
+
+**Private lessons from a student's own materials (MVP-02)** cost AI per student (≈ ₦25–134 per lesson at paid list prices; near zero on the pilot's free tiers). Watch this line from Launch; the Earn-stage flywheel ("share your notes and your course becomes free") moves those lessons into the shared library, where the cost is paid once per concept.
 
 ## 8. Cost levers (in the order to pull them)
 1. **Measure first:** the AI spend dashboard (F15) shows cost per skill, per learner and per course from `ai_calls` (including thinking tokens and tool rounds).

@@ -5,10 +5,10 @@
 | Concern | Choice | Why | Fallback |
 |---|---|---|---|
 | Web app | **Next.js (App Router) + TypeScript strict**, pinned to the newest version that `@opennextjs/cloudflare` lists as supported | Owner's stack; SSR for fast first load; route-level code splitting | — |
-| Hosting (prod) | **Cloudflare Workers Paid ($5/mo) via `@opennextjs/cloudflare`**, Smart Placement on (runs SSR near the database region) | Cheapest host that allows commercial use; 10M requests included; free plan's 10 ms CPU is too low for SSR. Worker size limit is 64 MiB on all plans since Sept 2026 | Vercel Pro ($20/seat/mo) |
-| Hosting (dev/preview) | Local `next dev`; Cloudflare preview deployments | Free | — |
+| Hosting (prod) | **Vercel** for the MVP and Launch (`12` §4 Q17); target **Cloudflare Workers Paid via `@opennextjs/cloudflare`** in Grow (cheapest host that allows commercial use; the build stays OpenNext-compatible: Edge `middleware.ts`) | Fastest path to a live URL now; Cloudflare later for cost | Vercel Pro ($20/seat/mo) |
+| Hosting (dev/preview) | Local `next dev` against the hosted dev project; Vercel preview deployments | Free | — |
 | Database/Auth/Storage | **Supabase** (Postgres + pgvector + pg_cron + pg_net + Queues/pgmq, Auth, Storage, Realtime, Edge Functions) | One platform, RLS-first, generous free tier | — |
-| Background jobs | **Supabase Queues (pgmq)** + Edge Function workers, kicked by `pg_net` on enqueue and swept by `pg_cron` each minute | No extra service; jobs live next to data | Cloudflare Queues |
+| Background jobs | **Supabase Queues (pgmq)** + one `worker` Edge Function (built, `12` §4 Q33), kicked by `pg_net` on enqueue and swept by `pg_cron` each minute; job logic lives in `packages/core` and is copied into the function by `pnpm sync:core` | No extra service; jobs live next to data | Cloudflare Queues |
 | Styling | Tailwind CSS v4 with CSS-variable design tokens (`07`) | Fast to build; tokens keep it on-brand | — |
 | UI primitives | **Radix UI primitives** (unstyled) + our own components | Accessibility without a generic look | — |
 | Client data | TanStack Query; Zustand for local lab/lesson state | Caching, offline-friendly | — |
@@ -19,12 +19,15 @@
 | PDF | **pdfjs-dist** in a Web Worker | On-device text extraction (privacy, cost) | — |
 | Spaced repetition | **ts-fsrs** | Proven algorithm, MIT | — |
 | PWA/offline | **Serwist** + IndexedDB (Dexie). Next builds with Turbopack by default; use Serwist's Turbopack integration, or build with webpack if that is not stable (decide in P0-01 and record it) | Offline pinned lessons, outbox | Hand-written service worker |
-| Payments | **Paystack** (Inline checkout, webhooks, Transfers) | Nigerian rails, no monthly fee | Flutterwave |
+| Payments | **Paystack** (Inline checkout, webhooks, Transfers) for Units top-ups and payouts (Stage 3) | Nigerian rails, no monthly fee | Flutterwave |
+| PayPal (MVP, sandbox only; `12` §4 Q43) | **PayPal developer platform** in the sandbox: Orders v2 (authorise at booking, capture after the session, void on no-show), Payouts (contributor and tutor payouts), webhooks with signature verification | Required by the PayPal AI Hackathon; shows the full money loop on test money | — |
+| Tutoring escrow (Stage 3) | A **licensed escrow/payment partner** (chosen with legal review, OWN-E2); Ifiok never holds tutoring funds, it records bookings and commission (`06` §12) | Regulated funds handling | Paystack split payments if the lawyer approves |
+| Explainer media (Stage 3) | **Object storage with a CDN** for voice and video explainers: Cloudflare R2 (no egress fees) with signed upload and playback URLs issued by our server; Supabase Storage is the fallback | Video egress would exhaust Supabase's free bandwidth quickly | Supabase Storage |
 | Email | **Resend** (free tier) as Supabase Auth SMTP and digests | Supabase's built-in SMTP is rate-limited | — |
 | Errors/analytics | Sentry free tier; PostHog free tier (no PII in events) | Free | Supabase logs only |
-| AI | **AI gateway** in our code (`04`); default **Gemini paid tier** (Flash-Lite / Flash), fallback **Claude Haiku 4.5** | Cheapest capable; provider switch by feature and age | — |
+| AI | **AI gateway** in our code (`04`, code in `packages/core/src/ai`); during the pilot **Groq** (gpt-oss-120b / gpt-oss-20b) for text skills and **Gemini** (3.5-flash) for image skills and as the fallback, both on free tiers (`12` §4 Q25, Q34, Q35); paid tiers before real money moves | Cheapest capable; provider switch by skill in `app_config` | Claude Haiku 4.5 (Next only) |
 | Embeddings | **gte-small** (384-d) inside Supabase Edge Functions (`Supabase.ai.Session`). Batches of ≤ 16 chunks per invocation (2 s CPU limit); chunks ≤ 350 word-pieces (gte-small truncates at 512) | No per-call API cost | Workers AI `@cf/baai/bge-small-en-v1.5` (also 384-d, called in-process from the Worker, removes a network hop for tutor queries; re-embed everything if you switch, never mix models) |
-| Speech (P3) | Groq `whisper-large-v3-turbo` | ~$0.04/hour of audio | OpenAI transcribe |
+| Speech (Stage 3) | Groq `whisper-large-v3-turbo` for explainer captions and review (available on the project key) | ~$0.04/hour of audio; free tier in the pilot | OpenAI transcribe |
 
 > Verify versions and prices at build time. Never pin to a model name in code: model IDs live in `app_config` (`04` §3).
 
@@ -33,17 +36,20 @@
 ```
  Phone (PWA)                                   Supabase
  ─────────────                                 ─────────────────────────────
- Next.js pages ──HTTPS──► Cloudflare Worker ──► Postgres (RLS)  ◄── pg_cron
-   │  pdf.js worker       (Next.js server)        │  pgvector, FTS, pgmq queues
-   │  Mafs/KaTeX/three    • route handlers        │        │ pg_net on enqueue
+ Next.js pages ──HTTPS──► Vercel (Next.js) ───► Postgres (RLS)  ◄── pg_cron
+   │  pdf.js worker       (server; Cloudflare     │  pgvector, FTS, pgmq queues
+   │  Mafs/KaTeX/three     in Grow)               │        │ pg_net on enqueue
+   │  MediaRecorder       • route handlers        │        │
    │  IndexedDB outbox    • AI gateway (stream)   │        ▼
    │                      • Paystack webhook     Edge Functions (Deno workers)
-   │                                               • worker: lesson_gen, items_gen,
-   └── Supabase JS (auth, RLS reads/writes) ─────►   mark_*, ocr, curate, notify…
+   │                      • signed media URLs     • worker: lesson_gen, embed,
+   └── Supabase JS (auth, RLS reads/writes) ─────►   items_gen, exam_extract, lab_extract,
+                                                     curate, transcribe, notify…
                                                    • embed (gte-small)
                                                    • export-data, delete-account
-                                           External: Gemini / Anthropic (AI),
-                                           Paystack, Resend, Groq (P3)
+                                           External: Groq + Gemini (AI, Whisper),
+                                           Paystack, escrow partner (Stage 3),
+                                           R2 + CDN (explainer media), Resend
 ```
 
 **Rules:**
@@ -51,7 +57,9 @@
 - **Learning a new concept:** `POST /api/learn` → moderation → `topic_resolve` → if the concept has a published lesson, return it (no AI); else `enqueue_job('lesson_gen', dedupe lesson:{concept})`, and only if that created a new job, `consume_quota('new_lesson')` (refunded if the lesson fails its checks) and charge the library budget → client watches the job and shows the step list and a quick tutor explainer → publish on pass (F2-FR5).
 - The browser talks to Supabase directly for **RLS-protected reads and low-stakes writes**: `lesson_progress` (UI resume state only), lab runs, goals, push subscriptions, skipping a plan task. **Learning evidence** (attempts and screen events) goes through `POST /api/sync`, which validates and re-grades it; review cards, mastery, task completion and `daily_activity` are written there too. Rewards and usage points read only these server-written rows.
 - Anything that costs money, touches money, calls AI or needs the service role goes through **server code** (Next route handlers or Edge Functions). The service-role key never reaches the client.
-- **Interactive** AI (tutor chat streaming, short checks ≤ 20 s) runs in Next route handlers on Cloudflare. **Long or batch** AI (lesson generation, item generation, OCR, curation, marking) runs as queued jobs in Edge Functions.
+- **Materials** are read on the device (pdf.js); only the pages the student picks are sent as text to `POST /api/materials`, chunked and embedded by the `embed` job (MVP-01). No PDF is stored.
+- **Explainer media** (Stage 3) uploads straight from the browser to object storage with a short-lived signed URL; the server records it as pending, the `transcribe` job captions it, review runs, and only then is a signed playback URL issued to other students.
+- **Interactive** AI (tutor chat streaming, short checks ≤ 20 s) runs in Next route handlers. **Long or batch** AI (lesson generation, item generation, OCR, curation, marking) runs as queued jobs in Edge Functions.
 
 ## 3. Repository layout
 
@@ -106,13 +114,13 @@
 
 ## 4. Jobs
 
-Table-backed queue using **pgmq** (Supabase Queues). Queues: `lesson_gen`, `items_gen`, `ocr`, `curate`, `mark_transcribe`, `mark_verify`, `exam_extract`, `embed`, `notify`, `payouts`, `noop` (tests).
+Table-backed queue using **pgmq** (Supabase Queues). Queues (built: `lesson_gen`, `noop`; per stage): Stage 1 `embed`, `items_gen`, `exam_extract`, `lab_extract`; Stage 3 `curate`, `transcribe` (explainers), `payouts`; Grow `ocr`, `mark_transcribe`, `mark_verify`, `notify`. A new queue needs a `pgmq.create` migration and a handler in `packages/core/src/jobs`.
 
 - **Enqueue** only via SQL function `enqueue_job(queue, payload, dedupe_key)`. It inserts a row into `jobs` (status tracking, visible to the owner via RLS) and sends to pgmq. A trigger calls the `worker` Edge Function via `pg_net` for low latency.
 - **Worker** Edge Function: each invocation has a **130 s deadline** (free plan wall clock is 150 s per invocation, and only ~2 s of CPU per request, so heavy CPU such as verification or embedding is split into small steps). It reads **1 message** for heavy queues (`lesson_gen`, `items_gen`, `mark_transcribe`, `mark_verify`, `ocr`, `curate`, `exam_extract`) and up to 5 for light ones (`notify`, `embed` batches, `noop`), with a pgmq visibility timeout of 180 s so a crashed run reappears. On success it archives the message. On failure it increments `attempts`; after 3 attempts → `failed` with the error, and the user sees a retry button.
 - **Sweeper:** `pg_cron` every minute calls `worker` (picks up anything the trigger missed).
 - **Dedupe:** `dedupe_key` (e.g. `lesson:{concept_id}:v{dsl_version}`) unique on active jobs, so two students anywhere opening the same new concept create one job.
-- **Splitting:** any job that could exceed the deadline is split into steps that enqueue the next step (e.g. OCR per page; lesson generation = outline job → blocks job → verify job).
+- **Splitting:** any job that could exceed the deadline is split into steps that enqueue the next step (e.g. OCR per page, embedding in batches). Lesson generation is one step today (measured ≈ 12 s, `12` §4 Q33); split it if CPU limits bite.
 - **Security:** `enqueue_job` is server-only (`03` §5). `/api/jobs/enqueue` accepts only user queues (`mark_transcribe`, `ocr`, private `lesson_gen`), applies the 30/day limit, and sets `owner_id` from the session. Handlers check that every id in a payload belongs to the job's owner or is shared.
 - Clients watch job status via Supabase Realtime on `jobs` (fallback: poll every 3 s).
 
@@ -124,7 +132,7 @@ Table-backed queue using **pgmq** (Supabase Queues). Queues: `lesson_gen`, `item
 - **App shell** precached by Serwist (HTML shell, CSS, core JS, fonts subset).
 - **Pinned topics:** "Pin for offline" downloads the lesson JSON, its items, KaTeX CSS and the lab chunk into IndexedDB/Cache Storage. Max 20 pinned topics (≈ 3 MB).
 - **Outbox:** attempts and screen events are written to IndexedDB first with a client UUID, then sent to `/api/sync`, which re-grades, upserts on the client UUID (idempotent), updates mastery, review cards, `daily_activity` and task completion. Client clocks are clamped to the server receive time. A screen event is accepted only if the lesson is published or superseded and the user is enrolled, the `screen_id` exists in that lesson, screens arrive in order, it comes ≥ 5 s after the user's previous event, and a checkpoint screen has a matching attempt.
-- **Data-saver** (auto-on when `navigator.connection.saveData` or effectiveType is 2g/3g): no 3D auto-load, no images except essential, lower-resolution uploads.
+- **Data-saver** (auto-on when `navigator.connection.saveData` or effectiveType is 2g/3g): no 3D auto-load, no images except essential, lower-resolution uploads, and **explainer videos show transcript and audio only** (never download video bytes).
 
 ## 7. Performance budgets (CI-enforced where possible)
 | Budget | Target |
@@ -136,16 +144,17 @@ Table-backed queue using **pgmq** (Supabase Queues). Queues: `lesson_gen`, `item
 | Lesson JSON payload | ≤ 60 KB |
 | 3D lab chunk | ≤ 650 KB gz, lazy |
 | Fonts | 3 families (display, text, mono for instruments only), subset Latin, self-hosted via `next/font`, `display: swap` |
-| Images | AVIF/WebP, `next/image` with Cloudflare loader or plain `<img>` with explicit sizes |
+| Images | AVIF/WebP, `next/image` or plain `<img>` with explicit sizes |
+| Explainer video | ≤ 3 min, 480p, ≤ 40 MB after on-device compression; never auto-played; size shown before loading |
 
 ## 8. Environments
-- **local:** `supabase start` (Docker) + `next dev`. Seed with `supabase db reset`.
-- **staging:** Supabase free project #2 + Cloudflare preview. Synthetic data only.
-- **production:** Supabase project #1 (Free during the pilot, **Pro before any payment goes live**) + Cloudflare Workers Paid.
+- **local:** `next dev` against the hosted dev project (no Docker on the owner's machine, `12` §4 Q13); DB tests run in PGlite (`pnpm test:db:local`).
+- **staging:** Supabase free project #2 + Vercel preview. Synthetic data only.
+- **production:** Supabase project #1 (Free during the MVP and Launch, **Pro before any payment goes live** in Stage 3) + Vercel (Cloudflare in Grow).
 
 ## 9. Configuration and secrets
 Env vars (validated with zod at boot, see `lib/env.ts`):
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server only), `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`, `RESEND_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SENTRY_DSN`, `POSTHOG_KEY`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `GROQ_API_KEY` (P3).
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Q12), `SUPABASE_SERVICE_ROLE_KEY` (server only), `INTERNAL_FUNCTION_SECRET` (worker and embed), `GEMINI_API_KEY`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, `PAYSTACK_SECRET_KEY`, `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`, `RESEND_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SENTRY_DSN`, `POSTHOG_KEY`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`; MVP adds `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID` (sandbox) and the media storage keys (R2); Stage 3 adds the production payment and escrow partner keys.
 Runtime config (in the DB, editable by admin, cached 60 s): model IDs per skill, quotas, Unit prices, pool percentage, kill switches. See `03` `app_config`.
 
 ## 10. CI (GitHub Actions)
