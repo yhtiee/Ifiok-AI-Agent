@@ -58,6 +58,43 @@ describe("runLessonPipeline", () => {
     expect(r.issues.join(" ")).toMatch(/self-consistency/);
   });
 
+  it("repairs a failed lesson once with the verifier's errors, then checks it again from scratch", async () => {
+    const broken = clone();
+    const cp = broken.screens
+      .flatMap((s) => s.blocks)
+      .find((b) => b.type === "checkpoint" && b.item.type === "numeric");
+    if (cp?.type === "checkpoint" && cp.item.type === "numeric") cp.item.stated += 1;
+    const repair = vi.fn(async () => ({ output: clone(), model: "repair-model" }));
+    const r = await runLessonPipeline({ ...deps(broken), repair }, { chunks: [], sensitive: false });
+    expect(repair).toHaveBeenCalledOnce();
+    expect((repair.mock.calls[0] as unknown as [unknown, string[]])[1].join(" ")).toMatch(/self-consistency/);
+    expect(r).toMatchObject({ status: "published", repaired: true, model: "repair-model", issues: [] });
+  });
+
+  it("still sends the lesson to review when the repair is wrong too, or the repair call fails", async () => {
+    const broken = () => {
+      const s = clone();
+      const cp = s.screens.flatMap((x) => x.blocks).find((b) => b.type === "checkpoint" && b.item.type === "numeric");
+      if (cp?.type === "checkpoint" && cp.item.type === "numeric") cp.item.stated += 1;
+      return s;
+    };
+    const stillWrong = await runLessonPipeline(
+      { ...deps(broken()), repair: async () => ({ output: broken(), model: "m" }) },
+      { chunks: [], sensitive: false },
+    );
+    expect(stillWrong).toMatchObject({ status: "review", reason: "checks_failed", repaired: false });
+    const failedCall = await runLessonPipeline(
+      {
+        ...deps(broken()),
+        repair: async () => {
+          throw new Error("provider down");
+        },
+      },
+      { chunks: [], sensitive: false },
+    );
+    expect(failedCall).toMatchObject({ status: "review", reason: "checks_failed" });
+  });
+
   it("sends a lesson with invalid LaTeX to review", async () => {
     const spec = clone();
     spec.screens[0]!.blocks[0] = { id: "s1b1", type: "math", latex: "\\frac{1}{", display: true };
@@ -167,6 +204,31 @@ describe("helpers", () => {
     );
     expect(lessonLabel({ trust: "new", sources_used: 3, spec: hum })).toBe("New lesson. Based on 3 sources");
     expect(lessonLabel({ trust: "trusted", sources_used: 0, spec: hum })).toBe("Trusted lesson");
+    // Private lessons from the student's own materials (MVP-02).
+    expect(lessonLabel({ trust: "new", sources_used: 2, owner_id: "u", spec: stem })).toBe(
+      "Built from your notes. Checked by Ifiok's maths engine",
+    );
+    expect(lessonLabel({ trust: "new", sources_used: 2, owner_id: "u", spec: hum })).toBe(
+      "Built from your notes (2 passages)",
+    );
+  });
+
+  it("publishes a lesson whose quote only changed the source's punctuation, with the exact wording", async () => {
+    const spec = clone();
+    const id = `s1b${spec.screens[0]!.blocks.length + 1}`;
+    spec.screens[0]!.blocks.push({
+      id,
+      type: "source_quote",
+      chunk_id: 11,
+      quote: "The slope of a curve, at a point, is the slope of its tangent line!",
+    });
+    const r = await runLessonPipeline(deps(spec), { chunks: CHUNKS, sensitive: false });
+    expect(r.issues).toEqual([]);
+    expect(r.status).toBe("published");
+    const quote = r.spec.screens[0]!.blocks.find((b) => b.id === id);
+    expect(quote?.type === "source_quote" && quote.quote).toBe(
+      "The slope of a curve at a point is the slope of its tangent line.",
+    );
   });
 });
 

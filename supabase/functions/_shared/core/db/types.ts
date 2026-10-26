@@ -821,8 +821,55 @@ export type Database = {
           },
         ]
       }
+      exam_plans: {
+        Row: {
+          course_id: string
+          exam_date: string
+          plan: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          exam_date: string
+          plan?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          exam_date?: string
+          plan?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_plans_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_questions: {
         Row: {
+          added_by: string | null
           concept_confidence: number | null
           concept_id: string | null
           course_id: string
@@ -833,10 +880,14 @@ export type Database = {
           number: string | null
           qtype: string | null
           source_id: string
+          sub: string | null
           text_latex: string
+          worked_solution: Json | null
+          worked_solution_at: string | null
           year: number | null
         }
         Insert: {
+          added_by?: string | null
           concept_confidence?: number | null
           concept_id?: string | null
           course_id: string
@@ -847,10 +898,14 @@ export type Database = {
           number?: string | null
           qtype?: string | null
           source_id: string
+          sub?: string | null
           text_latex: string
+          worked_solution?: Json | null
+          worked_solution_at?: string | null
           year?: number | null
         }
         Update: {
+          added_by?: string | null
           concept_confidence?: number | null
           concept_id?: string | null
           course_id?: string
@@ -861,10 +916,27 @@ export type Database = {
           number?: string | null
           qtype?: string | null
           source_id?: string
+          sub?: string | null
           text_latex?: string
+          worked_solution?: Json | null
+          worked_solution_at?: string | null
           year?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "exam_questions_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_questions_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "exam_questions_concept_id_fkey"
             columns: ["concept_id"]
@@ -1139,9 +1211,11 @@ export type Database = {
       }
       lab_runs: {
         Row: {
+          config_hash: string | null
           created_at: string
           data: Json
           id: string
+          lab_id: string | null
           lab_slug: string
           result: Json | null
           score: number | null
@@ -1149,9 +1223,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          config_hash?: string | null
           created_at?: string
           data: Json
           id: string
+          lab_id?: string | null
           lab_slug: string
           result?: Json | null
           score?: number | null
@@ -1159,9 +1235,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          config_hash?: string | null
           created_at?: string
           data?: Json
           id?: string
+          lab_id?: string | null
           lab_slug?: string
           result?: Json | null
           score?: number | null
@@ -1169,6 +1247,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lab_runs_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "labs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lab_runs_user_id_fkey"
             columns: ["user_id"]
@@ -1181,6 +1266,93 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labs: {
+        Row: {
+          config: Json | null
+          config_hash: string | null
+          created_at: string
+          created_by: string | null
+          decline_reason: string | null
+          id: string
+          origin: string
+          owner_id: string | null
+          public_config: Json | null
+          source_id: string | null
+          status: string
+          subject: string | null
+          title: string
+          topic_key: string | null
+        }
+        Insert: {
+          config?: Json | null
+          config_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          decline_reason?: string | null
+          id?: string
+          origin: string
+          owner_id?: string | null
+          public_config?: Json | null
+          source_id?: string | null
+          status: string
+          subject?: string | null
+          title: string
+          topic_key?: string | null
+        }
+        Update: {
+          config?: Json | null
+          config_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          decline_reason?: string | null
+          id?: string
+          origin?: string
+          owner_id?: string | null
+          public_config?: Json | null
+          source_id?: string | null
+          status?: string
+          subject?: string | null
+          title?: string
+          topic_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labs_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labs_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
             referencedColumns: ["id"]
           },
         ]
@@ -1926,6 +2098,7 @@ export type Database = {
       }
       sources: {
         Row: {
+          concept_id: string | null
           course_id: string | null
           created_at: string
           id: string
@@ -1942,6 +2115,7 @@ export type Database = {
           visibility: Database["public"]["Enums"]["source_visibility"]
         }
         Insert: {
+          concept_id?: string | null
           course_id?: string | null
           created_at?: string
           id?: string
@@ -1958,6 +2132,7 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["source_visibility"]
         }
         Update: {
+          concept_id?: string | null
           course_id?: string | null
           created_at?: string
           id?: string
@@ -1974,6 +2149,13 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["source_visibility"]
         }
         Relationships: [
+          {
+            foreignKeyName: "sources_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "concepts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sources_course_id_fkey"
             columns: ["course_id"]
@@ -2330,6 +2512,59 @@ export type Database = {
         }
         Relationships: []
       }
+      user_labs: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          id: string
+          lab_id: string
+          user_id: string
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          lab_id: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          lab_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_labs_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_labs_lab_id_fkey"
+            columns: ["lab_id"]
+            isOneToOne: false
+            referencedRelation: "labs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_labs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_labs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waitlist: {
         Row: {
           consent_version: string
@@ -2455,9 +2690,49 @@ export type Database = {
           title: string
         }[]
       }
+      material_coverage: {
+        Args: {
+          p_concept: string
+          p_course: string
+          p_min_similarity: number
+          p_user: string
+        }
+        Returns: {
+          close_chunks: number
+          concept_id: string
+        }[]
+      }
+      material_summaries: {
+        Args: { p_concept: string; p_course: string }
+        Returns: {
+          chunks: number
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["source_kind"]
+          page_count: number
+          pending_chunks: number
+          title: string
+        }[]
+      }
       merge_concepts: {
         Args: { p_admin: string; p_loser: string; p_survivor: string }
         Returns: undefined
+      }
+      private_lesson_sources: {
+        Args: {
+          p_concept: string
+          p_course: string
+          p_limit?: number
+          p_min_similarity: number
+          p_user: string
+        }
+        Returns: {
+          content: string
+          id: number
+          page: number
+          similarity: number
+          source_id: string
+        }[]
       }
       profile_display_name: {
         Args: { p_first: string; p_last: string }
@@ -2480,6 +2755,46 @@ export type Database = {
         }
         Returns: string
       }
+      publish_private_lesson: {
+        Args: {
+          p_concept: string
+          p_course: string
+          p_model?: string
+          p_owner: string
+          p_source_refs: number[]
+          p_sources_used: number
+          p_spec: Json
+          p_status: Database["public"]["Enums"]["lesson_status"]
+        }
+        Returns: string
+      }
+      record_attempt: {
+        Args: {
+          p_correct: boolean
+          p_duration_ms?: number
+          p_id: string
+          p_item: string
+          p_response: Json
+          p_user: string
+          p_weight_factor?: number
+        }
+        Returns: {
+          concept_id: string
+          inserted: boolean
+          level: string
+          m: number
+        }[]
+      }
+      record_screen: {
+        Args: {
+          p_completed_at: string
+          p_id: string
+          p_lesson: string
+          p_screen: string
+          p_user: string
+        }
+        Returns: boolean
+      }
       refund_quota: {
         Args: { p_feature: string; p_user: string }
         Returns: undefined
@@ -2496,6 +2811,10 @@ export type Database = {
           title: string
         }[]
       }
+      set_chunk_embeddings: {
+        Args: { p_embeddings: string[]; p_ids: number[]; p_source: string }
+        Returns: number
+      }
       shared_lesson_sources: {
         Args: { p_concept: string; p_limit?: number }
         Returns: {
@@ -2504,6 +2823,16 @@ export type Database = {
           page: number
           source_id: string
         }[]
+      }
+      tag_attempt: {
+        Args: {
+          p_attempt: string
+          p_subject: string
+          p_tag: string
+          p_title: string
+          p_user: string
+        }
+        Returns: boolean
       }
       wake_worker: { Args: { p_queue?: string }; Returns: undefined }
       worker_complete: {

@@ -1,20 +1,25 @@
 import { z } from "zod";
 import { GatewayError, type Gateway } from "../ai/gateway";
 import type { ClaimCheckOutput } from "../ai/skills/claim-check";
+import type { LessonRepairInput } from "../ai/skills/lesson-repair";
 import type { Json } from "../db/types";
 import type { LessonSpec } from "../dsl/schema";
 import { runLessonPipeline } from "../lessons/pipeline";
 import type { LessonRepo } from "../lessons/repo";
+import type { ItemsGenPayload, PrivateLessonRepo } from "../lessons/private";
 import { lagosDay } from "../streak";
 import { JobFailure, type ClaimedJob, type JobHandler } from "./types";
 
-// lesson_gen (F2-FR4/FR5, 04 §4.2): sources → generate → verify → claim check → publish or review.
-// One job per concept (dedupe), so only one runner ever generates a concept's lesson.
+// lesson_gen (F2-FR4/FR5, 04 §4.2): sources → generate → verify (one repair pass) → claim check →
+// publish or review, then queue the topic's practice questions. Shared mode: one job per concept,
+// grounded only in shared_lesson_sources. Private mode (MVP-02): one job per student, concept and
+// course, grounded only in that student's own materials, published as their private lesson.
 
 export const lessonGenPayload = z.object({
   concept_id: z.string().uuid(),
   course_id: z.string().uuid().nullable().default(null),
   user_id: z.string().uuid().nullable().default(null),
+  private: z.boolean().default(false),
 });
 
 // Subject profile (F2-FR4: STEM / social science / humanities) from the controlled subject codes,
@@ -57,6 +62,7 @@ export function subjectProfile(subject: string): "stem" | "social_science" | "hu
 
 const MSG = {
   failed: "Ifiok couldn't build this lesson just now. Read the quick explanation below, then try again.",
+  notCovered: "Your materials don't cover this topic closely enough yet, so you'll get the shared lesson.",
   missing: "This topic no longer exists. Search for it again from Courses.",
 } as const;
 
@@ -70,6 +76,10 @@ export function secondsUntilLagosMidnight(now: Date = new Date()): number {
 export type LessonGenDeps = {
   repo: LessonRepo;
   gateway: Pick<Gateway, "run">;
+  /** Private lessons from a student's materials (MVP-02); without it, private jobs fail. */
+  privateLessons?: PrivateLessonRepo;
+  /** Queues the topic's practice questions after a lesson is published. */
+  enqueueItems?: (payload: ItemsGenPayload) => Promise<void>;
   now?: () => Date;
 };
 
@@ -89,15 +99,30 @@ export function createLessonGenHandler(deps: LessonGenDeps): JobHandler {
         throw new JobFailure("payload_owner_mismatch", MSG.failed, false);
       }
       const userId = payload.user_id ?? job.ownerId;
+      const priv = payload.private ? deps.privateLessons : undefined;
+      if (payload.private && (!priv || !userId || job.ownerId !== userId)) {
+        throw new JobFailure("private_job_invalid", MSG.failed, false);
+      }
+      const scope = priv && userId ? { userId, courseId: payload.course_id } : null;
 
       const concept = await deps.repo.loadConcept(payload.concept_id);
       if (!concept) throw new JobFailure("concept_missing", MSG.missing, false);
 
+      // Shared lessons: approved crowd chunks only. Private lessons: the student's own chunks only.
       const [chunks, sensitive, course] = await Promise.all([
-        deps.repo.sharedSources(concept.id),
+        priv && scope
+          ? priv.config().then((cfg) => priv.sources(scope, concept.id, cfg))
+          : deps.repo.sharedSources(concept.id),
         deps.repo.isSensitive(concept.subject),
         payload.course_id && userId ? deps.repo.courseContext(payload.course_id, userId, concept.id) : null,
       ]);
+      if (priv && scope) {
+        const cfg = await priv.config();
+        if (chunks.length < cfg.min_chunks) {
+          await priv.refund(scope.userId);
+          return { kind: "done", result: { status: "not_covered", reason: "not_covered", message: MSG.notCovered } };
+        }
+      }
 
       const genInput = {
         concept: {
@@ -112,6 +137,7 @@ export function createLessonGenHandler(deps: LessonGenDeps): JobHandler {
         course_context: course,
         chunks,
         subject_profile: subjectProfile(concept.subject),
+        sources: priv ? ("own" as const) : ("crowd" as const),
       };
 
       let result;
@@ -141,6 +167,29 @@ export function createLessonGenHandler(deps: LessonGenDeps): JobHandler {
             },
             claimCheck: async (input) =>
               (await deps.gateway.run<ClaimCheckOutput>("claim_check", { userId, mode: "job", input })).output,
+            // Like generate: the primary model first, then the backup provider (a rate-limited
+            // primary would otherwise skip the repair entirely).
+            repair: async (lesson, errors) => {
+              const input: LessonRepairInput = { lesson, errors, chunks };
+              try {
+                const r = await deps.gateway.run<LessonSpec>("lesson_repair", {
+                  userId,
+                  mode: "job",
+                  attempt: 1,
+                  input,
+                });
+                return { output: r.output, model: r.model };
+              } catch (err) {
+                if (err instanceof GatewayError && err.code === "library_budget") throw err;
+                const r = await deps.gateway.run<LessonSpec>("lesson_repair", {
+                  userId,
+                  mode: "job",
+                  attempt: 2,
+                  input,
+                });
+                return { output: r.output, model: r.model };
+              }
+            },
           },
           { chunks, sensitive },
         );
@@ -160,23 +209,42 @@ export function createLessonGenHandler(deps: LessonGenDeps): JobHandler {
         throw new JobFailure(err instanceof GatewayError ? err.code : "generate_failed", MSG.failed);
       }
 
-      const lessonId = await deps.repo.publish({
-        conceptId: concept.id,
-        kind: "topic",
-        spec: result.spec,
-        status: result.status,
-        trust: "new",
-        sourceRefs: result.sourceRefs,
-        sourcesUsed: result.sourcesUsed,
-        model: result.model,
-        courseId: payload.course_id,
-        requestedBy: userId,
-      });
+      const lessonId =
+        priv && scope
+          ? await priv.publish({
+              scope,
+              conceptId: concept.id,
+              spec: result.spec,
+              status: result.status,
+              sourceRefs: result.sourceRefs,
+              model: result.model,
+            })
+          : await deps.repo.publish({
+              conceptId: concept.id,
+              kind: "topic",
+              spec: result.spec,
+              status: result.status,
+              trust: "new",
+              sourceRefs: result.sourceRefs,
+              sourcesUsed: result.sourcesUsed,
+              model: result.model,
+              courseId: payload.course_id,
+              requestedBy: userId,
+            });
       if (result.status === "published") {
-        await deps.repo.materializeCheckpoints(lessonId, concept.id, result.spec);
+        await deps.repo.materializeCheckpoints(lessonId, concept.id, result.spec, priv ? userId : null);
+        await deps.enqueueItems?.({
+          concept_id: concept.id,
+          lesson_id: lessonId,
+          course_id: payload.course_id,
+          owner_id: priv ? userId : null,
+        });
       }
-      // A lesson that failed its checks is never shown, and its quota is refunded (F2-FR8).
-      if (result.reason === "checks_failed" && userId) await deps.repo.refundNewLesson(userId);
+      // A lesson that failed its checks is never shown, and its allowance is refunded (F2-FR8).
+      if (result.reason === "checks_failed" && userId) {
+        if (priv) await priv.refund(userId);
+        else await deps.repo.refundNewLesson(userId);
+      }
 
       return {
         kind: "done",
@@ -185,13 +253,18 @@ export function createLessonGenHandler(deps: LessonGenDeps): JobHandler {
           status: result.status,
           reason: result.reason,
           issues: result.issues.slice(0, 20),
+          repaired: result.repaired,
+          private: Boolean(priv),
         } satisfies Json,
       };
     },
 
     async giveUp(job) {
       const userId = userOf(job);
-      if (userId) await deps.repo.refundNewLesson(userId).catch(() => {});
+      if (!userId) return;
+      const parsed = lessonGenPayload.safeParse(job.payload);
+      if (parsed.success && parsed.data.private) await deps.privateLessons?.refund(userId).catch(() => {});
+      else await deps.repo.refundNewLesson(userId).catch(() => {});
     },
   };
 }

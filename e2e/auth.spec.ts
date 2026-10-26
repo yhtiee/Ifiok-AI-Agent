@@ -184,29 +184,31 @@ test.describe("with a real account", () => {
     expect(await userIdFor(user.email, oldPassword)).toBeNull();
   });
 
-  test("a student updates their name on Me and the header greets them by it", async ({ page, context, baseURL }) => {
+  test("a student updates their name on Me and Today greets them by it", async ({ page, context, baseURL }) => {
     const user = await createOnboardedUser({ university: "UNIUYO", level: 200 });
     created.push(user.id);
     await signInAs(context, user.email, baseURL!);
 
-    await page.goto("/me");
+    await page.goto("/today");
     await expect(page.getByTestId("greeting")).toHaveText(/^Good (morning|afternoon|evening), Test$/);
+    await page.goto("/me");
     const first = page.getByLabel("First name");
     await expect(first).toHaveValue("Test");
+    const save = page.getByRole("button", { name: "Save name" });
+    await expect(save).toBeDisabled(); // nothing changed yet
     await first.fill("Adébáyọ̀");
     await page.getByLabel("Last name").fill("Okon");
-    await page.getByRole("button", { name: "Save name" }).click();
-    await expect(page.getByRole("status")).toHaveText("Name saved.");
-    await expect(page.getByTestId("greeting")).toHaveText(/, Adébáyọ̀$/);
+    await save.click();
+    await expect(page.getByText("Name saved.")).toBeVisible();
     await shot(page, "09-me-name");
 
-    // Other pages greet them too, and a bad name is explained, not saved.
+    // Today greets them by it, and a bad name is explained, not saved.
     await page.goto("/today");
     await expect(page.getByTestId("greeting")).toHaveText(/, Adébáyọ̀$/);
     await page.goto("/me");
     await page.getByLabel("Last name").fill("0k0n");
     await page.getByRole("button", { name: "Save name" }).click();
-    await expect(page.getByRole("alert").filter({ hasText: "Use letters for your last name" })).toBeVisible();
+    await expect(page.getByText("Use letters for your last name")).toBeVisible();
     const { data } = await adminClient().from("profiles").select("first_name, last_name").eq("id", user.id).single();
     expect(data).toEqual({ first_name: "Adébáyọ̀", last_name: "Okon" });
   });
@@ -256,9 +258,10 @@ test.describe("with a real account", () => {
     taps += 1;
 
     await expect(page).toHaveURL(/\/today$/);
-    await expect(page.getByRole("heading", { level: 1, name: "Start learning" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Learn a course" })).toBeVisible();
-    await expect(page.getByText("2 of 5 done")).toBeVisible();
+    // The Start state: one question, one way in (app-overhaul §5.1).
+    await expect(page.getByRole("heading", { level: 1, name: /^Good (morning|afternoon|evening)/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What are you studying?" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Find your course" })).toBeVisible();
     await shot(page, "07-today");
     expect(taps).toBeLessThanOrEqual(12);
 

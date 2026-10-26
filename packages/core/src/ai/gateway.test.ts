@@ -29,6 +29,8 @@ const rawConfig: Record<ConfigKey, unknown> = {
   kill_switches: { skills: [], models: [] },
   ai_billing: { gemini: "paid", anthropic: "paid" },
   economy_enabled: false,
+  private_lessons: { min_similarity: 0.8, min_chunks: 3, max_chunks: 12, items_per_topic: 10 },
+  curation: { sensitive_lessons_need_curator: false, order_match_items_need_review: false },
 };
 
 function configReader(overrides: Partial<Record<ConfigKey, unknown>> = {}): ConfigReader {

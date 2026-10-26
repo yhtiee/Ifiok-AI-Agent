@@ -17,11 +17,13 @@ function parseId(id: string) {
   return parsed.data;
 }
 
-// GET /api/concepts/:id/lesson: where the concept's lesson stands. Read-only (F2-FR4).
-export const GET = route(async (_req: Request, { params }: Params) => {
-  await requireAdult();
+// GET /api/concepts/:id/lesson[?course=…]: where the lesson this student should see stands: their
+// own lesson from their materials, else the shared one (F2-FR4, MVP-02). Read-only.
+export const GET = route(async (req: Request, { params }: Params) => {
+  const viewer = await requireAdult();
   const id = parseId((await params).id);
-  return NextResponse.json(await getLessonState(id));
+  const course = conceptId.safeParse(new URL(req.url).searchParams.get("course"));
+  return NextResponse.json(await getLessonState(id, { viewer, courseId: course.success ? course.data : null }));
 });
 
 // POST /api/concepts/:id/lesson: open the lesson, starting (or retrying) generation if needed.

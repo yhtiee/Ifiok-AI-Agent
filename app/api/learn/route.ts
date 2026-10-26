@@ -18,6 +18,6 @@ export const POST = route(async (request: Request) => {
   if (result.status === "too_broad") {
     return NextResponse.json(result, { status: 422 });
   }
-  const lesson = await getLessonState(result.concept.id);
+  const lesson = await getLessonState(result.concept.id, { viewer });
   return NextResponse.json({ ...result, lesson });
 });

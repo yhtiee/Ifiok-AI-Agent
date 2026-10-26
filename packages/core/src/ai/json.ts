@@ -52,3 +52,13 @@ export function findControlCharIssues(value: unknown, path = "$"): string[] {
   visit(value, path, "");
   return issues;
 }
+
+// Commands that only mean something as LaTeX; seen bare ("frac{d}{dx}") when a model drops the
+// backslash entirely, which leaves no control character to catch and renders as letters.
+const BARE_COMMAND = /(?<![\\a-zA-Z])(d?frac|sqrt|cdot|times|infty|partial|neq|leq|geq|approx|pm)(?![a-zA-Z])/g;
+const BARE_LIMIT = /(?<![\\a-zA-Z])(lim|sum|int|prod)(?=[_^])/g;
+
+/** Restores the backslash on unambiguous LaTeX commands in a field that holds only LaTeX. */
+export function restoreLatexBackslashes(latex: string): string {
+  return latex.replace(BARE_COMMAND, "\\$1").replace(BARE_LIMIT, "\\$1");
+}

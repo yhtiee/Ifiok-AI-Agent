@@ -1,40 +1,39 @@
 "use client";
 
-import {
-  BooksIcon,
-  CameraIcon,
-  ChatCircleTextIcon,
-  FlaskIcon,
-  FolderOpenIcon,
-  SunHorizonIcon,
-  TargetIcon,
-  UserCircleIcon,
-  type Icon,
-} from "@phosphor-icons/react";
+import { BooksIcon, ExamIcon, FlaskIcon, SunHorizonIcon, UserCircleIcon, type Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { FeatureKey } from "@/lib/features";
+import type { ReactNode } from "react";
 
-// Student navigation (specifications/07-brand-ui-ux.md §4): Today · Courses · Practice · Me.
-// Labs, the bank, the wallet and groups are reached from inside these.
-export const NAV_ITEMS: { href: string; label: string; icon: Icon }[] = [
-  { href: "/today", label: "Today", icon: SunHorizonIcon },
-  { href: "/courses", label: "Courses", icon: BooksIcon },
-  { href: "/practice", label: "Practice", icon: TargetIcon },
-  { href: "/me", label: "Me", icon: UserCircleIcon },
+// Student navigation (app-overhaul §3.1, 12 §4 Q50, Q52, Q56): Today · Courses · Practice · Labs · Me.
+// Nothing that isn't live is listed. Labs is desktop-only: the phone tab bar keeps four items, and
+// Practice links to Labs there.
+export const NAV_ITEMS: { href: string; label: string; icon: Icon; phone: boolean }[] = [
+  { href: "/today", label: "Today", icon: SunHorizonIcon, phone: true },
+  { href: "/courses", label: "Courses", icon: BooksIcon, phone: true },
+  { href: "/practice", label: "Practice", icon: ExamIcon, phone: true },
+  { href: "/labs", label: "Labs", icon: FlaskIcon, phone: false },
+  { href: "/me", label: "Me", icon: UserCircleIcon, phone: true },
 ];
+
+/** The lesson player, a practice session, a lab and a timed paper own the thumb zone, so the tab bar hides there. */
+export const isFocusScreen = (pathname: string) =>
+  pathname.startsWith("/learn/") ||
+  pathname.startsWith("/labs/") ||
+  /^\/practice\/[^/]+/.test(pathname) ||
+  /\/exam\/paper$/.test(pathname);
 
 function useIsActive() {
   const pathname = usePathname();
   return (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Desktop sidebar links (lg+). */
+/** Desktop sidebar links (lg+). Me lives in the sidebar footer. */
 export function SidebarNav() {
   const isActive = useIsActive();
   return (
     <nav aria-label="Main" className="grid gap-1">
-      {NAV_ITEMS.map(({ href, label, icon: IconCmp }) => {
+      {NAV_ITEMS.filter((item) => item.href !== "/me").map(({ href, label, icon: IconCmp }) => {
         const active = isActive(href);
         return (
           <Link
@@ -54,66 +53,19 @@ export function SidebarNav() {
   );
 }
 
-/**
- * Desktop sidebar: learning tools reached from inside the main tabs on phones (07 §4).
- * Tools that aren't open yet are listed (so students see what's coming) but not linked.
- */
-export function SidebarTools({ tools }: { tools: { key: FeatureKey; label: string; href: string; open: boolean }[] }) {
-  const isActive = useIsActive();
-  return (
-    <nav aria-label="Learning tools" className="grid gap-1">
-      <p className="px-3 pb-1 text-xs font-semibold text-ink-2">Learning tools</p>
-      {tools.map(({ key, label, href, open }) => {
-        const IconCmp = TOOL_ICONS[key] ?? FolderOpenIcon;
-        if (!open) {
-          return (
-            <span
-              key={key}
-              aria-disabled="true"
-              className="flex min-h-10 items-center gap-3 rounded-[var(--radius-input)] px-3 text-sm text-ink-3"
-            >
-              <IconCmp size={20} aria-hidden="true" />
-              <span className="flex-1">{label}</span>
-              <span className="text-xs">Soon</span>
-            </span>
-          );
-        }
-        const active = isActive(href);
-        return (
-          <Link
-            key={key}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={`flex min-h-10 items-center gap-3 rounded-[var(--radius-input)] px-3 text-sm ${
-              active ? "bg-quantity-soft font-semibold text-quantity" : "text-ink-2 hover:bg-paper hover:text-ink"
-            }`}
-          >
-            <IconCmp size={20} weight={active ? "fill" : "regular"} aria-hidden="true" />
-            {label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
-const TOOL_ICONS: Partial<Record<FeatureKey, Icon>> = {
-  tutor: ChatCircleTextIcon,
-  labs: FlaskIcon,
-  snap: CameraIcon,
-  library: FolderOpenIcon,
-};
-
-/** Phone bottom navigation (below lg). Fixed, thumb zone, 4 items, label always visible. */
+/** Phone bottom navigation (below lg). Fixed, thumb zone, 3 items, labels always visible. */
 export function BottomNav() {
+  const pathname = usePathname();
   const isActive = useIsActive();
+  if (isFocusScreen(pathname)) return null;
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden print:hidden"
     >
-      <ul className="grid grid-cols-4">
-        {NAV_ITEMS.map(({ href, label, icon: IconCmp }) => {
+      {/* One row, one equal column per tab, however many tabs there are. */}
+      <ul className="grid auto-cols-fr grid-flow-col">
+        {NAV_ITEMS.filter((item) => item.phone).map(({ href, label, icon: IconCmp }) => {
           const active = isActive(href);
           return (
             <li key={href}>
@@ -132,5 +84,19 @@ export function BottomNav() {
         })}
       </ul>
     </nav>
+  );
+}
+
+/** Content area: leaves room for the tab bar on phones, except on focus screens. */
+export function MainArea({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  return (
+    // overflow-x-clip: a wide formula or diagram can never paint over the sidebar (clip, not hidden,
+    // so sticky headers and action bars still work).
+    <main
+      className={`min-w-0 flex-1 overflow-x-clip lg:pb-10 ${isFocusScreen(pathname) ? "pb-0" : "pb-[calc(4rem+env(safe-area-inset-bottom))]"}`}
+    >
+      {children}
+    </main>
   );
 }

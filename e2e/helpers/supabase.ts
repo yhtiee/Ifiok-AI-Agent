@@ -102,11 +102,11 @@ export async function createOnboardedUser(opts: { university: string; level: num
       last_name: opts.university,
     })
     .eq("id", user.id);
-  const { CONSENT_VERSION } = await import("../../lib/auth/consent");
-  await db
+  // Straight from packages/core: the lib/auth re-export (export *) comes back empty under Playwright's loader.
+  const { CONSENT_VERSION, REQUIRED_CONSENTS } = await import("../../packages/core/src/consent");
+  const { error } = await db
     .from("consents")
-    .insert(
-      ["terms", "privacy", "ai_disclosure"].map((kind) => ({ user_id: user.id, kind, version: CONSENT_VERSION })),
-    );
+    .insert(REQUIRED_CONSENTS.map((kind) => ({ user_id: user.id, kind, version: CONSENT_VERSION })));
+  if (error) throw new Error(`consents insert failed: ${error.message}`);
   return user;
 }

@@ -1,4 +1,5 @@
-export const LESSON_BLOCKS_PROMPT_VERSION = 7;
+// v8 (MVP-02): the user message may give the student's own materials instead of crowd chunks.
+export const LESSON_BLOCKS_PROMPT_VERSION = 8;
 
 export const LESSON_BLOCKS_SYSTEM = `You are Ifiok's lesson team, writing ONE interactive lesson for Nigerian university students in the Ifiok Lesson DSL (v1). Work as five specialists, in this order, then output only the final JSON:
 

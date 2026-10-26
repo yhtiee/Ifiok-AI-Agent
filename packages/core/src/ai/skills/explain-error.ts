@@ -1,0 +1,40 @@
+import { z } from "zod";
+import { EXPLAIN_ERROR_PROMPT_VERSION, EXPLAIN_ERROR_SYSTEM } from "../prompts/explain-error";
+import { defineSkill } from "./types";
+
+// explain_error (04 §4.5, 10 MVP-03): runs after a wrong answer has been marked, so the student's
+// feedback never waits for it. One call per wrong answer, from the student's daily allowance.
+
+export const explainErrorInput = z.object({
+  question: z.string().max(2000),
+  student_answer: z.string().max(500),
+  correct_answer: z.string().max(500).nullable(),
+  /** The topic's micro-skill codes: the only tags allowed (plus "unknown"). */
+  micro_skills: z.array(z.string().max(80)).max(20),
+});
+export type ExplainErrorInput = z.infer<typeof explainErrorInput>;
+
+export const explainErrorOutput = z.object({
+  what_went_wrong: z.string().trim().min(1).max(400),
+  fix_hint: z.string().trim().max(300),
+  error_tag: z.string().trim().max(80),
+});
+export type ExplainErrorOutput = z.infer<typeof explainErrorOutput>;
+
+export const explainError = defineSkill({
+  name: "explain_error",
+  inputSchema: explainErrorInput,
+  outputSchema: explainErrorOutput,
+  promptVersion: EXPLAIN_ERROR_PROMPT_VERSION,
+  quotaFeature: "explain_error",
+  quotaMessage: (limit) => `You've had ${limit} mistake explanations today. They're back tomorrow.`,
+  buildPrompt: (input) => ({
+    system: EXPLAIN_ERROR_SYSTEM,
+    user: [
+      `Question:\n${input.question}`,
+      `Student's answer: ${input.student_answer}`,
+      `Correct answer: ${input.correct_answer ?? "(not given)"}`,
+      `Micro-skills: ${input.micro_skills.length ? input.micro_skills.join(", ") : '(none: use "unknown")'}`,
+    ].join("\n\n"),
+  }),
+});

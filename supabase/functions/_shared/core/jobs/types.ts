@@ -12,6 +12,7 @@ export const QUEUES = [
   "mark_transcribe",
   "mark_verify",
   "exam_extract",
+  "lab_extract",
   "embed",
   "notify",
   "payouts",
@@ -28,6 +29,7 @@ export const HEAVY_QUEUES: ReadonlySet<QueueName> = new Set([
   "ocr",
   "curate",
   "exam_extract",
+  "lab_extract",
 ]);
 export const LIGHT_BATCH = 5;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractJson, findControlCharIssues } from "./json";
+import { extractJson, findControlCharIssues, restoreLatexBackslashes } from "./json";
 
 describe("extractJson", () => {
   it("reads plain, fenced and wrapped JSON", () => {
@@ -29,5 +29,20 @@ describe("findControlCharIssues", () => {
   it("accepts correctly escaped LaTeX", () => {
     // Correct JSON escapes the backslash: \\frac parses to the text \frac.
     expect(findControlCharIssues(JSON.parse(String.raw`{"latex":"\\frac{1}{2} \\neq \\theta"}`))).toEqual([]);
+  });
+});
+
+describe("restoreLatexBackslashes", () => {
+  it("puts back a dropped backslash on unambiguous commands", () => {
+    expect(restoreLatexBackslashes("frac{d}{dx}(3x^2) = 3 cdot 2x")).toBe(String.raw`\frac{d}{dx}(3x^2) = 3 \cdot 2x`);
+    expect(restoreLatexBackslashes("lim_{x to 2} sqrt{x}")).toBe(String.raw`\lim_{x to 2} \sqrt{x}`);
+  });
+
+  it("leaves correct LaTeX and ordinary words alone", () => {
+    const ok = String.raw`\frac{1}{2} \cdot \sqrt{x} + \lim_{h \to 0} \int_0^1 x\,dx`;
+    expect(restoreLatexBackslashes(ok)).toBe(ok);
+    expect(restoreLatexBackslashes(String.raw`\text{limit} + \text{integral}`)).toBe(
+      String.raw`\text{limit} + \text{integral}`,
+    );
   });
 });

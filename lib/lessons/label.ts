@@ -6,8 +6,15 @@ import type { LessonSpec } from "@ifiok/core";
 export function lessonLabel(lesson: {
   trust: "new" | "trusted";
   sources_used: number;
+  owner_id?: string | null;
   spec: Pick<LessonSpec, "subject_profile">;
 }): string {
+  // A private lesson built from the student's own materials (MVP-02).
+  if (lesson.owner_id) {
+    return lesson.spec.subject_profile === "stem"
+      ? "Built from your notes. Checked by Ifiok's maths engine"
+      : `Built from your notes (${lesson.sources_used} ${lesson.sources_used === 1 ? "passage" : "passages"})`;
+  }
   if (lesson.trust === "trusted") return "Trusted lesson";
   if (lesson.spec.subject_profile === "stem") return "New lesson. Checked by Ifiok's maths engine";
   if (lesson.sources_used > 0) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { SubmitButton } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { SelectField } from "@/components/ui/Field";
 import { StepScreen } from "@/components/ui/StepScreen";
 import { submitBirthDate, type StepState } from "./actions";

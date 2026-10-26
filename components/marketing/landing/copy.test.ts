@@ -19,41 +19,54 @@ const before = new Date("2026-10-19T12:00:00Z");
 const after = new Date("2026-11-20T12:00:00Z");
 
 describe("flags", () => {
-  it("only courses, outlines and shared lessons are open today", () => {
+  it("everything through virtual labs is open today", () => {
     const open = Object.entries(FEATURES)
       .filter(([, v]) => v.open)
       .map(([k]) => k)
       .sort();
-    expect(open).toEqual(["course", "outline", "sharedLessons", "topic"]);
+    expect(open).toEqual([
+      "course",
+      "examPrep",
+      "labs",
+      "outline",
+      "path",
+      "practice",
+      "privateLessons",
+      "sharedLessons",
+      "topic",
+      "upload",
+      "weakAreas",
+    ]);
   });
 });
 
 describe("landing copy against today's flags (04 §5)", () => {
   const copy = landingCopy(today, before);
 
-  it("uses the not-open hero line", () => {
-    expect(copy.heroLead).toContain("are being built now");
+  it("uses the open hero line once uploads, the Path and private lessons are live", () => {
+    expect(copy.heroLead).toContain("built from your own material");
+    expect(landingCopy({ ...today, path: false }).heroLead).toContain("are being built now");
   });
 
   it("journey badges follow the flags", () => {
     const labels = copy.journey.map((s) => s.badges.map((b) => b.label));
     expect(labels).toEqual([
-      ["Open now", "Your notes and Path: Building now"],
-      ["Building now"],
+      ["Open now"],
+      ["Open now"],
       ["Building now"],
       ["Building now"],
       ["Points and Units: Building now", "Cash: After launch"],
     ]);
   });
 
-  it("marks the four unbuilt Learn items Building now", () => {
-    expect(copy.learnItems.filter((i) => i.badge?.status === "building")).toHaveLength(4);
+  it("has no unbuilt Learn items left once labs are open", () => {
+    expect(copy.learnItems.filter((i) => i.badge?.status === "building")).toHaveLength(0);
     expect(copy.learnItems.slice(0, 2).every((i) => !i.badge)).toBe(true);
   });
 
   it("generates 'What works today' exactly as 04 §5.10 renders it today", () => {
     expect(whatWorksToday(today)).toBe(
-      "Today: find or create your course, add the outline, and open lessons for any topic. Being built now: lessons from your notes, your Path, practice and weak areas, exam prep, virtual labs, sharing, explainers and earnings. After launch, when payments are set up: Plus billing, Units top-ups, cash payouts, paid curating and tutoring bookings.",
+      "Today: find or create your course, add the outline, open lessons for any topic, lessons from your notes, your Path, practice and weak areas, exam prep, and virtual labs. Being built now: sharing, explainers and earnings. After launch, when payments are set up: Plus billing, Units top-ups, cash payouts, paid curating and tutoring bookings.",
     );
   });
 
@@ -64,9 +77,13 @@ describe("landing copy against today's flags (04 §5)", () => {
     expect(copy.moneyLines.join(" ")).not.toMatch(/sandbox/i);
   });
 
-  it("prefixes the textbook answer and gates the judges' sandbox questions", () => {
+  it("answers the textbook question by the upload flag and gates the judges' sandbox questions", () => {
     const faq = faqGroups(today, before);
-    expect(faq.main.find((f) => f.q.startsWith("Is my textbook"))!.a).toMatch(/^When uploads open: No\./);
+    expect(faq.main.find((f) => f.q.startsWith("Is my textbook"))!.a).toMatch(
+      /^No\. Ifiok reads your PDF on your phone/,
+    );
+    const closed = faqGroups({ ...today, upload: false }, before);
+    expect(closed.main.find((f) => f.q.startsWith("Is my textbook"))!.a).toMatch(/^When uploads open: No\./);
     expect(faq.judges.map((f) => f.q)).toEqual(["How does Ifiok use AI?"]);
     expect(faqGroups(today, after).judges).toEqual([]);
     expect(JUDGES_UNTIL.toISOString()).toBe("2026-11-12T20:00:00.000Z");
@@ -78,8 +95,8 @@ describe("landing copy against today's flags (04 §5)", () => {
     expect(rows.find((r) => r.feature === "Billing")!.plus).toBe("Opens with payments");
   });
 
-  it("meta description is the today variant and fits 155 characters", () => {
-    expect(metaDescription(today)).toMatch(/^Interactive lessons/);
+  it("meta description is the open variant once uploads and exam prep are live, and fits 155 characters", () => {
+    expect(metaDescription(today)).toMatch(/^Turn your course outline/);
     expect(metaDescription(today).length).toBeLessThanOrEqual(155);
     expect(metaDescription(allOpen).length).toBeLessThanOrEqual(155);
   });
@@ -129,7 +146,7 @@ describe("JSON-LD", () => {
       offers: Record<string, unknown>[];
     };
     expect(app.featureList).toEqual(openFeatureList(today));
-    expect(app.featureList).toHaveLength(3);
+    expect(app.featureList).toHaveLength(9);
     expect(app.offers.filter((o) => "availability" in o)).toHaveLength(1);
     const text = JSON.stringify(ld);
     expect(text).not.toMatch(/aggregateRating|"review"|sameAs/);

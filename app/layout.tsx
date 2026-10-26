@@ -1,19 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { getSiteUrl } from "@/lib/env";
 import "./globals.css";
 
 // specifications/07-brand-ui-ux.md §3.3 typography: display, text, instrument readings only.
-const bricolage = Bricolage_Grotesque({
+// All three families are self-hosted from app/fonts (Latin subsets from Fontsource 5.3.0, SIL OFL
+// 1.1): next/font/google crashes the Turbopack dev server in Next 16.3.8 ("next/font/google
+// queries have exactly one entry"), first for Atkinson, then for Bricolage after a cache clear.
+const bricolage = localFont({
   variable: "--font-bricolage",
-  subsets: ["latin"],
-  weight: ["600", "800"],
+  src: [
+    { path: "./fonts/bricolage-grotesque-latin-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/bricolage-grotesque-latin-800.woff2", weight: "800", style: "normal" },
+  ],
   display: "swap",
+  fallback: ["system-ui", "Segoe UI", "Roboto", "sans-serif"],
 });
 
-// Self-hosted from app/fonts (Latin, from Fontsource, SIL OFL 1.1). next/font/google's version of
-// this family crashes the Turbopack dev server in Next 16.3.8 ("queries have exactly one entry").
 const atkinson = localFont({
   variable: "--font-atkinson",
   src: [
@@ -24,10 +27,10 @@ const atkinson = localFont({
   fallback: ["system-ui", "Segoe UI", "Roboto", "sans-serif"],
 });
 
-const jetbrains = JetBrains_Mono({
+const jetbrains = localFont({
   variable: "--font-jetbrains",
-  subsets: ["latin"],
-  weight: ["400"],
+  src: [{ path: "./fonts/jetbrains-mono-latin-400.woff2", weight: "400", style: "normal" }],
+  fallback: ["ui-monospace", "Consolas", "monospace"],
   // Only instrument readouts use it (labs, the landing Trust band): don't preload it on every page.
   display: "optional",
   preload: false,

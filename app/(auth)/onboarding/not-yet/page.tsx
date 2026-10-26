@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ButtonLink } from "@/components/ui/Button";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { StepScreen } from "@/components/ui/StepScreen";
 import { contacts } from "@/lib/site";
 
@@ -13,9 +14,9 @@ export default function NotYetPage() {
       title="Ifiok is for students 18 and older, for now"
       intro="We haven't kept anything you entered: your account and details have been deleted."
       action={
-        <ButtonLink href="/" variant="secondary" full>
-          Back to the Ifiok home page
-        </ButtonLink>
+        <Button asChild variant="outline" full>
+          <Link href="/">Back to the Ifiok home page</Link>
+        </Button>
       }
     >
       <div className="grid gap-4 text-base">

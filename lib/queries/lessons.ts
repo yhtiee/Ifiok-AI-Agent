@@ -15,7 +15,12 @@ const lessonRow = z.custom<LessonRow>(
 );
 
 const lessonState = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("published"), lesson: lessonRow }),
+  z.object({
+    status: z.literal("published"),
+    lesson: lessonRow,
+    fromNotes: z.optional(z.object({ citations: z.record(z.string(), z.string()) })),
+    notesBuilding: z.optional(z.object({ jobId: z.string() })),
+  }),
   z.object({ status: z.literal("none"), concept, quickExplainer: z.string() }),
   z.object({ status: z.literal("generating"), jobId: z.string(), concept, quickExplainer: z.string() }),
   z.object({
@@ -36,16 +41,23 @@ const lessonState = z.discriminatedUnion("status", [
 ]);
 export type LessonState = z.infer<typeof lessonState>;
 
-/** Polls every 3 s while the lesson is being built; P0-11 swaps this for Realtime (`useJob`). */
-export const conceptLessonQuery = (conceptId: string) =>
+/** Polls while a lesson is being built (Realtime on the job refreshes sooner, `useJob`). */
+export const conceptLessonQuery = (conceptId: string, courseId?: string) =>
   queryOptions({
-    queryKey: queryKeys.concepts.lesson(conceptId),
-    queryFn: ({ signal }) => apiFetch(`/api/concepts/${conceptId}/lesson`, { schema: lessonState, signal }),
-    refetchInterval: (q) => (q.state.data?.status === "generating" ? 3000 : false),
+    queryKey: [...queryKeys.concepts.lesson(conceptId), courseId ?? "topic"],
+    queryFn: ({ signal }) =>
+      apiFetch(`/api/concepts/${conceptId}/lesson${courseId ? `?course=${courseId}` : ""}`, {
+        schema: lessonState,
+        signal,
+      }),
+    refetchInterval: (q) => {
+      const d = q.state.data;
+      return d?.status === "generating" ? 3000 : d?.status === "published" && d.notesBuilding ? 5000 : false;
+    },
   });
 
-export function useConceptLesson(conceptId: string, initialData: LessonState) {
-  return useQuery({ ...conceptLessonQuery(conceptId), initialData });
+export function useConceptLesson(conceptId: string, initialData: LessonState, courseId?: string) {
+  return useQuery({ ...conceptLessonQuery(conceptId, courseId), initialData });
 }
 
 /** Opens the lesson, starting or retrying generation when there is none. */

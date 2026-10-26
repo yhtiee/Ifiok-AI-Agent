@@ -1,0 +1,36 @@
+import { z } from "zod";
+import { LESSON_REPAIR_PROMPT_VERSION, LESSON_REPAIR_SYSTEM } from "../prompts/lesson-repair";
+import { lessonGenerateOutput } from "./lesson-generate";
+import { defineSkill } from "./types";
+
+// lesson_repair (04 §4.9): the verifier's errors go back to the model once; the corrected lesson is
+// verified again from scratch. No student data in the input.
+
+export const lessonRepairInput = z.object({
+  lesson: z.unknown(),
+  errors: z.array(z.string()).min(1).max(40),
+  chunks: z
+    .array(z.object({ id: z.number(), page: z.number().nullable().optional(), content: z.string() }))
+    .default([]),
+});
+export type LessonRepairInput = z.infer<typeof lessonRepairInput>;
+
+export const lessonRepair = defineSkill({
+  name: "lesson_repair",
+  inputSchema: lessonRepairInput,
+  outputSchema: lessonGenerateOutput,
+  promptVersion: LESSON_REPAIR_PROMPT_VERSION,
+  library: true,
+  buildPrompt: (input) => ({
+    system: LESSON_REPAIR_SYSTEM,
+    user: [
+      `Check errors:\n${input.errors.map((e) => `- ${e.slice(0, 400)}`).join("\n")}`,
+      `Lesson that failed:\n${JSON.stringify(input.lesson)}`,
+      input.chunks.length
+        ? `Reference chunks (the only ids you may cite):\n${input.chunks
+            .map((c) => `<source id="${c.id}">\n${c.content}\n</source>`)
+            .join("\n\n")}`
+        : "No reference chunks: the lesson must not cite any source ids.",
+    ].join("\n\n"),
+  }),
+});

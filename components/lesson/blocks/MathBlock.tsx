@@ -8,11 +8,13 @@ import type { BlockOf } from "./types";
  */
 export function MathBlock({ block }: { block: BlockOf<"math"> }) {
   return (
-    <div className="my-2 flex justify-center overflow-x-auto py-2">
+    // Centred with mx-auto, not justify-center: a formula wider than the column then scrolls from its
+    // start instead of spilling past the left edge where it can't be reached.
+    <div className="my-2 max-w-full overflow-x-auto overflow-y-hidden py-2">
       {block.html ? (
-        <div dangerouslySetInnerHTML={{ __html: block.html }} />
+        <div className="mx-auto w-fit" dangerouslySetInnerHTML={{ __html: block.html }} />
       ) : (
-        <code className="text-sm text-quantity">{block.latex}</code>
+        <code className="block text-sm break-all text-quantity">{block.latex}</code>
       )}
     </div>
   );

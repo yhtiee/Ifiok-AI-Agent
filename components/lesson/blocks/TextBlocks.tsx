@@ -1,6 +1,7 @@
 "use client";
 
 import { RichText } from "../RichText";
+import { useCitation } from "../Citations";
 import type { BlockOf } from "./types";
 
 // Light, static blocks. Each is still its own lazy chunk entry in BlockRenderer.
@@ -42,11 +43,12 @@ export function CalloutBlock({ block }: { block: BlockOf<"callout"> }) {
 }
 
 export function SourceQuoteBlock({ block }: { block: BlockOf<"source_quote"> }) {
+  const own = useCitation(block.chunk_id);
   return (
     <blockquote className="border-l-4 border-change pl-4 text-ink">
       <p className="text-base leading-relaxed italic">&ldquo;{block.quote}&rdquo;</p>
       <footer className="mt-2 text-sm text-ink-2">
-        Approved course material{block.page ? `, page ${block.page}` : ""}
+        {own ?? `Approved course material${block.page ? `, page ${block.page}` : ""}`}
       </footer>
     </blockquote>
   );

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { SubmitButton } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { StepScreen } from "@/components/ui/StepScreen";
 import { acceptConsents, type StepState } from "../actions";
 

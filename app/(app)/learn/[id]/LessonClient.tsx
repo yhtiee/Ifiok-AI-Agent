@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { EmptyState } from "@/components/app/Page";
+import { ActionBar, EmptyState } from "@/components/app/Page";
 import { GenerationWaiting } from "@/components/lesson/GenerationWaiting";
-import { Player } from "@/components/lesson/Player";
-import { Button } from "@/components/ui/Button";
+import { Player, type LessonLink } from "@/components/lesson/Player";
+import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { useJob } from "@/lib/queries/jobs";
 import { useConceptLesson, useStartLesson, type LessonState } from "@/lib/queries/lessons";
@@ -14,10 +14,12 @@ type LessonClientProps = {
   conceptId: string;
   initialState: LessonState;
   courseId?: string;
+  next: LessonLink | null;
+  back: LessonLink;
 };
 
-export function LessonClient({ conceptId, initialState, courseId }: LessonClientProps) {
-  const { data: state } = useConceptLesson(conceptId, initialState);
+export function LessonClient({ conceptId, initialState, courseId, next, back }: LessonClientProps) {
+  const { data: state } = useConceptLesson(conceptId, initialState, courseId);
   const start = useStartLesson(conceptId);
   const { mutate } = start;
   const started = useRef(false);
@@ -32,12 +34,33 @@ export function LessonClient({ conceptId, initialState, courseId }: LessonClient
   }, [state.status, courseId, mutate]);
 
   // Realtime on the job (owner only) refreshes the moment it finishes; polling covers everyone else.
-  useJob(state.status === "generating" ? state.jobId : null, {
+  const watching =
+    state.status === "generating"
+      ? state.jobId
+      : state.status === "published" && state.notesBuilding
+        ? state.notesBuilding.jobId
+        : null;
+  useJob(watching, {
     onSettled: () => void queryClient.invalidateQueries({ queryKey: queryKeys.concepts.lesson(conceptId) }),
   });
 
   if (state.status === "published") {
-    return <Player lesson={state.lesson} courseId={courseId} />;
+    return (
+      <div className="grid gap-4">
+        {state.notesBuilding ? (
+          <p role="status" className="rounded-[var(--radius-input)] bg-quantity-soft px-4 py-3 text-base">
+            Ifiok is building this lesson from your notes. Start with this one; yours replaces it when it&apos;s ready.
+          </p>
+        ) : null}
+        <Player
+          key={state.lesson.id}
+          lesson={state.lesson}
+          citations={state.fromNotes?.citations}
+          next={next}
+          back={back}
+        />
+      </div>
+    );
   }
 
   if (start.isError) {
@@ -65,17 +88,14 @@ export function LessonClient({ conceptId, initialState, courseId }: LessonClient
 
   return (
     <GenerationWaiting quickExplainer={state.quickExplainer}>
-      <EmptyState
-        title="This lesson isn't ready"
-        body={state.message}
-        action={
-          state.canRetry ? (
-            <Button variant="primary" onClick={() => mutate(courseId)} disabled={start.isPending}>
-              Try again
-            </Button>
-          ) : undefined
-        }
-      />
+      <EmptyState title="This lesson isn't ready" body={state.message} />
+      {state.canRetry ? (
+        <ActionBar over="screen">
+          <Button onClick={() => mutate(courseId)} disabled={start.isPending} aria-busy={start.isPending}>
+            Try again
+          </Button>
+        </ActionBar>
+      ) : null}
     </GenerationWaiting>
   );
 }

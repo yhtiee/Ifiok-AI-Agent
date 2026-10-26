@@ -34,10 +34,10 @@ Everything Ifiok does belongs to one of four pillars. A feature that fits none o
 - Wants: understand fast, pass, not waste data or money.
 
 ### Secondary
-- **Student tutor** (Stage 3 · Earn, `12` §4 Q39): a student who has mastered a topic on Ifiok and teaches it to other students in paid sessions (F17). Wants income that fits around classes and recognition for being good at a subject.
+- **Student tutor** (Stage 3 · Earn, `12` §4 Q39): a student who knows a topic and teaches it to other students in paid sessions (F17; no mastery on Ifiok required, `12` §4 Q52). Wants income that fits around classes and recognition for being good at a subject.
 - **Student curator** (paid, Stage 3 · Earn): a strong student who checks and fixes AI lessons in subjects they know (F2-FR6), paid per accepted review (`06` §13). Lessons never wait for a curator.
 - **Lecturers are not served for now** (Q39): no lecturer accounts, uploads, class insight or licence payments. F12 stays in the spec for later.
-- **Student creator** (Stage 3 · Earn, Q41): a student who has mastered a topic and publishes explainers (written, voice or short video) that other students learn from, paid by usage (`06` §14).
+- **Student creator** (Stage 3 · Earn, Q41): a student who knows a topic and publishes explainers (written, voice or short video) that other students learn from, paid by usage (`06` §14).
 - **Course rep:** shares invite links and materials; a natural distribution channel; can lock a course outline.
 - **Admin (us):** moderates names and uploads, merges duplicate courses and concepts, pays contributors. We do not create or curate the course catalogue.
 
@@ -64,7 +64,7 @@ Stages run in order; tickets and exit checks are in `10-build-plan.md`. A featur
 - **Learn:** materials upload (PDF read on the device, chosen pages only), Path for a course or topic, lessons grounded in the student's own materials (private) or shared concept lessons, practice items, mastery, weak areas, Today (F2, F3 light, F5, F7 diagnosis)
 - **Prepare:** past-question extraction and patterns, a study plan to the exam date, worked solutions, timed practice papers (F8, F6 light)
 - **Practise:** the virtual experiment engine, labs from a manual or a requested lab topic, lab reports (F4)
-- **Teach and earn:** share materials to the library (checked and approved), explainers in text, voice or short video for mastered topics, usage points and Units earned recorded server-side, My earnings, tutor profiles (MVP-06). No cash moves until Stage 3 (Q42).
+- **Teach and earn:** share materials to the library (checked and approved), explainers in text, voice or short video for any topic, usage points and Units earned recorded server-side, My earnings, tutor profiles (MVP-06). No cash moves until Stage 3 (Q42).
 - Stretch: grounded "Ask about this" tutor (F1)
 
 ### Stage 2 · Launch (real students, free)

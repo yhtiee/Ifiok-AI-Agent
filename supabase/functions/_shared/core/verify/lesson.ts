@@ -5,7 +5,7 @@ import { LessonSpec, lessonSpecSchema } from "../dsl/schema.ts";
 import { compileExpressionToAst } from "../expr/compile.ts";
 import { checkStep } from "./steps.ts";
 import { checkPlotFunction } from "./plot.ts";
-import { checkQuote } from "./quote.ts";
+import { checkQuote, snapQuote } from "./quote.ts";
 import { renderKatex } from "./katex.ts";
 import { mathEvaluate } from "./tools.ts";
 
@@ -220,7 +220,10 @@ export function verifyLesson(
             if (!chunkContent) {
               errors.push(`${blockPath}: cited chunk_id ${block.chunk_id} not found in sources`);
             } else if (!checkQuote(block.quote, chunkContent)) {
-              errors.push(`${blockPath}: quote "${block.quote}" is not a substring of chunk ${block.chunk_id}`);
+              // Same words with different punctuation: use the source's exact wording instead.
+              const exact = snapQuote(block.quote, chunkContent);
+              if (exact) block.quote = exact;
+              else errors.push(`${blockPath}: quote "${block.quote}" is not a substring of chunk ${block.chunk_id}`);
             }
           }
           break;

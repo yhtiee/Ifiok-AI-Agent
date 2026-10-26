@@ -143,6 +143,38 @@ export function useDecideRevision(courseId: string) {
   });
 }
 
+// ---- Path (MVP-02) ----
+
+const pathTopic = z.object({
+  topicId: z.string(),
+  title: z.string(),
+  week: z.nullable(z.number()),
+  conceptId: z.nullable(z.string()),
+  lesson: z.enum(["ready", "building", "not_started"]),
+  fromNotes: z.boolean(),
+  covered: z.boolean(),
+  tried: z.boolean(),
+  mastery: z.enum(["not_started", "familiar", "proficient", "mastered"]),
+  practice: z.number(),
+});
+const pathResponse = z.object({ topics: z.array(pathTopic), nextUpTopicId: z.nullable(z.string()) });
+export type CoursePathData = z.infer<typeof pathResponse>;
+
+export const coursePathQuery = (courseId: string) =>
+  queryOptions({
+    queryKey: queryKeys.courses.path(courseId),
+    queryFn: ({ signal }) => apiFetch(`/api/courses/${courseId}/path`, { schema: pathResponse, signal }),
+  });
+
+/** Polls while any lesson on the Path is being built, or while the caller expects new ones (`watch`). */
+export function useCoursePath(courseId: string, initialData: CoursePathData, watch = false) {
+  return useQuery({
+    ...coursePathQuery(courseId),
+    initialData,
+    refetchInterval: (q) => (watch || q.state.data?.topics.some((t) => t.lesson === "building") ? 5_000 : false),
+  });
+}
+
 // ---- Free-standing topics ----
 
 const learnResponse = z.discriminatedUnion("status", [

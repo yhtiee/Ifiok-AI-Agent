@@ -32,6 +32,8 @@ export const lessonGenerateInput = z.object({
     )
     .default([]),
   subject_profile: z.enum(["stem", "social_science", "social", "humanities"]).default("stem"),
+  /** "own": the chunks are the student's own materials (a private lesson, MVP-02); "crowd": approved shared material. */
+  sources: z.enum(["crowd", "own"]).default("crowd"),
   outline: z
     .object({
       objective: z.string(),
@@ -99,9 +101,11 @@ export const lessonGenerate = defineSkill({
 
     if (input.chunks.length > 0) {
       parts.push(
-        `\nApproved Reference Chunks (cite source_chunk_id when quoting):\n${input.chunks
-          .map((c) => `<source id="${c.id}">\n${c.content}\n</source>`)
-          .join("\n\n")}`,
+        `\n${
+          input.sources === "own"
+            ? "The student's own course materials (their notes, textbook pages or lab manual). Build the lesson from them: follow their definitions, notation, examples and order, fill gaps with standard university teaching, and cite the ids you draw on in source_refs and source_quote blocks"
+            : "Approved Reference Chunks (cite source_chunk_id when quoting)"
+        }:\n${input.chunks.map((c) => `<source id="${c.id}">\n${c.content}\n</source>`).join("\n\n")}`,
       );
     } else {
       parts.push(

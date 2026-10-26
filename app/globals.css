@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* shadcn/ui's dark: utilities follow the manual toggle only; the media-query theme already works
+   through the token aliases below (specifications/design/app-overhaul.md §6). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Design tokens: specifications/07-brand-ui-ux.md §3.3. Never hard-code colours elsewhere. */
 :root {
   /* Page (light) */
@@ -81,6 +85,28 @@
   --fs-h1: clamp(2rem, 1.35rem + 2.9vw, 3.5rem);
   --fs-h2: clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem);
   --stage-radius: 24px;
+
+  /* shadcn/ui variables, as aliases of the tokens above (app-overhaul §6). They switch with the
+     tokens in dark mode, so there is no separate .dark block. */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--change);
+  --primary-foreground: var(--on-change);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--paper); /* hover and selected rows */
+  --accent-foreground: var(--ink);
+  --destructive: var(--bad);
+  --border: var(--line);
+  --input: var(--line-strong); /* inputs need a 3:1 edge */
+  --ring: var(--quantity);
+  --radius: 12px;
 }
 
 @media (min-width: 1024px) {
@@ -206,6 +232,26 @@
   --color-stage-teach: var(--stage-teach);
   --color-stage-earn: var(--stage-earn);
 
+  /* shadcn/ui colours (aliases of the tokens) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
   --font-display: var(--font-bricolage);
   --font-sans: var(--font-atkinson);
   --font-mono: var(--font-jetbrains);
@@ -226,6 +272,27 @@
   --radius-bench: 8px;
   --radius-card: 12px;
   --radius-stage: var(--stage-radius); /* landing illustration stages, 24 phone / 32 desktop (D4) */
+  /* shadcn/ui radii, set explicitly instead of calc() steps: 6 inputs, 12 cards and overlays */
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 12px;
+
+  /* Overlay motion answers the tap that opened it: a 120 ms fade, a sheet rises (reduced motion stops both). */
+  --animate-ui-fade: ui-fade 120ms ease-out;
+  --animate-ui-rise: ui-rise 180ms ease-out;
+}
+
+@keyframes ui-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-rise {
+  from {
+    transform: translateY(100%);
+  }
 }
 
 html {

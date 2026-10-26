@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Button, ButtonLink, SubmitButton } from "@/components/ui/Button";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { TextField } from "@/components/ui/Field";
 import { PasswordField } from "@/components/ui/PasswordField";
 import { StepScreen } from "@/components/ui/StepScreen";
@@ -67,9 +69,9 @@ export function ResetForm({ next }: { next: string }) {
             error={sendState.status === "error" ? sendState.message : null}
           />
         </form>
-        <ButtonLink href={signInHref} variant="quiet" full={false} className="justify-self-start">
-          Back to sign in
-        </ButtonLink>
+        <Button asChild variant="ghost" className="justify-self-start">
+          <Link href={signInHref}>Back to sign in</Link>
+        </Button>
       </div>
     </StepScreen>
   );
@@ -148,12 +150,12 @@ function NewPasswordStep({ email, sentAt, next, sendAction, onChangeEmail }: New
               Send a new code in {secondsLeft} s
             </p>
           ) : (
-            <SubmitButton variant="quiet" full={false} pendingLabel="Sending…">
+            <SubmitButton variant="ghost" full={false} pendingLabel="Sending…">
               Send a new code
             </SubmitButton>
           )}
         </form>
-        <Button variant="quiet" onClick={onChangeEmail}>
+        <Button variant="ghost" onClick={onChangeEmail}>
           Use a different email
         </Button>
       </div>

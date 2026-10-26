@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Button, SubmitButton } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { TextField } from "@/components/ui/Field";
 import { PasswordField } from "@/components/ui/PasswordField";
 import { StepScreen } from "@/components/ui/StepScreen";
@@ -187,13 +188,13 @@ function PasswordForm({
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p className="text-sm text-ink-2">{signingUp ? "Already have an account?" : "New to Ifiok?"}</p>
-          <Button variant="quiet" full={false} onClick={onSwitch}>
+          <Button variant="ghost" full={false} onClick={onSwitch}>
             {signingUp ? "Sign in" : "Create an account"}
           </Button>
         </div>
 
         {onUseCode ? (
-          <Button variant="quiet" full={false} onClick={onUseCode}>
+          <Button variant="ghost" full={false} onClick={onUseCode}>
             Email me a sign-in code instead
           </Button>
         ) : null}
@@ -207,7 +208,7 @@ function PasswordForm({
             </div>
             <form action={signInWithGoogle}>
               <input type="hidden" name="next" value={next} />
-              <SubmitButton variant="secondary" pendingLabel="Opening Google…">
+              <SubmitButton variant="outline" pendingLabel="Opening Google…">
                 <GoogleMark />
                 Continue with Google
               </SubmitButton>
@@ -276,7 +277,7 @@ function CodeFlow({ next, initialEmail, onUsePassword }: CodeFlowProps) {
             error={sendState.status === "error" ? sendState.message : null}
           />
         </form>
-        <Button variant="quiet" full={false} onClick={onUsePassword}>
+        <Button variant="ghost" full={false} onClick={onUsePassword}>
           Use my password instead
         </Button>
       </div>
@@ -348,12 +349,12 @@ function CodeStep({ email, sentAt, next, sendAction, onChangeEmail }: CodeStepPr
               Send a new code in {secondsLeft} s
             </p>
           ) : (
-            <SubmitButton variant="quiet" full={false} pendingLabel="Sending…">
+            <SubmitButton variant="ghost" full={false} pendingLabel="Sending…">
               Send a new code
             </SubmitButton>
           )}
         </form>
-        <Button variant="quiet" onClick={onChangeEmail}>
+        <Button variant="ghost" onClick={onChangeEmail}>
           Use a different email
         </Button>
       </div>

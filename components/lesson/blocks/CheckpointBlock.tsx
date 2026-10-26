@@ -2,11 +2,12 @@
 
 import { useId, useState, type ReactNode } from "react";
 import { numericMatches } from "@ifiok/core/dsl/numeric";
+import { useEvidence } from "../Evidence";
 import { RichText } from "../RichText";
 import type { BlockOf, CheckpointItem } from "./types";
 
-// Checkpoint feedback on the device. The server re-grades every attempt through /api/sync
-// (guardrail 6, P1-04); this is only the instant feedback.
+// Checkpoint feedback on the device. Each checkpoint's first answer also goes to /api/sync, which
+// re-marks and records it (guardrail 6, MVP-03); this is only the instant feedback.
 
 const inputClass =
   "min-h-11 flex-1 rounded-lg border border-line bg-paper px-3 text-base text-ink placeholder:text-ink-3 focus:border-change focus:outline-hidden";
@@ -31,11 +32,11 @@ export function CheckpointBlock({ block }: { block: BlockOf<"checkpoint"> }) {
   const item = block.item;
   switch (item.type) {
     case "mcq":
-      return <McqCheckpoint item={item} />;
+      return <McqCheckpoint item={item} blockId={block.id} />;
     case "numeric":
-      return <NumericCheckpoint item={item} />;
+      return <NumericCheckpoint item={item} blockId={block.id} />;
     case "expression":
-      return <ExpressionCheckpoint item={item} />;
+      return <ExpressionCheckpoint item={item} blockId={block.id} />;
     case "order":
       return <OrderCheckpoint item={item} seed={block.id} />;
     case "match":
@@ -55,7 +56,8 @@ export function CheckpointBlock({ block }: { block: BlockOf<"checkpoint"> }) {
   }
 }
 
-function McqCheckpoint({ item }: { item: CheckpointItem<"mcq"> }) {
+function McqCheckpoint({ item, blockId }: { item: CheckpointItem<"mcq">; blockId: string }) {
+  const evidence = useEvidence();
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const chosen = item.options.find((o) => o.id === selected);
@@ -99,7 +101,15 @@ function McqCheckpoint({ item }: { item: CheckpointItem<"mcq"> }) {
         })}
       </div>
       {!submitted ? (
-        <button type="button" disabled={!selected} onClick={() => setSubmitted(true)} className={checkClass}>
+        <button
+          type="button"
+          disabled={!selected}
+          onClick={() => {
+            setSubmitted(true);
+            if (selected) evidence.answer(blockId, { option_id: selected });
+          }}
+          className={checkClass}
+        >
           Check answer
         </button>
       ) : chosen ? (
@@ -111,7 +121,8 @@ function McqCheckpoint({ item }: { item: CheckpointItem<"mcq"> }) {
   );
 }
 
-function NumericCheckpoint({ item }: { item: CheckpointItem<"numeric"> }) {
+function NumericCheckpoint({ item, blockId }: { item: CheckpointItem<"numeric">; blockId: string }) {
+  const evidence = useEvidence();
   const id = useId();
   const [value, setValue] = useState("");
   const [result, setResult] = useState<"idle" | "correct" | "wrong" | "invalid">("idle");
@@ -120,6 +131,7 @@ function NumericCheckpoint({ item }: { item: CheckpointItem<"numeric"> }) {
     const n = Number(value.trim().replace(/,/g, ""));
     if (value.trim() === "" || !Number.isFinite(n)) return setResult("invalid");
     setResult(numericMatches(n, item.stated, item.tolerance) ? "correct" : "wrong");
+    evidence.answer(blockId, { value: value.trim() });
   };
 
   return (
@@ -159,7 +171,8 @@ function NumericCheckpoint({ item }: { item: CheckpointItem<"numeric"> }) {
   );
 }
 
-function ExpressionCheckpoint({ item }: { item: CheckpointItem<"expression"> }) {
+function ExpressionCheckpoint({ item, blockId }: { item: CheckpointItem<"expression">; blockId: string }) {
+  const evidence = useEvidence();
   const id = useId();
   const [value, setValue] = useState("");
   const [result, setResult] = useState<"idle" | "checking" | "correct" | "wrong" | "unknown">("idle");
@@ -172,6 +185,7 @@ function ExpressionCheckpoint({ item }: { item: CheckpointItem<"expression"> }) 
       const { equivalent } = await import("@ifiok/core/verify/equivalent");
       const r = equivalent(value, item.answer_expr, item.vars, item.domain);
       setResult(r === "unknown" ? "unknown" : r ? "correct" : "wrong");
+      if (r !== "unknown") evidence.answer(blockId, { expr: value });
     } catch {
       setResult("unknown");
     }
@@ -236,6 +250,7 @@ function shuffled<T>(items: readonly T[], seed: string): T[] {
 
 /** Put the steps in order: move each step up or down (buttons, not drag, so it works everywhere). */
 function OrderCheckpoint({ item, seed }: { item: CheckpointItem<"order">; seed: string }) {
+  const evidence = useEvidence();
   const [order, setOrder] = useState(() => shuffled(item.steps, seed));
   const [submitted, setSubmitted] = useState(false);
   const correct = order.every((s, i) => s === item.steps[i]);
@@ -299,7 +314,14 @@ function OrderCheckpoint({ item, seed }: { item: CheckpointItem<"order">; seed: 
         })}
       </ol>
       {!submitted ? (
-        <button type="button" onClick={() => setSubmitted(true)} className={checkClass}>
+        <button
+          type="button"
+          onClick={() => {
+            setSubmitted(true);
+            evidence.answer(seed, { order });
+          }}
+          className={checkClass}
+        >
           Check order
         </button>
       ) : (
@@ -324,6 +346,7 @@ function OrderCheckpoint({ item, seed }: { item: CheckpointItem<"order">; seed: 
 
 /** Match each item on the left to one on the right. */
 function MatchCheckpoint({ item, seed }: { item: CheckpointItem<"match">; seed: string }) {
+  const evidence = useEvidence();
   const id = useId();
   const rights = shuffled(
     item.pairs.map(([, r]) => r),
@@ -376,7 +399,15 @@ function MatchCheckpoint({ item, seed }: { item: CheckpointItem<"match">; seed: 
         })}
       </ul>
       {!submitted ? (
-        <button type="button" disabled={!complete} onClick={() => setSubmitted(true)} className={checkClass}>
+        <button
+          type="button"
+          disabled={!complete}
+          onClick={() => {
+            setSubmitted(true);
+            evidence.answer(seed, { pairs: item.pairs.map(([left], i) => [left, picks[i] ?? ""] as [string, string]) });
+          }}
+          className={checkClass}
+        >
           Check matches
         </button>
       ) : (

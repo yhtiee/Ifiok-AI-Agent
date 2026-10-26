@@ -1,0 +1,50 @@
+import { z } from "zod";
+import { LAB_EXTRACT_PROMPT_VERSION, LAB_EXTRACT_SYSTEM } from "../prompts/labs";
+import { defineSkill } from "./types";
+
+// lab_extract (04 §4.8, 10 MVP-05): a lab manual's text or a requested practical → experiment
+// configurations for the hand-built engine, or a decline. The output is unchecked data: every
+// configuration goes through the experiment verifier (labs/verify.ts) before it is saved.
+
+export const labExtractInput = z.object({
+  /** The manual's text (the pages the student picked), or null for a requested topic. */
+  manual: z.string().max(40_000).nullable(),
+  /** The practical the student asked for, when there's no manual. */
+  topic: z.string().max(200).nullable(),
+  subject: z.string().max(80).nullable(),
+  level: z.string().max(40).nullable(),
+});
+export type LabExtractInput = z.infer<typeof labExtractInput>;
+
+export const labExtractOutput = z.object({
+  // Loose on purpose: one malformed configuration must not sink the others; the verifier judges each.
+  experiments: z.array(z.record(z.string(), z.unknown())).max(3).catch([]),
+  declined: z
+    .array(z.object({ title: z.string().trim().min(1).max(200), reason: z.string().trim().min(1).max(400) }))
+    .max(10)
+    .catch([]),
+});
+export type LabExtractOutput = z.infer<typeof labExtractOutput>;
+
+export const labExtract = defineSkill({
+  name: "lab_extract",
+  inputSchema: labExtractInput,
+  outputSchema: labExtractOutput,
+  promptVersion: LAB_EXTRACT_PROMPT_VERSION,
+  quotaFeature: "lab_extract",
+  quotaMessage: (limit) =>
+    `You've built ${limit} labs today. Labs you already have, and labs other students built, are still free; more tomorrow.`,
+  buildPrompt: (input) => ({
+    system: LAB_EXTRACT_SYSTEM,
+    user: [
+      input.subject || input.level
+        ? `Course subject: ${input.subject ?? "unknown"} · level: ${input.level ?? "unknown"}`
+        : "",
+      input.manual
+        ? `The lab manual's text:\n<source id="manual">\n${input.manual}\n</source>`
+        : `The practical the student asked for:\n<request>${input.topic ?? ""}</request>`,
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+  }),
+});

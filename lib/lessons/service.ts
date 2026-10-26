@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/types";
 import { citedChunkIds, TOPIC_MIN_SCREENS } from "./pipeline";
+import { activePrivateJob, citationLabels, findPrivateLesson, startPrivateLesson } from "./private";
 import type { ConceptRow, GetLessonResult, LessonFlagInput, LessonRow, LessonStatus, LessonTrust } from "./types";
 
 // Shared lessons in Next: where a concept's lesson stands, starting generation (the worker Edge
@@ -70,10 +71,34 @@ async function loadConcept(admin: Admin, conceptId: string) {
 }
 
 /**
- * Where a concept's lesson stands. Read-only: never starts generation or charges quota, so it is
- * safe on GET and in server components (F2-FR4).
+ * Where the lesson a student should see stands (F2-FR4, MVP-02): their own private lesson from
+ * their materials when there is one, otherwise the shared lesson; while a private lesson is being
+ * built, the shared lesson (if any) is shown meanwhile. Read-only: never starts generation or
+ * charges quota, so it is safe on GET and in server components.
  */
-export async function getLessonState(conceptId: string): Promise<GetLessonResult> {
+export async function getLessonState(
+  conceptId: string,
+  ctx?: { viewer: Viewer; courseId?: string | null },
+): Promise<GetLessonResult> {
+  if (!ctx) return getSharedLessonState(conceptId);
+  const courseId = ctx.courseId ?? null;
+  const own = await findPrivateLesson(ctx.viewer, conceptId, courseId);
+  if (own) return { status: "published", lesson: own, fromNotes: { citations: await citationLabels(own.source_refs) } };
+
+  const [shared, building] = await Promise.all([
+    getSharedLessonState(conceptId),
+    activePrivateJob(ctx.viewer, conceptId, courseId),
+  ]);
+  if (!building) return shared;
+  if (shared.status === "published") return { ...shared, notesBuilding: { jobId: building } };
+  if ("concept" in shared) {
+    return { status: "generating", jobId: building, concept: shared.concept, quickExplainer: shared.quickExplainer };
+  }
+  return shared;
+}
+
+/** Where a concept's shared lesson stands. */
+async function getSharedLessonState(conceptId: string): Promise<GetLessonResult> {
   const admin = createAdminClient();
   const concept = await loadConcept(admin, conceptId);
   const summary = { id: concept.id, title: concept.title, subject: concept.subject };
@@ -98,8 +123,9 @@ export async function getLessonState(conceptId: string): Promise<GetLessonResult
       : { status: "generating", jobId: active.id, concept: summary, quickExplainer };
   }
 
-  // A sensitive lesson waiting for its curator: never regenerate it (F2-FR5).
-  const [{ data: subject }, { data: latestReview }] = await Promise.all([
+  // A sensitive lesson waiting for its curator: never regenerate it (F2-FR5). The gate is off until
+  // the Grow stage (app_config.curation, 12 §4 Q51), so this only applies when it is switched on.
+  const [{ data: subject }, { data: latestReview }, curation] = await Promise.all([
     admin.from("subjects").select("sensitive").eq("code", concept.subject).maybeSingle(),
     admin
       .from("lessons")
@@ -110,8 +136,9 @@ export async function getLessonState(conceptId: string): Promise<GetLessonResult
       .eq("status", "review")
       .limit(1)
       .maybeSingle(),
+    getConfig("curation").catch(() => ({ sensitive_lessons_need_curator: false })),
   ]);
-  if (subject?.sensitive && latestReview) {
+  if (curation.sensitive_lessons_need_curator && subject?.sensitive && latestReview) {
     return { status: "review", concept: summary, quickExplainer, message: MSG.curator };
   }
 
@@ -153,7 +180,18 @@ export async function startLessonForConcept(
   conceptId: string,
   courseId?: string,
 ): Promise<GetLessonResult> {
-  const state = await getLessonState(conceptId);
+  const state = await getLessonState(conceptId, { viewer, courseId });
+  if (state.status === "published" && (state.fromNotes || state.notesBuilding)) return state;
+  if (state.status === "generating") return state;
+
+  // MVP-02: when the student's materials cover this topic, build their own lesson from them.
+  const privateJob = await startPrivateLesson(viewer, conceptId, courseId ?? null);
+  if (privateJob) {
+    if (state.status === "published") return { ...state, notesBuilding: { jobId: privateJob } };
+    if ("concept" in state) {
+      return { status: "generating", jobId: privateJob, concept: state.concept, quickExplainer: state.quickExplainer };
+    }
+  }
   if (state.status !== "none" && !(state.status === "failed" && state.canRetry)) return state;
 
   const admin = createAdminClient();

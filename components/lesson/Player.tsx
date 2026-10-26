@@ -1,195 +1,195 @@
 "use client";
 
-import { useState } from "react";
-import { EmptyState, Panel } from "@/components/app/Page";
-import { Button, ButtonLink } from "@/components/ui/Button";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { lessonLabel } from "@/lib/lessons/label";
 import type { LessonRow } from "@/lib/lessons/types";
 import { BlockRenderer } from "./BlockRenderer";
+import { CitationLine, CitationProvider } from "./Citations";
+import { EvidenceProvider, useEvidence } from "./Evidence";
 import { MathHtmlProvider } from "./RichText";
-import { FlagModal } from "./FlagModal";
+import type { Block } from "@ifiok/core/dsl/schema";
+
+// The lesson player (07 §5.3, app-overhaul §5.6): a focused screen. Progress and the trust label
+// on top, the screen's blocks, and a bar in the thumb zone (Previous, Continue). The key takeaways
+// are shown on the finish screen only, after the student has worked through the lesson. Copy
+// never claims a mastery change: nothing records learning until /api/sync (MVP-03).
+
+export type LessonLink = { href: string; label: string };
 
 type PlayerProps = {
   lesson: LessonRow;
-  courseId?: string;
-  onFinish?: () => void;
+  /** A private lesson: "From your notes, p. 12" per cited chunk id (MVP-02). */
+  citations?: Record<string, string>;
+  /** The finish screen's primary action: the next topic in the outline, when there is one. */
+  next?: LessonLink | null;
+  /** Otherwise back to the course (or Courses). */
+  back: LessonLink;
 };
 
-export function Player({ lesson, courseId, onFinish }: PlayerProps) {
+// The flag dialog loads when a student flags a block, not with the lesson.
+const FlagModal = dynamic(() => import("./FlagModal").then((m) => m.FlagModal), { ssr: false });
+
+const NO_CITATIONS: Record<string, string> = {};
+
+const bar =
+  "fixed inset-x-0 bottom-0 z-10 flex gap-3 border-t border-line bg-surface px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 lg:sticky lg:bottom-0 lg:mt-2 lg:bg-paper lg:px-0 lg:pb-4";
+
+export function Player(props: PlayerProps) {
+  return (
+    <EvidenceProvider lessonId={props.lesson.id}>
+      <PlayerBody {...props} />
+    </EvidenceProvider>
+  );
+}
+
+function PlayerBody({ lesson, citations = NO_CITATIONS, next, back }: PlayerProps) {
+  const evidence = useEvidence();
   const [screenIndex, setScreenIndex] = useState(0);
   const [flaggingBlockId, setFlaggingBlockId] = useState<string | null>(null);
-  const [flagSuccessToast, setFlagSuccessToast] = useState(false);
 
   const screens = lesson.spec.screens;
   const currentScreen = screens[screenIndex];
   const isLastScreen = screenIndex === screens.length - 1;
   const isCompleted = screenIndex >= screens.length;
 
-  const handleNext = () => {
-    if (isLastScreen) {
-      setScreenIndex(screens.length);
-      onFinish?.();
-    } else {
-      setScreenIndex((prev) => prev + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  // Moving forward finishes the screen being left (evidence for /api/sync, MVP-03).
+  const go = (index: number) => {
+    const leaving = screens[screenIndex];
+    if (index > screenIndex && leaving) evidence.screenDone(leaving.id);
+    setScreenIndex(index);
+    window.scrollTo({ top: 0 });
   };
 
-  const handlePrev = () => {
-    if (screenIndex > 0) {
-      setScreenIndex((prev) => prev - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
+  const flagModal = flaggingBlockId ? (
+    <FlagModal
+      isOpen={Boolean(flaggingBlockId)}
+      lessonId={lesson.id}
+      blockId={flaggingBlockId}
+      onClose={() => setFlaggingBlockId(null)}
+      onSuccess={() => toast("Flag sent. A curator will check this block.")}
+    />
+  ) : null;
 
-  const hasCheckpoint = currentScreen?.blocks.some((b) => b.type === "checkpoint");
-
-  return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:gap-6">
-      {/* Toast alert on flag */}
-      {flagSuccessToast && (
-        <div
-          role="status"
-          className="fixed right-6 bottom-6 z-50 rounded-[var(--radius-input)] border border-built/30 bg-built-soft px-4 py-3 text-sm font-semibold text-ink"
-        >
-          Flag sent. A curator will check this block.
-        </div>
-      )}
-
-      {/* Flag Modal */}
-      <FlagModal
-        isOpen={Boolean(flaggingBlockId)}
-        lessonId={lesson.id}
-        blockId={flaggingBlockId}
-        onClose={() => setFlaggingBlockId(null)}
-        onSuccess={() => {
-          setFlagSuccessToast(true);
-          setTimeout(() => setFlagSuccessToast(false), 4000);
-        }}
-      />
-
-      <div className="grid content-start gap-4 lg:gap-6">
-        {isCompleted ? (
-          <Panel title="Lesson completed">
-            <EmptyState
-              title={`You've completed ${lesson.spec.title}`}
-              body="Review the key takeaways on the right, replay any screen, or head back to your course."
-              action={
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => setScreenIndex(0)} variant="secondary">
-                    Review lesson again
-                  </Button>
-                  <ButtonLink href={courseId ? `/courses/${courseId}` : "/courses"}>
-                    {courseId ? "Back to course" : "Back to courses"}
-                  </ButtonLink>
-                </div>
-              }
-            />
-          </Panel>
-        ) : (
-          <Panel
-            title={`Screen ${screenIndex + 1} of ${screens.length}`}
-            action={
-              <div className="flex flex-wrap items-center gap-2">
-                {hasCheckpoint ? (
-                  <span className="rounded-full bg-change-soft px-2.5 py-0.5 text-xs font-semibold text-change">
-                    Checkpoint
-                  </span>
-                ) : null}
-                <span
-                  className={
-                    lesson.trust === "trusted"
-                      ? "rounded-full bg-built-soft px-2.5 py-0.5 text-xs font-semibold text-built"
-                      : "rounded-full bg-paper px-2.5 py-0.5 text-xs text-ink-2"
-                  }
-                >
-                  {lessonLabel(lesson)}
-                </span>
-              </div>
-            }
-          >
-            <MathHtmlProvider value={lesson.spec.math_html}>
-              <div className="space-y-4">
-                {currentScreen?.blocks
-                  .filter((b) => !lesson.hidden_blocks.includes(b.id))
-                  .map((block) => (
-                    <BlockRenderer key={block.id} block={block} onFlag={(id) => setFlaggingBlockId(id)} />
-                  ))}
-              </div>
-            </MathHtmlProvider>
-
-            <div className="mt-6 flex items-center justify-between gap-4 border-t border-line pt-4">
-              <Button type="button" variant="secondary" onClick={handlePrev} disabled={screenIndex === 0}>
-                ← Previous
-              </Button>
-
-              <div className="hidden gap-1.5 sm:flex">
-                {screens.map((s, idx) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setScreenIndex(idx)}
-                    className={`h-2 rounded-full transition-all ${
-                      idx === screenIndex ? "w-6 bg-change" : idx < screenIndex ? "w-2 bg-built" : "w-2 bg-line"
-                    }`}
-                    aria-label={`Go to screen ${idx + 1}`}
-                  />
-                ))}
-              </div>
-
-              <Button type="button" variant="primary" onClick={handleNext}>
-                {isLastScreen ? "Finish lesson ✓" : "Next screen →"}
-              </Button>
-            </div>
-          </Panel>
-        )}
-      </div>
-
-      <div className="grid content-start gap-4 lg:gap-6">
-        <Panel
-          title="Screens"
-          action={<span className="text-sm text-ink-2 tabular-nums">~{lesson.spec.est_minutes} min</span>}
-        >
-          <ol className="grid divide-y divide-line">
-            {screens.map((s, idx) => {
-              const active = idx === screenIndex && !isCompleted;
-              const done = idx < screenIndex || isCompleted;
-              const isCheck = s.blocks.some((b) => b.type === "checkpoint");
-              return (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    onClick={() => setScreenIndex(idx)}
-                    className={`flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left text-sm hover:underline ${
-                      active ? "font-semibold text-change" : done ? "text-ink-2" : "text-ink"
-                    }`}
-                  >
-                    <span className="truncate">
-                      {idx + 1}. {isCheck ? "Checkpoint" : `Screen ${idx + 1}`}
-                    </span>
-                    <span className="text-xs text-ink-3 tabular-nums">{done ? "✓" : active ? "Now" : ""}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </Panel>
-
+  if (isCompleted) {
+    const primary = next ?? back;
+    return (
+      <section aria-labelledby="lesson-done" className="grid grid-cols-1 gap-5">
+        <h2 id="lesson-done" className="font-display text-xl font-semibold">
+          {lesson.spec.title}: done
+        </h2>
         {lesson.spec.summary.length ? (
-          <Panel title="Key takeaways">
-            <ul className="grid gap-2 text-sm text-ink-2">
+          <div className="grid gap-2">
+            <h3 className="text-base font-semibold">Key takeaways</h3>
+            <ul className="grid max-w-[66ch] list-disc gap-2 pl-5 text-base marker:text-built">
               {lesson.spec.summary.map((point, idx) => (
-                <li key={idx} className="flex gap-2">
-                  <span className="text-built" aria-hidden="true">
-                    •
-                  </span>
-                  <span>{point}</span>
-                </li>
+                <li key={idx}>{point}</li>
               ))}
             </ul>
-          </Panel>
+          </div>
         ) : null}
+        <div data-action-bar="" className={bar}>
+          <Button variant="outline" onClick={() => go(0)} className="flex-1 lg:order-2 lg:flex-none">
+            Go through it again
+          </Button>
+          <Button asChild className="flex-1 lg:flex-none">
+            <Link href={primary.href}>{primary.label}</Link>
+          </Button>
+        </div>
+        {flagModal}
+      </section>
+    );
+  }
+
+  const step = screenIndex + 1;
+  return (
+    <div className="grid grid-cols-1 gap-5">
+      {flagModal}
+      <div className="grid gap-2">
+        <Progress value={(step / screens.length) * 100} aria-label={`Screen ${step} of ${screens.length}`} />
+        <p className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm text-ink-2">
+          <span className="tabular-nums">
+            {step} of {screens.length} · ~{lesson.spec.est_minutes} min
+          </span>
+          <span>{lessonLabel(lesson)}</span>
+        </p>
       </div>
+
+      <MathHtmlProvider value={lesson.spec.math_html}>
+        <CitationProvider value={citations}>
+          <ScreenBlocks
+            blocks={(currentScreen?.blocks ?? []).filter((b) => !lesson.hidden_blocks.includes(b.id))}
+            render={(block) => (
+              <>
+                <BlockRenderer block={block} onFlag={(id) => setFlaggingBlockId(id)} />
+                {block.type === "source_quote" ? null : <CitationLine refs={block.source_refs} />}
+              </>
+            )}
+          />
+        </CitationProvider>
+      </MathHtmlProvider>
+
+      <div data-action-bar="" className={bar}>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-12 w-12"
+          onClick={() => go(screenIndex - 1)}
+          disabled={screenIndex === 0}
+          aria-label="Previous screen"
+        >
+          <ArrowLeftIcon size={22} aria-hidden="true" />
+        </Button>
+        <Button onClick={() => go(screenIndex + 1)} className="flex-1 lg:max-w-xs">
+          {isLastScreen ? "Finish" : "Continue"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Blocks the student looks at or works with; they take the wide right column on large screens. */
+const VISUAL_BLOCKS: ReadonlySet<Block["type"]> = new Set([
+  "plot",
+  "diagram",
+  "stepper",
+  "table",
+  "compare",
+  "flashcards",
+  "sim",
+]);
+
+/**
+ * One lesson screen. Phones: the blocks in order, one column. Large screens: when the screen has a
+ * visual (graph, diagram, worked steps, table) and text, the text and questions sit on the left at a
+ * readable line length and the visual on the right, staying in view, so the width is used and the
+ * student scrolls less. Each block keeps its place in reading order (CSS order) on phones.
+ */
+function ScreenBlocks({ blocks, render }: { blocks: Block[]; render: (block: Block) => ReactNode }) {
+  const visuals = blocks.filter((b) => VISUAL_BLOCKS.has(b.type));
+  const text = blocks.filter((b) => !VISUAL_BLOCKS.has(b.type));
+  const item = (block: Block) => (
+    <div key={block.id} style={{ order: blocks.indexOf(block) }} className="grid min-w-0 grid-cols-1 gap-4">
+      {render(block)}
+    </div>
+  );
+
+  if (visuals.length === 0 || text.length === 0) {
+    return (
+      <div className={`grid grid-cols-1 gap-4 ${visuals.length ? "max-w-4xl" : "max-w-[70ch]"}`}>
+        {blocks.map(item)}
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:items-start lg:gap-8">
+      <div className="contents lg:grid lg:max-w-[70ch] lg:grid-cols-1 lg:gap-4">{text.map(item)}</div>
+      <div className="contents lg:sticky lg:top-24 lg:grid lg:grid-cols-1 lg:gap-4">{visuals.map(item)}</div>
     </div>
   );
 }

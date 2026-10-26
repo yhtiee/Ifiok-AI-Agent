@@ -424,9 +424,11 @@ export function landingCopy(f: FeatureFlags, now: Date = new Date()) {
   ];
 
   return {
-    heroLead: f.upload
-      ? "Ifiok is the AI learning agent for Nigerian university students. Add your course outline and notes, or just type a topic, and get a Path of lessons you can move, built from your own material."
-      : "Ifiok is the AI learning agent for Nigerian university students. Find or create your course, add the outline, and open a lesson for any topic: drag the graph, answer the question, see why. Exam prep, virtual labs and ways to earn from what you know are being built now.",
+    // The hero promises a Path from your material, so it needs uploads, the Path and private lessons.
+    heroLead:
+      f.upload && f.path && f.privateLessons
+        ? "Ifiok is the AI learning agent for Nigerian university students. Add your course outline and notes, or just type a topic, and get a Path of lessons you can move, built from your own material."
+        : "Ifiok is the AI learning agent for Nigerian university students. Find or create your course, add the outline, and open a lesson for any topic: drag the graph, answer the question, see why. Exam prep, virtual labs and ways to earn from what you know are being built now.",
     journey,
     learnItems,
     prepare: {
@@ -450,7 +452,11 @@ export function landingCopy(f: FeatureFlags, now: Date = new Date()) {
     moneyLines,
     trust: {
       files: f.upload
-        ? "PDFs are read on your phone and only the pages you choose are sent, with names and contact details removed. Lessons from your notes are visible to you alone. Your textbook is never uploaded."
+        ? `PDFs are read on your phone and only the pages you choose are sent, with names and contact details removed.${
+            f.privateLessons
+              ? " Lessons from your notes are visible to you alone."
+              : " Your materials are visible to you alone."
+          } Your textbook is never uploaded.`
         : "When uploads open, PDFs will be read on your phone and only the pages you choose sent. Your textbook is never uploaded.",
       codePublic: f.codePublic,
     },

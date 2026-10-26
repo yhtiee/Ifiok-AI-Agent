@@ -22,6 +22,8 @@ export const SKILLS = [
   "teach_back_check",
   "answer_check",
   "item_solve",
+  "worked_solution",
+  "lab_extract",
   "claim_check",
   "brief_rewrite",
   "moderate",

@@ -1,27 +1,31 @@
 "use client";
 
-import { ArrowRightIcon, BooksIcon, MagnifyingGlassIcon, PlusIcon, TargetIcon } from "@phosphor-icons/react";
-import Link from "next/link";
+import { BooksIcon, PlusIcon, TargetIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
-import { Spinner } from "@/components/ui/Button";
+import { useEffect, useState } from "react";
+import { IconDisc } from "@/components/app/Page";
+import { Button } from "@/components/ui/button";
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCourseSearch, useJoinCourse, useLearnTopic } from "@/lib/queries/courses";
 import { ApiError } from "@/lib/query/api";
 
-// "What do you want to learn?" (07 §5.1b): one search box. Results are rows, not cards: courses at
-// the student's university, then "Add this course", then "Learn it as a topic".
+// "What do you want to learn?" (app-overhaul §5.2): one inline search (shadcn Command, results
+// from the server). Courses at the student's university, then "Add this course", then "Learn it
+// as a topic". Rows, not cards; the search is this screen's action, so there's no camwood button.
 
-type Props = { universityName: string | null; myCourseIds: string[] };
+type Props = { universityName: string | null; myCourseIds: string[]; focusOnOpen?: boolean; topicMode?: boolean };
+
+const LABEL = "What do you want to learn?";
 
 /** Course codes look like "MTH 101": used to prefill the create form. */
 const looksLikeCode = (q: string) => /^[A-Za-z]{2,6}\s*-?\s*\d{2,4}[A-Za-z]?$/.test(q.trim());
 
-export function LearnSearch({ universityName, myCourseIds }: Props) {
+export function LearnSearch({ universityName, myCourseIds, focusOnOpen = false, topicMode = false }: Props) {
   const router = useRouter();
-  const inputId = useId();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [selected, setSelected] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
@@ -35,6 +39,9 @@ export function LearnSearch({ universityName, myCourseIds }: Props) {
   const learn = useLearnTopic();
   const mine = new Set(myCourseIds);
   const term = query.trim();
+  const isCode = looksLikeCode(term);
+  const courses = debounced === term ? (search.data?.courses ?? []) : [];
+  const loading = Boolean(universityName) && !search.data && !search.isError;
 
   const learnTopic = (topic: string) => {
     setNotice(null);
@@ -45,7 +52,6 @@ export function LearnSearch({ universityName, myCourseIds }: Props) {
           setSuggestions(result.suggestions);
           setNotice(`“${topic}” covers a lot. Pick a narrower topic to start with:`);
         } else {
-          setQuery("");
           router.push(`/learn/${result.concept.id}`);
         }
       },
@@ -53,53 +59,42 @@ export function LearnSearch({ universityName, myCourseIds }: Props) {
     });
   };
 
-  const createHref = `/courses/new?${new URLSearchParams(looksLikeCode(term) ? { code: term } : { title: term })}`;
+  const createHref = `/courses/new?${new URLSearchParams(isCode ? { code: term } : { title: term })}`;
+  // Enter picks a course when there is one, else adds a code, else learns the topic.
+  const preferred = courses[0] ? `course:${courses[0].id}` : universityName && isCode ? "add" : "learn";
 
   return (
-    <div className="grid gap-3">
-      <label htmlFor={inputId} className="font-display text-xl font-semibold">
-        What do you want to learn?
-      </label>
-      <div className="relative">
-        <MagnifyingGlassIcon
-          size={20}
-          className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-2"
-          aria-hidden="true"
-        />
-        <input
-          ref={inputRef}
-          id={inputId}
-          type="search"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setNotice(null);
-            setSuggestions([]);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && term.length >= 2 && !looksLikeCode(term) && !search.data?.courses.length)
-              learnTopic(term);
-          }}
-          placeholder={universityName ? "A course code like MTH 101, or any topic" : "Any topic, like Fourier series"}
-          autoComplete="off"
-          className="min-h-12 w-full rounded-[var(--radius-input)] border border-line bg-surface pr-3 pl-10 text-base placeholder:text-ink-3"
-        />
-      </div>
+    // cmdk labels its input itself (a visually hidden label): the visible heading repeats it.
+    <Command shouldFilter={false} value={selected || preferred} onValueChange={setSelected} label={LABEL}>
+      <p aria-hidden="true" className="text-lg font-semibold">
+        {LABEL}
+      </p>
+      <CommandInput
+        value={query}
+        onValueChange={(v) => {
+          setQuery(v);
+          setSelected("");
+          setNotice(null);
+          setSuggestions([]);
+        }}
+        // Opened from "Find your course" on Today: the student came here to type.
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        autoFocus={focusOnOpen}
+        placeholder={
+          universityName && !topicMode ? "A course code like MTH 101, or any topic" : "Any topic, like Fourier series"
+        }
+      />
 
       {notice ? (
-        <div role="status" className="rounded-[var(--radius-input)] border border-line bg-surface px-4 py-3 text-base">
+        <div role="status" className="grid gap-3 text-base">
           <p>{notice}</p>
           {suggestions.length ? (
-            <ul className="mt-3 flex flex-wrap gap-2">
+            <ul className="flex flex-wrap gap-2">
               {suggestions.map((s) => (
                 <li key={s}>
-                  <button
-                    type="button"
-                    onClick={() => learnTopic(s)}
-                    className="min-h-11 rounded-full border border-line bg-paper px-4 text-sm font-semibold hover:border-ink/40"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => learnTopic(s)} disabled={learn.isPending}>
                     {s}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -108,106 +103,97 @@ export function LearnSearch({ universityName, myCourseIds }: Props) {
       ) : null}
 
       {term.length >= 2 ? (
-        <ul
-          aria-label="Results"
-          className="grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line"
-        >
+        <CommandList aria-label="Results">
           {universityName ? (
-            <>
-              {search.isPending && debounced === term ? (
-                <li className="flex min-h-14 items-center gap-3 bg-surface px-4 text-sm text-ink-2">
-                  <Spinner /> Searching courses at {universityName}…
-                </li>
+            <CommandGroup heading={`Courses at ${universityName}`}>
+              {loading ? (
+                <div aria-label="Searching courses" className="grid gap-2 px-4 py-2">
+                  <Skeleton className="h-14" />
+                  <Skeleton className="h-14" />
+                </div>
               ) : null}
-              {(search.data?.courses ?? []).map((c) => {
+              {courses.map((c) => {
                 const isMine = mine.has(c.id);
+                const busy = join.isPending && join.variables === c.id;
                 return (
-                  <li key={c.id} className="flex min-h-14 items-center gap-3 bg-surface px-4 py-2">
-                    <span
-                      aria-hidden="true"
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-quantity-soft text-quantity"
+                  <div key={c.id} className="flex items-center gap-2 pr-4 has-[[data-selected=true]]:bg-accent">
+                    <CommandItem
+                      value={`course:${c.id}`}
+                      onSelect={() => router.push(`/courses/${c.id}`)}
+                      className="min-w-0 flex-1 pr-0"
                     >
-                      <BooksIcon size={22} />
-                    </span>
-                    <Link href={`/courses/${c.id}`} className="grid min-w-0 flex-1 gap-0.5 hover:underline">
-                      <span className="truncate text-base font-semibold">
-                        {c.code} · {c.title}
+                      <IconDisc tone="course">
+                        <BooksIcon size={22} />
+                      </IconDisc>
+                      <span className="grid min-w-0 gap-0.5">
+                        <span className="text-base font-semibold [overflow-wrap:anywhere]">
+                          {c.code} · {c.title}
+                        </span>
+                        <span className="text-sm text-ink-2">
+                          {c.members} {c.members === 1 ? "classmate" : "classmates"}
+                        </span>
                       </span>
-                      <span className="text-sm text-ink-2">
-                        {c.members} {c.members === 1 ? "classmate" : "classmates"} at {universityName}
-                      </span>
-                    </Link>
+                    </CommandItem>
                     {isMine ? (
-                      <Link
-                        href={`/courses/${c.id}`}
-                        className="min-h-11 shrink-0 px-2 py-3 text-sm font-semibold text-quantity"
-                      >
+                      <Button variant="outline" size="sm" onClick={() => router.push(`/courses/${c.id}`)}>
                         Open
-                      </Link>
+                      </Button>
                     ) : (
-                      <button
-                        type="button"
+                      <Button
+                        variant="outline"
+                        size="sm"
                         disabled={join.isPending}
+                        aria-busy={busy}
+                        aria-label={`Join ${c.code}`}
                         onClick={() => join.mutate(c.id, { onSuccess: () => router.push(`/courses/${c.id}`) })}
-                        className="min-h-11 shrink-0 rounded-full border border-ink/25 px-4 text-sm font-semibold hover:border-ink/50 disabled:opacity-60"
                       >
-                        {join.isPending && join.variables === c.id ? "Joining…" : "Join"}
-                      </button>
+                        {busy ? "Joining…" : "Join"}
+                      </Button>
                     )}
-                  </li>
+                  </div>
                 );
               })}
-              <li className="bg-surface">
-                <Link href={createHref} className="flex min-h-14 items-center gap-3 px-4 py-2 hover:bg-paper">
-                  <span
-                    aria-hidden="true"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-change-soft text-change"
-                  >
-                    <PlusIcon size={22} />
+              <CommandItem value="add" onSelect={() => router.push(createHref)}>
+                <IconDisc tone="add">
+                  <PlusIcon size={22} />
+                </IconDisc>
+                <span className="grid min-w-0 gap-0.5">
+                  <span className="text-base font-semibold [overflow-wrap:anywhere]">
+                    Add {isCode ? term.toUpperCase() : "a course"} at {universityName}
                   </span>
-                  <span className="grid flex-1 gap-0.5">
-                    <span className="text-base font-semibold">
-                      Add {looksLikeCode(term) ? term.toUpperCase() : "a course"} at {universityName}
-                    </span>
-                    <span className="text-sm text-ink-2">Not listed yet? Create it; classmates can join you.</span>
-                  </span>
-                  <ArrowRightIcon size={18} className="shrink-0 text-ink-2" aria-hidden="true" />
-                </Link>
-              </li>
-            </>
+                  <span className="text-sm text-ink-2">Not listed yet? Add it; classmates can join you.</span>
+                </span>
+              </CommandItem>
+            </CommandGroup>
           ) : null}
-          {!looksLikeCode(term) ? (
-            <li className="bg-surface">
-              <button
-                type="button"
-                onClick={() => learnTopic(term)}
+          {!isCode ? (
+            <CommandGroup>
+              <CommandItem
+                value="learn"
                 disabled={learn.isPending}
-                className="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left hover:bg-paper disabled:cursor-wait"
+                aria-busy={learn.isPending}
+                onSelect={() => learnTopic(term)}
               >
-                <span
-                  aria-hidden="true"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-built-soft text-built"
-                >
-                  {learn.isPending ? <Spinner /> : <TargetIcon size={22} />}
-                </span>
-                <span className="grid flex-1 gap-0.5">
-                  <span className="text-base font-semibold">Learn “{term}” as a topic</span>
-                  <span className="text-sm text-ink-2">
-                    {learn.isPending ? "Finding the topic…" : "No course needed. Follow it and start learning."}
+                <IconDisc tone="topic">
+                  <TargetIcon size={22} />
+                </IconDisc>
+                <span className="grid min-w-0 gap-0.5">
+                  <span className="text-base font-semibold [overflow-wrap:anywhere]">
+                    {learn.isPending ? "Finding the topic…" : `Learn “${term}” as a topic`}
                   </span>
+                  <span className="text-sm text-ink-2">No course needed</span>
                 </span>
-                <ArrowRightIcon size={18} className="shrink-0 text-ink-2" aria-hidden="true" />
-              </button>
-            </li>
+              </CommandItem>
+            </CommandGroup>
           ) : null}
-        </ul>
+        </CommandList>
       ) : (
         <p className="text-sm text-ink-2">
-          {universityName
-            ? `Search your course at ${universityName}, or type any topic, like “Fourier series” or “judicial precedent”.`
-            : "Type any topic, like “Fourier series” or “judicial precedent”. Add your university in Me to find your course."}
+          {universityName && !topicMode
+            ? `Search your course at ${universityName}, or type any topic, like “Fourier series”.`
+            : "Type any topic, like “Fourier series” or “judicial precedent”."}
         </p>
       )}
-    </div>
+    </Command>
   );
 }

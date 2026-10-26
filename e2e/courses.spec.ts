@@ -9,6 +9,12 @@ const shot = async (page: Page, name: string) => {
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/courses-${name}.png`, fullPage: true });
 };
 
+/** The Subject field is a Radix Select (app-overhaul §5.3). */
+async function pickSubject(page: Page, name: string) {
+  await page.getByLabel("Subject").click();
+  await page.getByRole("option", { name, exact: true }).click();
+}
+
 test.describe("student-created courses, outlines and concepts", () => {
   test.skip(!hasSupabaseAdmin, "needs SUPABASE_SERVICE_ROLE_KEY for the hosted project");
   test.skip(({ isMobile }) => isMobile, "real AI calls: run once, on desktop");
@@ -35,12 +41,12 @@ test.describe("student-created courses, outlines and concepts", () => {
     await page.goto("/courses");
     await page.getByLabel("What do you want to learn?").fill(courseCode);
     await shot(page, "01-search");
-    await page.getByRole("link", { name: new RegExp(`Add ${courseCode}`) }).click();
+    await page.getByRole("option", { name: new RegExp(`Add ${courseCode}`) }).click();
 
     await expect(page.getByRole("heading", { name: "Add a course" })).toBeVisible();
     await expect(page.getByLabel("Course code")).toHaveValue(courseCode);
     await page.getByLabel("Course title").fill("Test calculus for students");
-    await page.getByLabel("Subject").selectOption("mathematics");
+    await pickSubject(page, "Mathematics");
     await page.getByRole("button", { name: "Add course" }).click();
 
     // A similar title might exist from earlier data; if asked, create ours anyway.
@@ -53,7 +59,9 @@ test.describe("student-created courses, outlines and concepts", () => {
     courseUrl = page.url();
     await shot(page, "02-empty-course");
 
-    await page.getByRole("button", { name: /Type topics/ }).click();
+    // No outline yet: the Set up block is the page. Typing opens the editor on the outline page.
+    await page.getByRole("button", { name: /Type the topics/ }).click();
+    await expect(page).toHaveURL(/\/outline\?start=typed$/);
     const titles = page.getByPlaceholder("For example, Limits and continuity");
     await titles.nth(0).fill("Limits of a function");
     await titles.nth(1).fill("Continuity");
@@ -62,7 +70,10 @@ test.describe("student-created courses, outlines and concepts", () => {
     await page.getByRole("button", { name: "Save outline" }).click();
 
     await expect(page.getByText("Outline saved.")).toBeVisible({ timeout: 90_000 });
-    await expect(page.getByText("Differentiation from first principles")).toBeVisible();
+    await expect(page).toHaveURL(courseUrl);
+    await expect(page.getByRole("list", { name: "Topics in order" })).toContainText(
+      "Differentiation from first principles",
+    );
     await shot(page, "04-outline");
 
     // Fixed header: breadcrumbs with the real course code, still on screen after scrolling,
@@ -76,7 +87,7 @@ test.describe("student-created courses, outlines and concepts", () => {
     const box = await page.locator("header").filter({ has: crumbs }).boundingBox();
     expect(box?.y).toBe(0);
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.getByRole("link", { name: "Back to Courses" }).click();
+    await crumbs.getByRole("link", { name: "Courses" }).click();
     await expect(page).toHaveURL(/\/courses$/);
     await page.goto(courseUrl);
 
@@ -106,14 +117,14 @@ test.describe("student-created courses, outlines and concepts", () => {
 
     await page.goto("/courses");
     await page.getByLabel("What do you want to learn?").fill(courseCode.toLowerCase().replace(" ", ""));
-    await expect(page.getByRole("link", { name: new RegExp(`${courseCode} · Test calculus`) })).toBeVisible({
+    await expect(page.getByRole("option", { name: new RegExp(`${courseCode} · Test calculus`) })).toBeVisible({
       timeout: 15_000,
     });
 
     // Trying to add it anyway leads to the existing course.
     await page.goto(`/courses/new?code=${encodeURIComponent(courseCode)}`);
     await page.getByLabel("Course title").fill("Some other title");
-    await page.getByLabel("Subject").selectOption("mathematics");
+    await pickSubject(page, "Mathematics");
     await page.getByRole("button", { name: "Add course" }).click();
     await expect(page.getByRole("heading", { name: `${courseCode} is already on Ifiok` })).toBeVisible({
       timeout: 30_000,
@@ -121,11 +132,14 @@ test.describe("student-created courses, outlines and concepts", () => {
     await page.getByRole("button", { name: "Join this course" }).click();
     await expect(page).toHaveURL(courseUrl);
 
-    // A new member's edit (enrolled today, no study sessions) waits for confirmation.
-    await page.getByRole("button", { name: "Edit" }).click();
+    // A new member's edit (enrolled today, no study sessions) waits for confirmation. The outline
+    // is edited from the course menu.
+    await page.getByRole("button", { name: "Course options" }).click();
+    await page.getByRole("menuitem", { name: "Edit outline" }).click();
+    await page.getByRole("button", { name: "Edit outline" }).click();
     await page.getByRole("button", { name: "Remove topic 3" }).click();
     await page.getByRole("button", { name: "Save outline" }).click();
-    await expect(page.getByText(/go live once another member/)).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(/goes live once another member/)).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText("Differentiation from first principles")).toBeVisible(); // not applied yet
     await shot(page, "05-pending");
   });
@@ -133,11 +147,13 @@ test.describe("student-created courses, outlines and concepts", () => {
   test("another member confirms the pending edit", async ({ page, context, baseURL }) => {
     const { data: ada } = await adminClient().auth.admin.getUserById(users[0]!);
     await signInAs(context, ada.user!.email!, baseURL!);
-    await page.goto(courseUrl);
-    await expect(page.getByText("Waiting for a member to confirm")).toBeVisible();
+    await page.goto(`${courseUrl}/outline#history`);
+    await expect(page.getByText(/Waiting for a member to confirm/)).toBeVisible();
     await page.getByRole("button", { name: "Confirm" }).click();
     await expect(page.getByText("Edit confirmed and applied.")).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText("Differentiation from first principles")).toHaveCount(0);
+    await expect(page.getByRole("list", { name: "Topics in the outline" })).not.toContainText(
+      "Differentiation from first principles",
+    );
   });
 
   test("the same topic at another university resolves to the same shared concept", async ({
@@ -152,13 +168,13 @@ test.describe("student-created courses, outlines and concepts", () => {
     const otherCode = `ZTL ${100 + Math.floor(Math.random() * 800)}`;
     await page.goto(`/courses/new?code=${encodeURIComponent(otherCode)}`);
     await page.getByLabel("Course title").fill("Mathematics methods");
-    await page.getByLabel("Subject").selectOption("mathematics");
+    await pickSubject(page, "Mathematics");
     await page.getByRole("button", { name: "Add course" }).click();
     const createAnyway = page.getByRole("button", { name: /None of these/ });
     if (await createAnyway.isVisible({ timeout: 8_000 }).catch(() => false)) await createAnyway.click();
     await expect(page.getByRole("heading", { level: 1, name: new RegExp(otherCode) })).toBeVisible({ timeout: 30_000 });
 
-    await page.getByRole("button", { name: /Type topics/ }).click();
+    await page.getByRole("button", { name: /Type the topics/ }).click();
     await page.getByPlaceholder("For example, Limits and continuity").nth(0).fill("Limit of a function");
     await page.getByRole("button", { name: "Remove topic 3" }).click();
     await page.getByRole("button", { name: "Remove topic 2" }).click();
@@ -192,19 +208,15 @@ test.describe("student-created courses, outlines and concepts", () => {
     await page.goto("/courses");
 
     await page.getByLabel("What do you want to learn?").fill("Physics");
-    await page.getByRole("button", { name: /Learn “Physics” as a topic/ }).click();
+    await page.getByRole("option", { name: /Learn “Physics” as a topic/ }).click();
     await expect(page.getByText(/covers a lot. Pick a narrower topic/)).toBeVisible({ timeout: 60_000 });
     await shot(page, "06-too-broad");
 
     await page.getByLabel("What do you want to learn?").fill("Fourier series");
-    await page.getByRole("button", { name: /Learn “Fourier series” as a topic/ }).click();
-    await expect(page.getByText(/You're following/)).toBeVisible({ timeout: 60_000 });
-    await expect(
-      page
-        .getByRole("region", { name: /Topics you follow/ })
-        .or(page.locator("section", { hasText: "Topics you follow" }))
-        .first(),
-    ).toContainText(/Fourier/i);
+    await page.getByRole("option", { name: /Learn “Fourier series” as a topic/ }).click();
+    await expect(page).toHaveURL(/\/learn\//, { timeout: 60_000 });
+    await page.goto("/courses");
+    await expect(page.getByRole("region", { name: "Topics you follow" })).toContainText(/Fourier/i);
     await shot(page, "07-following");
   });
 
@@ -216,7 +228,7 @@ test.describe("student-created courses, outlines and concepts", () => {
     const code = `ZTD ${100 + Math.floor(Math.random() * 800)}`;
     await page.goto(`/courses/new?code=${encodeURIComponent(code)}`);
     await page.getByLabel("Course title").fill("Introduction to Fluid Mechanics");
-    await page.getByLabel("Subject").selectOption("mechanical-engineering");
+    await pickSubject(page, "Mechanical engineering");
     await page.getByRole("button", { name: "Add course" }).click();
     const createAnyway = page.getByRole("button", { name: /None of these/ });
     if (await createAnyway.isVisible({ timeout: 8_000 }).catch(() => false)) await createAnyway.click();
@@ -235,7 +247,9 @@ test.describe("student-created courses, outlines and concepts", () => {
     const png = await outlinePage.locator("div").screenshot();
     await outlinePage.close();
     await page.locator('input[type="file"]').setInputFiles({ name: "outline.png", mimeType: "image/png", buffer: png });
+    // Read on the course page, checked on the outline page.
     await expect(page.getByText(/Here's what Ifiok read/)).toBeVisible({ timeout: 60_000 });
+    await expect(page).toHaveURL(/\/outline\?start=upload$/);
     const read = await page
       .getByPlaceholder("For example, Limits and continuity")
       .evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value.toLowerCase()));
@@ -243,7 +257,9 @@ test.describe("student-created courses, outlines and concepts", () => {
     expect(read.join(" | ")).toMatch(/bernoulli/);
     expect(read.join(" | ")).not.toMatch(/office hours|lecturer/);
     await shot(page, "09-from-photo");
+    // Leaving unsaved work asks first.
     await page.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Discard" }).click();
 
     // AI draft: shown for checking, labelled as a draft, and saved. A 10–14 topic draft is the
     // largest topic_resolve request a student makes (it once failed on the output token cap).
@@ -254,7 +270,7 @@ test.describe("student-created courses, outlines and concepts", () => {
     await shot(page, "08-draft");
     await page.getByRole("button", { name: "Save outline" }).click();
     await expect(page.getByText("Outline saved.")).toBeVisible({ timeout: 150_000 });
-    await expect(page.getByText(/Draft\. Check it against your course/)).toBeVisible();
+    await expect(page.getByText("Check it against your course.")).toBeVisible();
     const courseId = page.url().split("/").pop()!;
     const { count } = await adminClient()
       .from("topics")

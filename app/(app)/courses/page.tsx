@@ -1,7 +1,6 @@
 import { BooksIcon, TargetIcon } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { EmptyState, Panel } from "@/components/app/Page";
+import { Row, RowList, SectionHeading } from "@/components/app/Page";
 import { AppPage } from "@/components/app/AppPage";
 import { LearnSearch } from "@/components/app/LearnSearch";
 import { requireOnboardedPage } from "@/lib/auth/guards";
@@ -10,92 +9,68 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Courses", robots: { index: false } };
 
-// Courses (07 §4, §5.1b): search first, then the student's courses and followed topics.
-export default async function CoursesPage() {
+// Courses (app-overhaul §5.2): the search is the action, then the student's courses and followed
+// topics as plain lists (hidden while empty).
+export default async function CoursesPage({ searchParams }: PageProps<"/courses">) {
   const viewer = await requireOnboardedPage();
   const supabase = await createClient();
-  const [courses, topics, { data: university }] = await Promise.all([
+  const [courses, topics, { data: university }, params] = await Promise.all([
     getMyCourses(viewer),
     getFollowedTopics(viewer),
     viewer.profile.university_id
       ? supabase.from("universities").select("name").eq("id", viewer.profile.university_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    searchParams,
   ]);
 
   return (
-    <AppPage
-      crumbs={[{ label: "Courses" }]}
-      title="Courses"
-      description="Find your course or any topic, and Ifiok builds the lessons around it."
-    >
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:gap-6">
-        <div className="grid content-start gap-4 lg:gap-6">
-          <section
-            aria-label="Search"
-            className="rounded-[var(--radius-card)] border border-line bg-surface p-4 sm:p-5"
-          >
-            <LearnSearch universityName={university?.name ?? null} myCourseIds={courses.map((c) => c.id)} />
-          </section>
+    <AppPage crumbs={[{ label: "Courses" }]} title="Courses">
+      <div className="grid gap-8">
+        <LearnSearch
+          universityName={university?.name ?? null}
+          myCourseIds={courses.map((c) => c.id)}
+          focusOnOpen={params.focus === "1"}
+          topicMode={params.mode === "topic"}
+        />
 
-          <Panel title="Your courses">
+        {courses.length || topics.length ? (
+          <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
             {courses.length ? (
-              <ul className="grid divide-y divide-line">
-                {courses.map((c) => (
-                  <li key={c.id}>
-                    <Link href={`/courses/${c.id}`} className="flex min-h-14 items-center gap-3 py-3 hover:underline">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-quantity-soft text-quantity"
-                      >
-                        <BooksIcon size={22} />
-                      </span>
-                      <span className="grid min-w-0 flex-1 gap-0.5">
-                        <span className="truncate text-base font-semibold">
-                          {c.code} · {c.title}
-                        </span>
-                        <span className="text-sm text-ink-2">
-                          {c.topics ? `${c.topics} ${c.topics === 1 ? "topic" : "topics"}` : "No outline yet: add it"}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState
-                title="No courses yet"
-                body="Search for your course above. If nobody has added it yet, add it: it takes a minute, and classmates can join you."
-              />
-            )}
-          </Panel>
-        </div>
-
-        <Panel title="Topics you follow">
-          {topics.length ? (
-            <ul className="grid divide-y divide-line">
-              {topics.map((t) => (
-                <li key={t.id}>
-                  <Link href={`/learn/${t.id}`} className="flex min-h-14 items-start gap-3 py-3 hover:underline">
-                    <span
-                      aria-hidden="true"
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-built-soft text-built"
-                    >
-                      <TargetIcon size={22} />
-                    </span>
-                    <span className="grid gap-0.5">
-                      <span className="text-base font-semibold">{t.title}</span>
-                      {t.description ? <span className="text-sm text-ink-2">{t.description}</span> : null}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-base text-ink-2">
-              Learning something outside a course? Type it in the search, like “Fourier series”, and follow it.
-            </p>
-          )}
-        </Panel>
+              <section aria-labelledby="your-courses" className="grid content-start gap-3">
+                <SectionHeading id="your-courses">Your courses</SectionHeading>
+                <RowList labelledBy="your-courses">
+                  {courses.map((c) => (
+                    <Row
+                      key={c.id}
+                      href={`/courses/${c.id}`}
+                      icon={<BooksIcon size={22} />}
+                      tone="course"
+                      title={`${c.code} · ${c.title}`}
+                      meta={c.topics ? `${c.topics} ${c.topics === 1 ? "topic" : "topics"}` : "No outline yet"}
+                    />
+                  ))}
+                </RowList>
+              </section>
+            ) : null}
+            {topics.length ? (
+              <section aria-labelledby="your-topics" className="grid content-start gap-3">
+                <SectionHeading id="your-topics">Topics you follow</SectionHeading>
+                <RowList labelledBy="your-topics">
+                  {topics.map((t) => (
+                    <Row
+                      key={t.id}
+                      href={`/learn/${t.id}`}
+                      icon={<TargetIcon size={22} />}
+                      tone="topic"
+                      title={t.title}
+                      meta={t.description ?? "Topic"}
+                    />
+                  ))}
+                </RowList>
+              </section>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </AppPage>
   );

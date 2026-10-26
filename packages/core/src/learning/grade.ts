@@ -1,0 +1,134 @@
+import { z } from "zod";
+import { numericMatches } from "../dsl/numeric";
+import { mathCheckEquivalent } from "../verify/tools";
+
+// Server-side marking for /api/sync (guardrail 6, 10 MVP-03): every answer is re-marked from the
+// stored item; whatever the client claims about correctness is ignored. Items are stored as
+// checkpointItems / itemRows write them (lessons/repo.ts, items/check.ts).
+
+export const attemptResponseSchema = z.union([
+  z.object({ option_id: z.string().max(40) }),
+  z.object({ value: z.union([z.number(), z.string().max(60)]) }),
+  z.object({ expr: z.string().max(500) }),
+  z.object({ order: z.array(z.string().max(500)).max(12) }),
+  z.object({ pairs: z.array(z.tuple([z.string().max(500), z.string().max(500)])).max(12) }),
+  /** A self-mark against the worked solution: past-paper questions only (no answer key, MVP-04). */
+  z.object({ self: z.enum(["got", "partly", "missed"]) }),
+]);
+export type AttemptResponse = z.infer<typeof attemptResponseSchema>;
+
+export type GradableItem = { type: string; stem: unknown; answer: unknown; verification: unknown; origin?: string };
+
+export type Grade = {
+  correct: boolean;
+  /** The item's own explanation of the right answer (or of the option chosen). */
+  why: string | null;
+  /** What the right answer was, for the feedback line. */
+  answer: string | null;
+  /** Scales the mastery weight: a self-marked "Partly" counts at half weight (12 §4 Q53). */
+  weight: number;
+};
+
+const asRecord = (v: unknown): Record<string, unknown> =>
+  v && typeof v === "object" ? (v as Record<string, unknown>) : {};
+const str = (v: unknown) => (typeof v === "string" ? v : null);
+
+/** A number the student typed: "34.6", "34,6", " 1e3 ". Null when it isn't one. */
+export function parseNumber(value: number | string): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const cleaned = value.trim().replace(/,/g, ".").replace(/\s+/g, "");
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(cleaned)) return null;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function gradeAttempt(item: GradableItem, response: AttemptResponse): Grade {
+  // Self-marks are accepted only where there is no answer key: past-paper questions. Anywhere else a
+  // self-mark is not an answer, so it is wrong.
+  if ("self" in response) {
+    const selfMarked = item.origin === "past_paper" && item.type === "short_text";
+    return {
+      correct: selfMarked && response.self !== "missed",
+      why: null,
+      answer: null,
+      weight: selfMarked && response.self === "partly" ? 0.5 : 1,
+    };
+  }
+  return { weight: 1, ...gradeObjective(item, response) };
+}
+
+function gradeObjective(item: GradableItem, response: AttemptResponse): Omit<Grade, "weight"> {
+  const stem = asRecord(item.stem);
+  const answer = asRecord(item.answer);
+  const verification = asRecord(item.verification);
+
+  switch (item.type) {
+    case "mcq": {
+      const correctId = str(answer.correct_option_id);
+      const chosen = "option_id" in response ? response.option_id : null;
+      const feedback = asRecord(answer.feedback);
+      const options = Array.isArray(stem.options) ? (stem.options as { id: string; text: string }[]) : [];
+      return {
+        correct: chosen !== null && chosen === correctId,
+        why: str(feedback[chosen ?? ""]) ?? str(feedback[correctId ?? ""]),
+        answer: options.find((o) => o.id === correctId)?.text ?? null,
+      };
+    }
+    case "numeric": {
+      const expected = typeof answer.expected === "number" ? answer.expected : Number(verification.stated);
+      const tolerance = asRecord(verification.tolerance) as { abs?: number; rel?: number };
+      const given = "value" in response ? parseNumber(response.value) : null;
+      return {
+        correct: given !== null && Number.isFinite(expected) && numericMatches(given, expected, tolerance),
+        why: str(answer.why),
+        answer: Number.isFinite(expected) ? `${expected}${str(stem.unit) ? ` ${str(stem.unit)}` : ""}` : null,
+      };
+    }
+    case "expression": {
+      const expr = str(answer.answer_expr) ?? str(verification.answer_expr);
+      const vars = Array.isArray(answer.vars) ? (answer.vars as string[]) : ["x"];
+      let correct = false;
+      if (expr && "expr" in response && response.expr.trim()) {
+        try {
+          correct = mathCheckEquivalent(response.expr, expr, vars) === true;
+        } catch {
+          correct = false; // unparseable or disallowed input is simply wrong
+        }
+      }
+      return { correct, why: str(answer.why), answer: expr };
+    }
+    case "order": {
+      const order = Array.isArray(answer.order) ? (answer.order as string[]) : [];
+      const given = "order" in response ? response.order : [];
+      return {
+        correct: order.length > 0 && given.length === order.length && given.every((s, i) => s === order[i]),
+        why: str(answer.why),
+        answer: order.join(" → "),
+      };
+    }
+    case "match": {
+      const pairs = Array.isArray(answer.pairs) ? (answer.pairs as [string, string][]) : [];
+      const given = "pairs" in response ? response.pairs : [];
+      const want = new Set(pairs.map(([l, r]) => `${l}\u0000${r}`));
+      return {
+        correct:
+          pairs.length > 0 && given.length === pairs.length && given.every(([l, r]) => want.has(`${l}\u0000${r}`)),
+        why: str(answer.why),
+        answer: pairs.map(([l, r]) => `${l}: ${r}`).join("; "),
+      };
+    }
+    default:
+      // short_text and anything unknown can't be marked by the engine: never counted as correct.
+      return { correct: false, why: null, answer: null };
+  }
+}
+
+/** The student's answer as text, for explain_error (no personal data: it's their answer only). */
+export function describeResponse(response: AttemptResponse): string {
+  if ("option_id" in response) return `chose option ${response.option_id}`;
+  if ("value" in response) return String(response.value);
+  if ("expr" in response) return response.expr;
+  if ("self" in response) return `self-marked: ${response.self}`;
+  if ("order" in response) return response.order.join(" → ");
+  return response.pairs.map(([l, r]) => `${l}: ${r}`).join("; ");
+}

@@ -1,0 +1,88 @@
+import { correctProcedure, pctError, readingsFor, resultOf, settings } from "./engine";
+import {
+  compileExperiment,
+  ExperimentConfigError,
+  experimentConfig,
+  type CompiledExperiment,
+  type ExperimentConfig,
+} from "./experiment";
+
+// The experiment verifier (05 §9): a configuration is saved only when the engine can run it and a
+// correct procedure recovers its constant. Anything else is declined, never faked.
+
+export const SEEDS = 50;
+/** A correct procedure must land within tolerance on at least this share of seeds. */
+export const PASS_SHARE = 0.95;
+/** Noise-free readings must recover the hidden constant this closely. */
+export const NOISE_FREE_PCT = 0.5;
+
+export type ExperimentVerdict =
+  { ok: true; compiled: CompiledExperiment; passRate: number } | { ok: false; reason: string };
+
+const decline = (reason: string): ExperimentVerdict => ({ ok: false, reason });
+
+export function verifyExperiment(input: unknown): ExperimentVerdict {
+  // 1. Schema, then every expression through the allow-list with only its declared symbols.
+  const parsed = experimentConfig.safeParse(input);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return decline(
+      `The configuration is incomplete (${issue?.path.join(".") || "root"}: ${issue?.message ?? "invalid"}).`,
+    );
+  }
+  const config: ExperimentConfig = parsed.data;
+  const ind = config.independent;
+  if (ind.max <= ind.min) return decline("The variable's range is empty.");
+  let compiled: CompiledExperiment;
+  try {
+    compiled = compileExperiment(config);
+  } catch (err) {
+    return decline(
+      err instanceof ExperimentConfigError
+        ? `An expression isn't usable: ${err.message}.`
+        : "An expression isn't usable.",
+    );
+  }
+  const grid = settings(ind);
+  if (grid.length < config.min_readings) return decline("The variable's range doesn't allow enough readings.");
+
+  // 2. The relation gives finite values over the whole range.
+  let truth;
+  try {
+    truth = readingsFor(compiled, 0, false);
+  } catch {
+    return decline("The governing relation can't be evaluated over the range.");
+  }
+  if (truth.some((s) => s.readings.some((r) => !Number.isFinite(r))))
+    return decline("The governing relation isn't finite over the whole range.");
+  if (new Set(truth.map((s) => s.readings[0])).size < 2)
+    return decline("The measured quantity doesn't change with the variable, so there is nothing to measure.");
+
+  // 3. Noise-free readings recover the hidden constant, and the accepted value agrees with it.
+  const symbol = config.analysis.derive.symbol;
+  const hidden = config.hidden[symbol]!;
+  let clean;
+  try {
+    clean = resultOf(compiled, correctProcedure(compiled, 0, false));
+  } catch {
+    clean = null;
+  }
+  if (!clean) return decline("The analysis can't fit a straight line to the readings.");
+  // Rounding to the instrument's resolution is the only error left; allow it, nothing more.
+  if (pctError(clean.value, hidden) > NOISE_FREE_PCT)
+    return decline("The analysis doesn't recover the constant from perfect readings, so the method would be wrong.");
+  if (pctError(config.analysis.accepted, hidden) > config.analysis.tolerance_pct)
+    return decline("The accepted value doesn't match the engine's true value.");
+
+  // 4. With noise on, a correct procedure lands within tolerance for ≥ 95% of 50 seeds.
+  let passes = 0;
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const r = resultOf(compiled, correctProcedure(compiled, seed));
+    if (r && pctError(r.value, config.analysis.accepted) <= config.analysis.tolerance_pct) passes++;
+  }
+  const passRate = passes / SEEDS;
+  if (passRate < PASS_SHARE)
+    return decline("With realistic measurement error, a careful student wouldn't reliably reach the accepted value.");
+
+  return { ok: true, compiled, passRate };
+}

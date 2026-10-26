@@ -5,8 +5,9 @@ import type { ClaimCheckInput, ClaimCheckOutput } from "../ai/skills/claim-check
 import { TOPIC_MIN_SCREENS } from "../ai/skills/lesson-generate.ts";
 
 // The lesson_gen decision (F2-FR5, 04 §4.2 post-processing), free of I/O so every branch is unit
-// tested: generate → verify (schema, size, maths, KaTeX, plots, source refs) → claim check for
-// non-STEM lessons → published, or 'review' when a check fails or the subject is sensitive.
+// tested: generate → verify (schema, size, maths, KaTeX, plots, source refs) → one lesson_repair
+// pass with the verifier's errors if that fails (04 §4.9) → claim check for non-STEM lessons →
+// published, or 'review' when a check fails or the subject is sensitive.
 
 export { TOPIC_MIN_SCREENS };
 
@@ -15,6 +16,8 @@ export type SourceChunk = { id: number; content: string; page?: number | null };
 export type PipelineDeps = {
   generate: () => Promise<{ output: unknown; model: string }>;
   claimCheck: (input: ClaimCheckInput) => Promise<ClaimCheckOutput>;
+  /** One correction call with the verifier's errors (lesson_repair). Without it, a failure goes to review. */
+  repair?: (lesson: unknown, errors: string[]) => Promise<{ output: unknown; model: string }>;
 };
 
 export type PipelineInput = {
@@ -34,6 +37,8 @@ export type PipelineResult = {
   sourcesUsed: number;
   /** Check failures for the curator queue. Never shown to students or logged. */
   issues: string[];
+  /** The lesson needed the repair pass. */
+  repaired: boolean;
 };
 
 /** Text that carries factual claims: prose, callouts, tables and flashcards (04 §4.5b). */
@@ -84,9 +89,23 @@ export function citedChunkIds(spec: LessonSpec): number[] {
 }
 
 export async function runLessonPipeline(deps: PipelineDeps, input: PipelineInput): Promise<PipelineResult> {
-  const { output, model } = await deps.generate();
+  const generated = await deps.generate();
+  let model = generated.model;
 
-  const verified = verifyLesson(output, input.chunks, { minScreens: TOPIC_MIN_SCREENS });
+  let verified = verifyLesson(generated.output, input.chunks, { minScreens: TOPIC_MIN_SCREENS });
+  let repaired = false;
+  if (!verified.ok && deps.repair) {
+    // One repair call; the result is verified again from scratch. A failed call keeps the first errors.
+    const fixed = await deps.repair(generated.output, verified.errors.slice(0, 40)).catch(() => null);
+    if (fixed) {
+      const reverified = verifyLesson(fixed.output, input.chunks, { minScreens: TOPIC_MIN_SCREENS });
+      if (reverified.ok) {
+        verified = reverified;
+        model = fixed.model;
+        repaired = true;
+      }
+    }
+  }
   let spec = verified.verifiedSpec;
   const issues = [...verified.errors];
 
@@ -102,7 +121,7 @@ export async function runLessonPipeline(deps: PipelineDeps, input: PipelineInput
       });
       const unsupported = new Set(result.claims.filter((c) => c.supported_by === null).map((c) => c.block_id));
       if (unsupported.size > 0) {
-        // No lesson_repair skill yet: remove the unsupported blocks, then the lesson must still
+        // Remove the unsupported blocks (claims are facts, not repairable errors); the lesson must still
         // pass every check (enough screens and checkpoints) or it goes to review (12 §4 Q32).
         const reverified = verifyLesson(removeBlocks(spec, unsupported), input.chunks, {
           minScreens: TOPIC_MIN_SCREENS,
@@ -129,5 +148,6 @@ export async function runLessonPipeline(deps: PipelineDeps, input: PipelineInput
     sourceRefs,
     sourcesUsed: sourceRefs.length,
     issues,
+    repaired,
   };
 }

@@ -10,12 +10,19 @@ import { createGeminiProvider } from "../_shared/core/ai/providers/gemini.ts";
 import { createGroqProvider } from "../_shared/core/ai/providers/groq.ts";
 import { createSupabaseGatewayStore } from "../_shared/core/ai/store.ts";
 import type { Database } from "../_shared/core/db/types.ts";
+import { createEmbedHandler } from "../_shared/core/jobs/embed.ts";
+import { createExamExtractHandler, createSupabaseExamRepo } from "../_shared/core/jobs/exam-extract.ts";
+import { createLabExtractHandler, createSupabaseLabRepo } from "../_shared/core/jobs/lab-extract.ts";
+import { createItemsGenHandler, createSupabaseItemsRepo } from "../_shared/core/jobs/items-gen.ts";
 import { createLessonGenHandler } from "../_shared/core/jobs/lesson-gen.ts";
 import { noopHandler } from "../_shared/core/jobs/noop.ts";
 import { runWorker } from "../_shared/core/jobs/runner.ts";
 import { createSupabaseWorkerQueue } from "../_shared/core/jobs/supabase-queue.ts";
 import { QUEUES, type QueueName } from "../_shared/core/jobs/types.ts";
+import { createSupabasePrivateLessonRepo, queuePrivateLessons } from "../_shared/core/lessons/private.ts";
 import { createSupabaseLessonRepo } from "../_shared/core/lessons/repo.ts";
+import { createEmbedder } from "../_shared/core/materials/embed-client.ts";
+import { createSupabaseMaterialsRepo } from "../_shared/core/materials/repo.ts";
 
 // Provided by the Supabase Edge Runtime: keeps the invocation alive for background work.
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
@@ -39,11 +46,14 @@ function serviceKey(): string | undefined {
 function buildWorker() {
   const url = Deno.env.get("SUPABASE_URL");
   const key = serviceKey();
+  const secret = Deno.env.get("INTERNAL_FUNCTION_SECRET");
   if (!url || !key) throw new Error("SUPABASE_URL and a service-role key are required");
+  if (!secret) throw new Error("INTERNAL_FUNCTION_SECRET is required");
   const db = createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
+  const config = createConfigReader(db);
   const gateway = createGateway({
-    config: createConfigReader(db),
+    config,
     providers: {
       gemini: createGeminiProvider(Deno.env.get("GEMINI_API_KEY")),
       groq: createGroqProvider(Deno.env.get("GROQ_API_KEY")),
@@ -55,11 +65,29 @@ function buildWorker() {
     },
   });
 
+  const lessons = createSupabaseLessonRepo(db);
+  const privateLessons = createSupabasePrivateLessonRepo(db, config);
+
   return {
     queue: createSupabaseWorkerQueue(db),
     handlers: {
       noop: noopHandler,
-      lesson_gen: createLessonGenHandler({ repo: createSupabaseLessonRepo(db), gateway }),
+      lesson_gen: createLessonGenHandler({
+        repo: lessons,
+        gateway,
+        privateLessons,
+        enqueueItems: (payload) => privateLessons.enqueueItems(payload),
+      }),
+      items_gen: createItemsGenHandler({ items: createSupabaseItemsRepo(db), lessons, privateLessons, gateway }),
+      exam_extract: createExamExtractHandler({ repo: createSupabaseExamRepo(db), gateway }),
+      lab_extract: createLabExtractHandler({ repo: createSupabaseLabRepo(db), gateway }),
+      embed: createEmbedHandler({
+        repo: createSupabaseMaterialsRepo(db),
+        embed: createEmbedder({ supabaseUrl: url, secret }),
+        // MVP-02: once materials are ready, build a private lesson for each topic they cover.
+        onReady: (source) =>
+          queuePrivateLessons(privateLessons, { userId: source.ownerId, courseId: source.courseId }, source.conceptId),
+      }),
     },
   };
 }

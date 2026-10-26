@@ -5,7 +5,7 @@ import { checkDerivative, checkAntiderivative, checkDefiniteIntegral } from "./c
 import { equivalent } from "./equivalent";
 import { renderKatex } from "./katex";
 import { checkPlotFunction } from "./plot";
-import { checkQuote } from "./quote";
+import { checkQuote, snapQuote } from "./quote";
 import { checkStep } from "./steps";
 import { mathEvaluate, mathDerivative, mathSimplify } from "./tools";
 import { verifyLesson } from "./lesson";
@@ -132,5 +132,22 @@ describe("stripMathDelimiters", () => {
     const r = verifyLesson(spec);
     expect(r.ok).toBe(true);
     expect(r.verifiedSpec.screens[0]!.blocks[0]).toMatchObject({ latex: "x^2 - 5x + 6 = 0" });
+  });
+});
+
+describe("snapQuote (MVP-02)", () => {
+  const chunk =
+    "The horizontal component stays constant because no horizontal force acts; the vertical component falls by g every second.";
+
+  it("replaces a quote that differs only in punctuation or case with the source's exact words", () => {
+    const quote = "The horizontal component stays constant because no horizontal force acts.";
+    expect(checkQuote(quote, chunk)).toBe(false);
+    expect(snapQuote(quote, chunk)).toBe("The horizontal component stays constant because no horizontal force acts;");
+    expect(snapQuote("the VERTICAL component falls by g", chunk)).toBe("the vertical component falls by g");
+  });
+
+  it("refuses a quote whose words differ, or that is too short to mean anything", () => {
+    expect(snapQuote("The horizontal component changes because a force acts.", chunk)).toBeNull();
+    expect(snapQuote("acts;", chunk)).toBeNull();
   });
 });

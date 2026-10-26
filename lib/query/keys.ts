@@ -9,6 +9,7 @@ const courses = {
   search: (term: string) => [...courses.all(), "search", term.trim().toLowerCase()] as const,
   detail: (courseId: string) => [...courses.all(), "detail", courseId] as const,
   outline: (courseId: string) => [...courses.detail(courseId), "outline"] as const,
+  path: (courseId: string) => [...courses.detail(courseId), "path"] as const,
 };
 
 const concepts = {
@@ -36,6 +37,18 @@ const practice = {
   mastery: (conceptId: string) => [...practice.all(), "mastery", conceptId] as const,
 };
 
+/** A student's own materials for a course or a free-standing topic (MVP-01). */
+const materials = {
+  all: () => ["materials"] as const,
+  list: (scope: string) => [...materials.all(), "list", scope] as const,
+  search: (scope: string, q: string) => [...materials.all(), "search", scope, q.trim().toLowerCase()] as const,
+};
+
+/** Virtual labs (MVP-05): the lists are server-rendered; mutations invalidate this prefix. */
+const labs = {
+  all: () => ["labs"] as const,
+};
+
 const jobs = {
   all: () => ["jobs"] as const,
   detail: (jobId: string) => [...jobs.all(), "detail", jobId] as const,
@@ -48,5 +61,7 @@ export const queryKeys = {
   lessons,
   plan,
   practice,
+  materials,
+  labs,
   jobs,
 };

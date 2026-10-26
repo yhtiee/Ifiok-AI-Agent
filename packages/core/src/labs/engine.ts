@@ -1,0 +1,155 @@
+import { evaluateAst } from "../expr-eval";
+import type { ExprAst } from "../expr/types";
+import type { CompiledExperiment, ExperimentConfig } from "./experiment";
+
+// The virtual experiment engine (05 §9): every reading comes from here, never from the model.
+// Pure functions shared by the server (readings, verification, compare) and the browser (plot,
+// fit, the student's own calculation). No mathjs, no zod: safe for the client bundle.
+
+/** Most settings a run offers, so a reading table stays small. */
+export const MAX_SETTINGS = 40;
+
+/** mulberry32: small, fast and reproducible from a 32-bit seed. */
+export function rng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** One stream per (seed, setting, repeat), so a reading never depends on the order taken. */
+function streamFor(seed: number, setting: number, repeat: number) {
+  return rng((seed ^ Math.imul(setting + 1, 0x9e3779b1) ^ Math.imul(repeat + 1, 0x85ebca6b)) >>> 0);
+}
+
+function gaussian(next: () => number): number {
+  const u = Math.max(next(), 1e-12);
+  const v = next();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+/** Rounds to the instrument's resolution, keeping a clean decimal. */
+export function roundTo(value: number, resolution: number): number {
+  const places = Math.max(0, Math.min(10, -Math.floor(Math.log10(resolution) + 1e-9)));
+  return Number((Math.round(value / resolution) * resolution).toFixed(places));
+}
+
+/** The settings of the independent variable the apparatus offers: min to max by step. */
+export function settings(ind: ExperimentConfig["independent"]): number[] {
+  const out: number[] = [];
+  const places = Math.max(0, Math.min(10, -Math.floor(Math.log10(ind.step) + 1e-9) + 1));
+  for (let k = 0; out.length < MAX_SETTINGS; k++) {
+    const v = Number((ind.min + k * ind.step).toFixed(places));
+    if (v > ind.max + ind.step * 1e-9) break;
+    out.push(v);
+  }
+  return out;
+}
+
+export type SettingReadings = { value: number; readings: number[] };
+
+/** The true (noise-free) measured value at a setting. */
+export function trueValue(c: CompiledExperiment, value: number): number {
+  return evaluateAst(c.relation, { [c.config.independent.symbol]: value, ...c.config.hidden });
+}
+
+/** Every reading a run can take: for each setting, `repeats` noisy readings at the resolution. */
+export function readingsFor(c: CompiledExperiment, seed: number, noisy = true): SettingReadings[] {
+  const { noise, repeats, measured } = c.config;
+  return settings(c.config.independent).map((value, k) => {
+    const truth = trueValue(c, value);
+    const readings = Array.from({ length: repeats }, (_, r) => {
+      const next = streamFor(seed, k, r);
+      const err =
+        !noisy || noise.sd === 0
+          ? 0
+          : noise.kind === "uniform"
+            ? (next() * 2 - 1) * noise.sd
+            : gaussian(next) * noise.sd;
+      return roundTo(truth + err, measured.resolution);
+    });
+    return { value, readings };
+  });
+}
+
+export type Point = { x: number; y: number };
+
+/** Axis values for the taken settings: the mean of each setting's readings, through the analysis expressions. */
+export function analysisPoints(
+  a: { xAst: ExprAst; yAst: ExprAst },
+  symbols: { independent: string; measured: string },
+  taken: SettingReadings[],
+): Point[] {
+  return taken.flatMap(({ value, readings }) => {
+    if (!readings.length) return [];
+    const mean = readings.reduce((s, r) => s + r, 0) / readings.length;
+    const scope = { [symbols.independent]: value, [symbols.measured]: mean };
+    const x = evaluateAst(a.xAst, scope);
+    const y = evaluateAst(a.yAst, scope);
+    return Number.isFinite(x) && Number.isFinite(y) ? [{ x, y }] : [];
+  });
+}
+
+export type Fit = { gradient: number; intercept: number; r2: number; n: number };
+
+/** Least-squares straight line. Null with fewer than 2 distinct x values. */
+export function fitLine(points: Point[]): Fit | null {
+  const n = points.length;
+  if (n < 2) return null;
+  const mx = points.reduce((s, p) => s + p.x, 0) / n;
+  const my = points.reduce((s, p) => s + p.y, 0) / n;
+  let sxx = 0;
+  let sxy = 0;
+  let syy = 0;
+  for (const p of points) {
+    sxx += (p.x - mx) ** 2;
+    sxy += (p.x - mx) * (p.y - my);
+    syy += (p.y - my) ** 2;
+  }
+  if (sxx === 0) return null;
+  const gradient = sxy / sxx;
+  const intercept = my - gradient * mx;
+  const r2 = syy === 0 ? 1 : (sxy * sxy) / (sxx * syy);
+  return { gradient, intercept, r2, n };
+}
+
+/** The derived quantity (e.g. g = 4π²/gradient) from a fit. */
+export function deriveFrom(
+  d: { from: "gradient" | "intercept"; deriveAst: ExprAst },
+  fit: Pick<Fit, "gradient" | "intercept">,
+): number {
+  return evaluateAst(d.deriveAst, { [d.from]: d.from === "gradient" ? fit.gradient : fit.intercept });
+}
+
+/**
+ * A correct procedure (05 §9 check 4): `min_readings` settings spread over the whole range, all
+ * repeats, averaged. Used by the verifier and as the reference when explaining a student's gap.
+ */
+export function correctProcedure(c: CompiledExperiment, seed: number, noisy = true): SettingReadings[] {
+  const all = readingsFor(c, seed, noisy);
+  const want = Math.min(all.length, Math.max(c.config.min_readings, 2));
+  if (want === all.length) return all;
+  const picked = new Set<number>();
+  for (let i = 0; i < want; i++) picked.add(Math.round((i * (all.length - 1)) / (want - 1)));
+  return all.filter((_, i) => picked.has(i));
+}
+
+/** The derived result of a set of taken readings, or null when no line can be fitted. */
+export function resultOf(c: CompiledExperiment, taken: SettingReadings[]): { fit: Fit; value: number } | null {
+  const points = analysisPoints(
+    { xAst: c.x, yAst: c.y },
+    { independent: c.config.independent.symbol, measured: c.config.measured.symbol },
+    taken,
+  );
+  const fit = fitLine(points);
+  if (!fit) return null;
+  const value = deriveFrom({ from: c.config.analysis.derive.from, deriveAst: c.derive }, fit);
+  return Number.isFinite(value) ? { fit, value } : null;
+}
+
+export const pctError = (value: number, accepted: number) =>
+  accepted === 0 ? Math.abs(value) * 100 : (Math.abs(value - accepted) / Math.abs(accepted)) * 100;

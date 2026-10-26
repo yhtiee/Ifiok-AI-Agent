@@ -128,11 +128,13 @@ export const outlineDraft = defineSkill({
   }),
 });
 
-// ---- scheme_extract (vision: photo or PDF of the outline) ----
+// ---- scheme_extract (vision: photo or PDF of the outline; or the text of picked pages) ----
 
 export const schemeExtractInput = z.object({
   course_code: z.string().nullable(),
   course_title: z.string().nullable(),
+  /** Text of the outline pages the student picked (MVP-01); otherwise a photo or PDF is attached. */
+  text: z.string().max(20_000).nullable().default(null),
 });
 
 export const schemeExtractOutput = z.object({
@@ -160,6 +162,13 @@ export const schemeExtract = defineSkill({
     system: SCHEME_EXTRACT_SYSTEM,
     user: `The student says this is the outline for ${input.course_code ?? "their course"}${
       input.course_title ? ` (${input.course_title})` : ""
-    }. Read the attached document.`,
+    }. ${
+      input.text
+        ? `Here is the text of the outline pages they picked:
+<source id="outline">
+${input.text}
+</source>`
+        : "Read the attached document."
+    }`,
   }),
 });

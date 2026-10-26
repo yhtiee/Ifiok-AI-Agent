@@ -21,6 +21,8 @@ export default defineConfig({
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: `http://localhost:${PORT}`,
+    // E2E_COLOR_SCHEME=dark runs every test in dark mode (tokens switch on prefers-color-scheme).
+    colorScheme: process.env.E2E_COLOR_SCHEME === "dark" ? "dark" : "light",
     trace: "retain-on-failure",
   },
   projects: [

@@ -54,25 +54,55 @@ export function PlotBlock({ block }: { block: BlockOf<"plot"> }) {
   const summary = `Graph of ${labels} for x from ${xMin} to ${xMax}${settings ? `, with ${settings}` : ""}.`;
 
   return (
-    <figure className="flex flex-col items-center">
+    // Fluid: the graph scales to its box (same 2:1 drawing, lines stay 2.5 px), up to a size that
+    // stays readable on a wide screen.
+    <figure className="mx-auto flex w-full max-w-2xl flex-col items-center">
       <figcaption className="mb-2 text-sm font-semibold text-ink-2">
         <RichText text={block.caption ?? labels} />
       </figcaption>
-      <div className="max-w-full overflow-x-auto rounded-lg border border-line bg-paper p-2">
-        <svg width={WIDTH} height={HEIGHT} role="img" aria-label={summary} className="overflow-visible">
+      <div className="w-full rounded-lg border border-line bg-paper p-2">
+        <svg
+          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          role="img"
+          aria-label={summary}
+          className="block h-auto w-full overflow-visible"
+        >
           {yMin <= 0 && yMax >= 0 ? (
-            <line x1={0} y1={toSvgY(0)} x2={WIDTH} y2={toSvgY(0)} stroke="var(--line)" strokeDasharray="2,2" />
+            <line
+              x1={0}
+              y1={toSvgY(0)}
+              x2={WIDTH}
+              y2={toSvgY(0)}
+              stroke="var(--line)"
+              strokeDasharray="2,2"
+              vectorEffect="non-scaling-stroke"
+            />
           ) : null}
           {xMin <= 0 && xMax >= 0 ? (
-            <line x1={toSvgX(0)} y1={0} x2={toSvgX(0)} y2={HEIGHT} stroke="var(--line)" strokeDasharray="2,2" />
+            <line
+              x1={toSvgX(0)}
+              y1={0}
+              x2={toSvgX(0)}
+              y2={HEIGHT}
+              stroke="var(--line)"
+              strokeDasharray="2,2"
+              vectorEffect="non-scaling-stroke"
+            />
           ) : null}
           {paths.map((d, i) => (
-            <path key={i} d={d} fill="none" stroke={i === 0 ? "var(--quantity)" : "var(--change)"} strokeWidth="2.5" />
+            <path
+              key={i}
+              d={d}
+              fill="none"
+              stroke={i === 0 ? "var(--quantity)" : "var(--change)"}
+              strokeWidth="2.5"
+              vectorEffect="non-scaling-stroke"
+            />
           ))}
         </svg>
       </div>
       {params.length ? (
-        <div className="mt-3 grid w-full max-w-[360px] gap-3">
+        <div className="mt-3 grid w-full gap-3">
           {params.map((p) => (
             <div key={p.name} className="grid gap-1">
               <label htmlFor={`${id}-${p.name}`} className="flex justify-between text-sm text-ink">

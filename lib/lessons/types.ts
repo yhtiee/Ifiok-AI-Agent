@@ -42,7 +42,14 @@ type ConceptSummary = Pick<ConceptRow, "id" | "title" | "subject">;
  * the quick explanation so the student can start learning straight away.
  */
 export type GetLessonResult =
-  | { status: "published"; lesson: LessonRow }
+  | {
+      status: "published";
+      lesson: LessonRow;
+      /** A private lesson built from the student's materials (MVP-02): citation label per chunk id. */
+      fromNotes?: { citations: Record<string, string> };
+      /** The shared lesson is shown while a lesson from the student's materials is being built. */
+      notesBuilding?: { jobId: string };
+    }
   /** No lesson and no job yet: the client asks to start one (POST). */
   | { status: "none"; concept: ConceptSummary; quickExplainer: string }
   | { status: "generating"; jobId: string; concept: ConceptSummary; quickExplainer: string }

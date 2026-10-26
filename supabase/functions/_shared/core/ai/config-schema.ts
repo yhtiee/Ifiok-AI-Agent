@@ -71,6 +71,27 @@ export const aiBillingSchema = z.object({
   groq: z.enum(["free", "paid"]).default("free"),
 });
 
+/** Private lessons from a student's materials (10 MVP-02, 12 §4 Q49). */
+export const privateLessonsSchema = z.object({
+  /** Cosine similarity between a chunk and a topic's concept for the chunk to count as covering it. */
+  min_similarity: z.number().min(0).max(1).default(0.85),
+  /** Close chunks needed before a topic gets a lesson built from the student's materials. */
+  min_chunks: z.number().int().min(1).default(3),
+  /** Chunks sent to the model for one lesson. */
+  max_chunks: z.number().int().min(1).max(30).default(12),
+  items_per_topic: z.number().int().min(1).max(20).default(10),
+});
+export type PrivateLessonsConfig = z.output<typeof privateLessonsSchema>;
+
+/** Human review gates (F2-FR5). Off until the Grow stage by owner decision (12 §4 Q51). */
+export const curationSchema = z.object({
+  /** Lessons in sensitive subjects wait for a curator even after passing every automatic check. */
+  sensitive_lessons_need_curator: z.boolean().default(false),
+  /** Order and match checkpoint items wait for human review before practice uses them. */
+  order_match_items_need_review: z.boolean().default(false),
+});
+export type CurationConfig = z.output<typeof curationSchema>;
+
 export const CONFIG_SCHEMAS = {
   ai_routes: aiRoutesSchema,
   ai_prices: aiPricesSchema,
@@ -79,6 +100,8 @@ export const CONFIG_SCHEMAS = {
   kill_switches: killSwitchesSchema,
   ai_billing: aiBillingSchema,
   economy_enabled: z.boolean(),
+  private_lessons: privateLessonsSchema,
+  curation: curationSchema,
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_SCHEMAS;

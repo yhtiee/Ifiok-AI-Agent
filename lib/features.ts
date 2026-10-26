@@ -1,6 +1,7 @@
-// Where each student-facing feature lives, and whether it is open yet. The dashboard and sidebar
-// show every entry point from the spec; entries that aren't open render as "Opens soon" instead
-// of linking to an empty page. The ticket that ships a feature flips `open` to true.
+// Where each student-facing feature lives, and whether it is open yet. The signed-in app shows a
+// feature's entry point only once it is open: nothing closed appears there, not even as "soon"
+// (specifications/design/app-overhaul.md §3.2). The ticket that ships a feature flips `open` to
+// true and adds its UI.
 // The landing page (specifications/landing/04 §4.2) reads these flags for every status badge and
 // every flag-dependent line, so flipping a flag also updates the public page.
 
@@ -39,16 +40,16 @@ export const FEATURES: Record<FeatureKey, Feature> = {
   topic: { href: "/courses", open: true, spec: "F2 · P1-01" },
   outline: { href: "/courses", open: true, spec: "F2-FR2 · P1-01" },
   sharedLessons: { href: "/courses", open: true, spec: "F2 · P1-02" },
-  upload: { href: "/library/upload", open: false, spec: "F11 · MVP-01" },
-  privateLessons: { href: "/courses", open: false, spec: "MVP-02" },
-  path: { href: "/courses", open: false, spec: "MVP-02" },
-  practice: { href: "/practice", open: false, spec: "MVP-02/03" },
-  weakAreas: { href: "/practice", open: false, spec: "MVP-03" },
-  examPrep: { href: "/practice/exam", open: false, spec: "F8 · MVP-04" },
+  upload: { href: "/materials/add", open: true, spec: "F3 · F11 · MVP-01" },
+  privateLessons: { href: "/courses", open: true, spec: "MVP-02" },
+  path: { href: "/courses", open: true, spec: "MVP-02" },
+  practice: { href: "/practice", open: true, spec: "MVP-03" },
+  weakAreas: { href: "/practice", open: true, spec: "MVP-03" },
+  examPrep: { href: "/courses", open: true, spec: "F8 · MVP-04" },
   textbook: { href: "/library/textbook", open: false, spec: "F3 · P1-16" },
   goal: { href: "/goals/new", open: false, spec: "F6 · P1-06" },
   tutor: { href: "/tutor", open: false, spec: "F1 · P1-07" },
-  labs: { href: "/labs", open: false, spec: "F4 · MVP-05" },
+  labs: { href: "/labs", open: true, spec: "F4 · MVP-05" },
   snap: { href: "/practice/snap", open: false, spec: "F7 · P1-10" },
   library: { href: "/library", open: false, spec: "F11 · P1-03b" },
   share: { href: "/library/share", open: false, spec: "F11 · MVP-06" },

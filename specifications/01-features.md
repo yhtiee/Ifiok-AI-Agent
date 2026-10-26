@@ -371,14 +371,14 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`). Stages and 
 ---
 
 ## F17 · Peer tutoring (paid)
-**Purpose:** Students who have mastered a topic earn by teaching it to other students; students who are stuck get a human who has just learned the same course. **Stage:** Earn (E-05; needs a registered business, Paystack live mode, a licensed escrow/payment partner and legal review of the terms). Owner decision `12` §4 Q39.
+**Purpose:** Students who know a topic earn by teaching it to other students (no mastery on Ifiok required, `12` §4 Q52); students who are stuck get a human who has just learned the same course. **Stage:** Earn (E-05; needs a registered business, Paystack live mode, a licensed escrow/payment partner and legal review of the terms). Owner decision `12` §4 Q39.
 
 **Stories**
 - I'm stuck on "Thermodynamic cycles" two days before the test. I book Ada, a 300-level student who mastered it on Ifiok, for 45 minutes. I pay ₦X; the money is held until the session ends; afterwards I confirm and she is paid.
-- I'm good at circuits. Ifiok invites me to tutor "Kirchhoff's laws" because I reached Mastered there; I set my price and the times I'm free.
+- I'm good at circuits. I offer to tutor "Kirchhoff's laws" (Ifiok shows I reached Mastered there, which helps learners choose me); I set my price and the times I'm free.
 
 **FR**
-1. **Who can tutor:** adult, active account ≥ 30 days old; **Mastered** in each concept they offer (from server-written attempts, never self-declared); a verified payout account whose resolved name matches their legal name (`06` §5 rule 7); agreed to the tutor terms. A tutor profile lists concepts, price per session (within a band in `app_config`), availability and their record (sessions completed, ratings, learning gain).
+1. **Who can tutor:** adult, active account ≥ 30 days old, for any concepts they choose to offer (Q52: mastery on Ifiok is not required; when they have it, from server-written attempts, it is shown to learners as a signal, never self-declared); a verified payout account whose resolved name matches their legal name (`06` §5 rule 7); agreed to the tutor terms. A tutor profile lists concepts, price per session (within a band in `app_config`), availability and their record (sessions completed, ratings, learning gain).
 2. **Booking:** the learner picks a concept, a tutor and a time; pays through Paystack into **escrow held by a licensed partner** (Ifiok never holds the funds itself); the booking shows "Paid, held until the session ends".
 3. **The session** happens by chat in Ifiok plus a call or meeting the two arrange; Ifiok does not host video (a non-goal). Ifiok gives both a session page: the concept's lesson, a short practice set, and a 3-question check before and after.
 4. **Release:** the learner confirms the session happened, or it releases automatically 24 h after the scheduled end if no dispute is opened. Ifiok's commission (`app_config.tutoring_take_rate`, default 15%) is deducted at release.
@@ -387,20 +387,20 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`). Stages and 
 7. **Safety:** 18+ only; in-app chat filtered for harassment and for sharing contact details before a booking is paid; report and block; in-person safety guidance; repeated refunds or disputes suspend tutoring.
 8. **Anti-fraud:** a tutor can't book themselves or pay through a linked account; pairs that repeatedly book and refund, or rings of accounts rating each other, are flagged (graph signals as in `06` §5).
 
-**AC:** funds never touch an Ifiok bank account (partner integration test); release happens exactly once per booking (idempotent on the booking id); a tutor without Mastered in a concept cannot list it (test); refunds and auto-release follow the rules above (test).
-**Trade-offs:** a human market adds trust and payment risk; escrow and Mastered-only tutors keep it honest. Revisit the take rate after pilot data.
+**AC:** funds never touch an Ifiok bank account (partner integration test); release happens exactly once per booking (idempotent on the booking id); a tutor's Ifiok mastery level shows on each concept they list, when they have one (test); refunds and auto-release follow the rules above (test).
+**Trade-offs:** a human market adds trust and payment risk; escrow, ratings, learning-gain scores and visible Ifiok mastery keep it honest. Revisit the take rate after pilot data.
 
 ---
 
 ## F18 · Student explainers (text, voice, video)
-**Purpose:** Students who have mastered a topic teach it once and get paid every time it helps another student; learners get a peer's explanation in the form that works for them. **Stage:** MVP (MVP-06, Q42) for publishing with AI review plus admin approval, captions and usage points; Earn (E-04) for curator review and converting points into Units and cash. Owner decisions `12` §4 Q40, Q41, Q42.
+**Purpose:** Students who know a topic teach it once and get paid every time it helps another student (no mastery on Ifiok required, Q52); learners get a peer's explanation in the form that works for them. **Stage:** MVP (MVP-06, Q42) for publishing with AI review plus admin approval, captions and usage points; Earn (E-04) for curator review and converting points into Units and cash. Owner decisions `12` §4 Q40, Q41, Q42.
 
 **Stories**
 - I finally understood Kirchhoff's laws. I record a 2-minute video on my phone showing how I set up the loop equations; after review it appears under the topic, and I earn when other students finish it.
 - I'm on a small data bundle. Ifiok shows me the explainer's transcript and plays the audio only.
 
 **FR**
-1. **Who can publish:** an adult, active account with **Mastered** in the concept (server-written evidence); explainer terms accepted (licence as F11-FR5; withdraw any time).
+1. **Who can publish:** an adult, active account, for any concept (Q52; their Ifiok mastery shows on the explainer when they have it); explainer terms accepted (licence as F11-FR5; withdraw any time).
 2. **Formats:** written walkthrough (Markdown with inline maths); voice note (≤ 5 min); **short video (≤ 3 min, 480p, ≤ 40 MB)** recorded in the browser or uploaded, compressed on the device before upload. One explainer covers one concept.
 3. **Processing:** media goes to object storage behind a CDN (`02` §1); the worker transcribes voice and video with Whisper (Groq) for captions, search and review; a poster frame and duration are recorded.
 4. **Review before anyone sees it:** AI review of the text or transcript (on-topic, accurate against the concept, no harassment, sexual content, hate, contact details or personal data) and of sampled video frames (`08` §7b); any number stated is checked by the engine where it can be, otherwise the explainer is labelled "Numbers not checked"; each author's first 3 explainers also need a curator's approval. Reports and the 3-flag hide rule apply.
@@ -409,6 +409,6 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`). Stages and 
 7. **Pay:** usage points when a qualified consumer finishes an explainer (`06` §4, §14), so pay follows real use, from the contribution pool.
 8. **Rules:** no faces of other people without their consent; no material copied from textbooks or lecturers' slides; no selling or contact details; 18+ only.
 
-**AC:** no explainer is visible before it passes review (test); every video has captions from its transcript; data-saver never downloads video bytes (Playwright); one usage point per (explainer, consumer, month) (pgTAP); a student without Mastered cannot publish for that concept (test).
+**AC:** no explainer is visible before it passes review (test); every video has captions from its transcript; data-saver never downloads video bytes (Playwright); one usage point per (explainer, consumer, month) (pgTAP); an explainer shows its author's Ifiok mastery for the concept when they have it (test).
 **Trade-offs:** video costs data, storage and moderation effort; short limits, on-device compression, transcript-first playback and review-before-publish keep it within the data-light principle.
 **Cost notes:** storage and CDN egress for video (`09` §2); one Whisper transcription per explainer (free tier during the pilot).

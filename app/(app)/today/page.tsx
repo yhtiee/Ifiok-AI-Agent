@@ -1,75 +1,49 @@
 import { APP_TIME_ZONE } from "@ifiok/core";
-import {
-  BooksIcon,
-  CheckCircleIcon,
-  CircleIcon,
-  FilePdfIcon,
-  FireIcon,
-  FlagIcon,
-  ListChecksIcon,
-  MagnifyingGlassIcon,
-  MedalIcon,
-  TimerIcon,
-  UploadSimpleIcon,
-} from "@phosphor-icons/react/ssr";
-import type { Icon } from "@phosphor-icons/react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import type { ReactNode } from "react";
-import { Panel } from "@/components/app/Page";
 import { AppPage } from "@/components/app/AppPage";
-import { ButtonLink } from "@/components/ui/Button";
+import { TodayLearning, type TodayCourse } from "@/components/app/today/TodayLearning";
 import { requireOnboardedPage } from "@/lib/auth/guards";
-import { FEATURES, type FeatureKey } from "@/lib/features";
-import { getLearningSummary } from "@/lib/learning/summary";
-import { getSetupSteps } from "@/lib/learning/setup";
+import { greeting } from "@/lib/auth/names";
+import { getCoursePath } from "@/lib/courses/path";
+import { getCourseNextUps, getFollowedTopics, getMyCourses } from "@/lib/courses/read";
+import { getLastStudied, getWeakAreas } from "@/lib/learning/progress";
+import { masteryText } from "@/lib/courses/path-rules";
+import { nextHref } from "@/lib/learning/weak-areas";
+import { Row, RowList, SectionHeading } from "@/components/app/Page";
+import { CalendarCheckIcon, WarningCircleIcon } from "@phosphor-icons/react/ssr";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { getTodayStudy } from "@/lib/exam/service";
+import { SESSION_WORDS, sessionHref } from "@/lib/exam/sessions";
 
 export const metadata: Metadata = { title: "Today", robots: { index: false } };
 
-// Today is the first page a student sees, so its job is to get them learning (00 §4.6: never
-// block a student; they can always start). Until they have a plan it is a start hub: every way in
-// from the spec, one primary action, a setup checklist and their numbers. Once the planner lands
-// (P1-06) the plan timeline takes the main column and the start options move below it.
-
-type StartOption = { key: FeatureKey; icon: Icon; title: string; body: string };
-
-const START_OPTIONS: StartOption[] = [
-  {
-    key: "topic",
-    icon: MagnifyingGlassIcon,
-    title: "Learn any topic",
-    body: "Type a topic, like “Fourier series” or “judicial precedent”, and get a lesson you can move.",
-  },
-  {
-    key: "outline",
-    icon: ListChecksIcon,
-    title: "Build your course outline",
-    body: "Snap your course outline, type the topics, or let Ifiok draft one. It becomes your learning path.",
-  },
-  {
-    key: "upload",
-    icon: UploadSimpleIcon,
-    title: "Upload notes or past questions",
-    body: "Add your notes, past papers and lab manuals so lessons and the tutor use your material.",
-  },
-  {
-    key: "textbook",
-    icon: FilePdfIcon,
-    title: "Learn from your textbook",
-    body: "Pick a PDF. It stays on your phone; Ifiok builds lessons from the pages you choose.",
-  },
-  {
-    key: "goal",
-    icon: FlagIcon,
-    title: "Set a goal",
-    body: "An exam date, a practical, or mastering a course. Your daily plan works towards it.",
-  },
-];
-
+// Today (app-overhaul §5.1): the greeting, one "Next" block that opens a lesson in one tap, and a
+// short list of the student's courses and topics. Before they have any, one way in: find your
+// course. Only what works today is shown (no plan, streak or setup checklist until they're live).
+// MVP-03: "Continue" comes from server evidence, and the top 3 weak areas follow.
 export default async function TodayPage() {
-  const { userId, profile } = await requireOnboardedPage();
-  const [summary, steps] = await Promise.all([getLearningSummary(userId), getSetupSteps(userId)]);
-  const doneCount = steps.filter((s) => s.done).length;
+  const viewer = await requireOnboardedPage();
+  const supabase = await createClient();
+  const [courses, topics, { data: university }, lastStudied, weak, study] = await Promise.all([
+    getMyCourses(viewer),
+    getFollowedTopics(viewer),
+    viewer.profile.university_id
+      ? supabase.from("universities").select("name").eq("id", viewer.profile.university_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    getLastStudied(viewer),
+    getWeakAreas(viewer, 3),
+    getTodayStudy(viewer),
+  ]);
+  const nextUps = await getCourseNextUps(
+    viewer,
+    courses.map((c) => c.id),
+  );
+  // The Path's lesson states for the newest course only (one call); the device may pick another
+  // course it opened last, whose line then loads on the client.
+  const newest = courses[0];
+  const newestPath = newest && newest.topics ? await getCoursePath(viewer, newest.id) : null;
+
   const date = new Intl.DateTimeFormat("en-GB", {
     timeZone: APP_TIME_ZONE,
     weekday: "long",
@@ -77,188 +51,71 @@ export default async function TodayPage() {
     month: "long",
   }).format(new Date());
 
+  const todayCourses: TodayCourse[] = courses.map((c) => ({
+    id: c.id,
+    code: c.code,
+    title: c.title,
+    topics: c.topics,
+    conceptIds: nextUps.get(c.id)?.conceptIds ?? [],
+    next: nextUps.get(c.id)?.next ?? null,
+  }));
+
   return (
     <AppPage
       crumbs={[{ label: "Today" }]}
       eyebrow={date}
-      title="Start learning"
-      description="Choose what you want to learn. Ifiok builds the lessons, practice and daily plan around it."
+      title={<span data-testid="greeting">{greeting(viewer.profile.first_name)}</span>}
     >
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:gap-6">
-        <div className="grid content-start gap-4 lg:gap-6">
-          {/* The one primary action on this screen. */}
-          <section
-            aria-labelledby="start-course"
-            className="flex flex-col gap-4 rounded-[var(--radius-card)] border border-line bg-surface p-5 sm:flex-row sm:items-center sm:justify-between lg:p-6"
-          >
-            <div className="flex gap-4">
-              <span
-                aria-hidden="true"
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-change-soft text-change"
-              >
-                <BooksIcon size={26} />
-              </span>
-              <div>
-                <h2 id="start-course" className="text-lg font-semibold">
-                  Learn a course
-                </h2>
-                <p className="mt-1 max-w-[52ch] text-base text-ink-2">
-                  Find your course at your university, or add it if nobody has yet. Ifiok turns it into a path of
-                  topics, {profile.daily_minutes} minutes a day.
-                </p>
-              </div>
-            </div>
-            <div className="shrink-0">
-              {FEATURES.course.open ? (
-                <ButtonLink href={FEATURES.course.href} full>
-                  Find your course
-                </ButtonLink>
-              ) : (
-                <OpensSoon />
-              )}
-            </div>
-          </section>
+      <TodayLearning
+        lastStudied={lastStudied}
+        courses={todayCourses}
+        topics={topics.map((t) => ({ id: t.id, title: t.title }))}
+        newestPath={newest && newestPath ? { courseId: newest.id, path: newestPath } : null}
+        universityName={university?.name ?? null}
+      />
 
-          <Panel title="Other ways to start">
-            <ul className="grid gap-px overflow-hidden rounded-[var(--radius-input)] bg-line sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
-              {START_OPTIONS.map((option) => (
-                <StartRow key={option.key} option={option} />
-              ))}
-            </ul>
-          </Panel>
-        </div>
+      {study.length ? (
+        <section aria-labelledby="study-today" className="mt-8 grid gap-3">
+          <SectionHeading id="study-today">Study plan today</SectionHeading>
+          <RowList labelledBy="study-today">
+            {study.flatMap((c) =>
+              c.sessions.map((s, i) => (
+                <Row
+                  key={`${c.courseId}-${i}`}
+                  href={sessionHref(c.courseId, s)}
+                  icon={<CalendarCheckIcon size={22} />}
+                  tone="course"
+                  title={`${SESSION_WORDS[s.kind]}: ${s.title}`}
+                  meta={`${c.code} · exam in ${c.daysLeft} ${c.daysLeft === 1 ? "day" : "days"} · ${s.minutes} min`}
+                />
+              )),
+            )}
+          </RowList>
+        </section>
+      ) : null}
 
-        <div className="grid content-start gap-4 lg:gap-6">
-          <Panel
-            title="Get set up"
-            action={
-              <span className="text-sm text-ink-2 tabular-nums">
-                {doneCount} of {steps.length} done
-              </span>
-            }
-          >
-            <div
-              role="progressbar"
-              aria-label="Setup progress"
-              aria-valuemin={0}
-              aria-valuemax={steps.length}
-              aria-valuenow={doneCount}
-              className="mb-4 h-1.5 overflow-hidden rounded-full bg-line"
-            >
-              <div className="h-full rounded-full bg-built" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
-            </div>
-            <ul className="grid gap-2.5">
-              {steps.map((step) => (
-                <li key={step.key} className="flex items-center gap-3 text-base">
-                  {step.done ? (
-                    <CheckCircleIcon size={22} weight="fill" className="shrink-0 text-built" aria-hidden="true" />
-                  ) : (
-                    <CircleIcon size={22} className="shrink-0 text-ink-3" aria-hidden="true" />
-                  )}
-                  <span className={step.done ? "text-ink-2" : ""}>{step.label}</span>
-                  <span className="sr-only">{step.done ? "(done)" : "(to do)"}</span>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          <Panel title="Your progress">
-            <ul aria-label="Your progress" className="grid divide-y divide-line">
-              <Stat icon={TimerIcon} label="Daily goal" value={`${profile.daily_minutes} min`} hint="Change it in Me" />
-              <Stat
-                icon={FireIcon}
-                label="Study streak"
-                value={`${summary.streakDays} ${summary.streakDays === 1 ? "day" : "days"}`}
-                hint={summary.studiedToday ? "You've studied today" : "Study today to start one"}
+      {weak.length ? (
+        <section aria-labelledby="weak-areas" className="mt-8 grid gap-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <SectionHeading id="weak-areas">Weak areas</SectionHeading>
+            <Link href="/practice" className="text-sm font-semibold text-quantity hover:underline">
+              All practice
+            </Link>
+          </div>
+          <RowList labelledBy="weak-areas">
+            {weak.map((w) => (
+              <Row
+                key={w.conceptId}
+                href={nextHref(w)}
+                icon={<WarningCircleIcon size={22} />}
+                tone="add"
+                title={w.title}
+                meta={`${w.evidence} · ${masteryText(w.level, true)} · ${w.next.label}`}
               />
-              <Stat
-                icon={MedalIcon}
-                label="Topics mastered"
-                value={String(summary.topicsMastered)}
-                hint={`${summary.topicsStarted} started`}
-                tone="built"
-              />
-            </ul>
-          </Panel>
-        </div>
-      </div>
+            ))}
+          </RowList>
+        </section>
+      ) : null}
     </AppPage>
-  );
-}
-
-function StartRow({ option }: { option: StartOption }) {
-  const { href, open } = FEATURES[option.key];
-  const IconCmp = option.icon;
-  const content = (
-    <>
-      <span
-        aria-hidden="true"
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-          open ? "bg-quantity-soft text-quantity" : "bg-paper text-ink-2"
-        }`}
-      >
-        <IconCmp size={22} />
-      </span>
-      <span className="grid min-w-0 gap-0.5">
-        <span className="text-base font-semibold">{option.title}</span>
-        <span className="hidden text-sm text-ink-2 sm:block">{option.body}</span>
-        {open ? null : <span className="text-xs text-ink-3">Opens soon</span>}
-      </span>
-    </>
-  );
-  return (
-    <li className="bg-surface">
-      {open ? (
-        <Link href={href} className="flex h-full gap-3 p-4 hover:bg-paper">
-          {content}
-        </Link>
-      ) : (
-        <div aria-disabled="true" className="flex h-full gap-3 p-4">
-          {content}
-        </div>
-      )}
-    </li>
-  );
-}
-
-function OpensSoon() {
-  return (
-    <span className="inline-flex min-h-12 items-center rounded-full border border-dashed border-line px-5 text-sm text-ink-2">
-      Opens soon
-    </span>
-  );
-}
-
-function Stat({
-  icon: IconCmp,
-  label,
-  value,
-  hint,
-  tone = "ink",
-}: {
-  icon: Icon;
-  label: string;
-  value: string;
-  hint: ReactNode;
-  tone?: "ink" | "built";
-}) {
-  return (
-    <li className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-      <span
-        aria-hidden="true"
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-          tone === "built" ? "bg-built-soft text-built" : "bg-paper text-ink-2"
-        }`}
-      >
-        <IconCmp size={22} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm text-ink-2">{label}</p>
-        <p className="text-xs text-ink-2">{hint}</p>
-      </div>
-      <p className={`font-display text-xl font-semibold tabular-nums ${tone === "built" ? "text-built" : ""}`}>
-        {value}
-      </p>
-    </li>
   );
 }

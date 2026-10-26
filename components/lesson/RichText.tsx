@@ -16,7 +16,15 @@ export function MathHtmlProvider({ value, children }: { value?: Record<string, s
 /** One pre-rendered formula, or its source as plain text when it couldn't be rendered. */
 export function Formula({ latex }: { latex: string }) {
   const html = useContext(MathHtmlContext)[latex];
-  return html ? <span dangerouslySetInnerHTML={{ __html: html }} /> : <code className="text-quantity">{latex}</code>;
+  // A long formula can't wrap: it scrolls inside the line instead of running off the screen.
+  return html ? (
+    <span
+      className="inline-block max-w-full overflow-x-auto overflow-y-hidden align-middle"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  ) : (
+    <code className="break-all text-quantity">{latex}</code>
+  );
 }
 
 export function RichText({ text }: { text: string }) {

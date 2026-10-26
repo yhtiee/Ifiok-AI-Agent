@@ -5,6 +5,7 @@ import { embedTexts, EmbeddingError, toVector } from "@/lib/ai/embed";
 import type { SchemeExtractOutput, TopicResolveOutput } from "@ifiok/core/ai/skills/courses";
 import type { ImageInput } from "@/lib/ai/types";
 import { RouteError } from "@/lib/api/route";
+import { NO_TRACE, startTrace, type Trace } from "@/lib/api/trace";
 import type { Viewer } from "@/lib/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +14,7 @@ import { cleanTitle, conceptSlug, courseCodeNorm, formatCourseCode, levelBandFor
 // Student-created courses, outlines and concepts (F2-FR1–FR3, 08 §2.5b). Every write is checked
 // here and done with the service role; clients can't write these tables (03 §8).
 
-const LIMITS = { coursesPerDay: 5, conceptsPerDay: 20, outlineEditsPerDay: 10, topicsPerOutline: 60 } as const;
+const LIMITS = { coursesPerDay: 50, conceptsPerDay: 200, outlineEditsPerDay: 100, topicsPerOutline: 600 } as const;
 /** Below this similarity a topic becomes a new concept without asking the model (04 §4.5b). */
 const CANDIDATE_MIN_SIMILARITY = 0.8;
 const NEAR_DUPLICATE_SCORE = 0.45;
@@ -71,31 +72,39 @@ export async function resolveTopics(params: {
   subject: string | null;
   levelBand: LevelBand;
   course: { code: string; title: string } | null;
+  trace?: Trace;
 }): Promise<ResolvedTopic[]> {
   const { viewer, topics, subject, levelBand, course } = params;
+  const trace = params.trace ?? NO_TRACE;
   if (topics.length === 0) return [];
   const admin = db();
 
+  const texts = topics.map((t) => (t.description ? `${t.title}. ${t.description}` : t.title));
   let embeddings: number[][];
   try {
-    embeddings = await embedTexts(topics.map((t) => (t.description ? `${t.title}. ${t.description}` : t.title)));
+    embeddings = await trace.step("embed_topics", () => embedTexts(texts), {
+      topics: texts.length,
+      chars: texts.reduce((n, t) => n + t.length, 0),
+    });
   } catch (err) {
     aiFailure(err);
   }
 
   // Candidates: nearest concepts in the same subject and level band (any subject if none given).
-  const candidateLists: Candidate[][] = await Promise.all(
-    embeddings.map(async (embedding) => {
-      const { data, error } = await admin.rpc("match_concepts", {
-        p_embedding: toVector(embedding),
-        // SQL null = search every subject (free-standing topics); the generated type can't express it.
-        p_subject: subject as string,
-        p_level_band: levelBand,
-        p_limit: 5,
-      });
-      if (error) throw new Error("Couldn't search concepts");
-      return (data ?? []).filter((c) => c.similarity >= CANDIDATE_MIN_SIMILARITY);
-    }),
+  const candidateLists: Candidate[][] = await trace.step("match_concepts", () =>
+    Promise.all(
+      embeddings.map(async (embedding) => {
+        const { data, error } = await admin.rpc("match_concepts", {
+          p_embedding: toVector(embedding),
+          // SQL null = search every subject (free-standing topics); the generated type can't express it.
+          p_subject: subject as string,
+          p_level_band: levelBand,
+          p_limit: 5,
+        });
+        if (error) throw new Error("Couldn't search concepts");
+        return (data ?? []).filter((c) => c.similarity >= CANDIDATE_MIN_SIMILARITY);
+      }),
+    ),
   );
 
   const results = new Map<string, ResolvedTopic>();
@@ -107,6 +116,7 @@ export async function resolveTopics(params: {
     else needModel.push(i);
   });
 
+  trace.note("exact_matches", { matched: topics.length - needModel.length, need_model: needModel.length });
   if (needModel.length) {
     const { data: subjects } = await admin.from("subjects").select("code, title").order("code");
     const subjectCodes = new Set((subjects ?? []).map((s) => s.code));
@@ -117,26 +127,31 @@ export async function resolveTopics(params: {
       const batch = needModel.slice(start, start + RESOLVE_BATCH);
       let output: TopicResolveOutput;
       try {
-        ({ output } = await getGateway().run<TopicResolveOutput>("topic_resolve", {
-          userId: viewer.userId,
-          input: {
-            level_band: levelBand,
-            course,
-            subject,
-            subjects: subjects ?? [],
-            topics: batch.map((i) => ({
-              key: topics[i]!.key,
-              title: topics[i]!.title,
-              description: topics[i]!.description ?? null,
-              candidates: candidateLists[i]!.map((c) => ({
-                id: c.id,
-                title: c.title,
-                description: c.description,
-                similarity: c.similarity,
-              })),
-            })),
-          },
-        }));
+        ({ output } = await trace.step(
+          "topic_resolve",
+          () =>
+            getGateway().run<TopicResolveOutput>("topic_resolve", {
+              userId: viewer.userId,
+              input: {
+                level_band: levelBand,
+                course,
+                subject,
+                subjects: subjects ?? [],
+                topics: batch.map((i) => ({
+                  key: topics[i]!.key,
+                  title: topics[i]!.title,
+                  description: topics[i]!.description ?? null,
+                  candidates: candidateLists[i]!.map((c) => ({
+                    id: c.id,
+                    title: c.title,
+                    description: c.description,
+                    similarity: c.similarity,
+                  })),
+                })),
+              },
+            }),
+          { batch: batch.length },
+        ));
       } catch (err) {
         aiFailure(err);
       }
@@ -172,7 +187,10 @@ export async function resolveTopics(params: {
             p_embedding: toVector(embeddings[i]!),
             p_created_by: viewer.userId,
           });
-          if (error || !conceptId) throw new Error("Couldn't create the concept");
+          if (error || !conceptId) {
+            trace.note("create_concept_failed", { code: error?.code ?? null });
+            throw new Error("Couldn't create the concept");
+          }
           createdToday++;
           results.set(topic.key, { key: topic.key, conceptId, created: true });
         }
@@ -436,7 +454,9 @@ export async function saveOutline(
   courseId: string,
   input: z.infer<typeof saveOutlineInput>,
 ): Promise<SaveOutlineResult> {
-  const { course, enrollment, canLock } = await loadCourseForEdit(viewer, courseId);
+  // Each step is logged in development, and any failure logs which step broke (metadata only).
+  const trace = startTrace("outline.save", { course: courseId, source: input.source, topics: input.topics.length });
+  const { course, enrollment, canLock } = await trace.step("load_course", () => loadCourseForEdit(viewer, courseId));
   const admin = db();
 
   const { count: editsToday } = await admin
@@ -453,11 +473,13 @@ export async function saveOutline(
     title: cleanTitle(t.title),
     description: t.description?.trim() || null,
   }));
-  await moderateNames(
-    viewer,
-    topics.map((t) => t.title).join("\n"),
-    "outline",
-    "Some topic names can't be used. Keep only real topics from your course.",
+  await trace.step("moderate", () =>
+    moderateNames(
+      viewer,
+      topics.map((t) => t.title).join("\n"),
+      "outline",
+      "Some topic names can't be used. Keep only real topics from your course.",
+    ),
   );
 
   // Keep the concept of topics whose title didn't change; resolve the rest.
@@ -480,16 +502,19 @@ export async function saveOutline(
   });
 
   const { data: bands } = await admin.from("app_config").select("value").eq("key", "level_bands").maybeSingle();
+  trace.note("to_resolve", { unchanged: topics.length - toResolve.length, to_resolve: toResolve.length });
   const resolved = await resolveTopics({
     viewer,
     topics: toResolve,
     subject: course.subject,
     levelBand: levelBandFor(course.level, (bands?.value ?? {}) as Record<string, string>),
     course: { code: course.code, title: course.title },
+    trace,
   });
 
   const tooBroad = resolved.filter((r): r is Extract<ResolvedTopic, { tooBroad: string[] }> => "tooBroad" in r);
   if (tooBroad.length) {
+    trace.done({ result: "too_broad", too_broad: tooBroad.length });
     return {
       status: "too_broad",
       topics: tooBroad.map((r) => ({
@@ -525,12 +550,18 @@ export async function saveOutline(
     })
     .select("id")
     .single();
-  if (error || !revision) throw new Error("Couldn't save the outline");
+  if (error || !revision) {
+    trace.note("save_revision_failed", { code: error?.code ?? null });
+    throw new Error("Couldn't save the outline");
+  }
 
   if (!pending) {
-    const { error: applyError } = await admin.rpc("apply_outline", { p_course: courseId, p_topics: outline });
-    if (applyError) throw new Error("Couldn't apply the outline");
+    await trace.step("apply_outline", async () => {
+      const { error: applyError } = await admin.rpc("apply_outline", { p_course: courseId, p_topics: outline });
+      if (applyError) throw new Error(`Couldn't apply the outline (${applyError.code ?? "db"})`);
+    });
   }
+  trace.done({ result: pending ? "pending" : "applied" });
   return { status: pending ? "pending" : "applied", revisionId: revision.id };
 }
 
@@ -624,13 +655,14 @@ export async function draftOutline(viewer: Viewer, courseId: string) {
 export const OUTLINE_FILE_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"] as const;
 export const OUTLINE_FILE_MAX_BYTES = 8 * 1024 * 1024;
 
-export async function extractOutline(viewer: Viewer, courseId: string, file: ImageInput) {
+/** Reads topics from a photo or PDF of the outline, or from the text of pages picked on the device (MVP-01). */
+export async function extractOutline(viewer: Viewer, courseId: string, from: { file: ImageInput } | { text: string }) {
   const { course } = await loadCourseForEdit(viewer, courseId);
   try {
     const { output } = await getGateway().run<SchemeExtractOutput>("scheme_extract", {
       userId: viewer.userId,
-      input: { course_code: course.code, course_title: course.title },
-      images: [file],
+      input: { course_code: course.code, course_title: course.title, text: "text" in from ? from.text : null },
+      ...("file" in from ? { images: [from.file] } : {}),
     });
     return output;
   } catch (err) {

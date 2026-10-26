@@ -9,7 +9,7 @@ Ifiok serves students only for now; lecturer licences are deferred (the lecturer
 | Way to earn | What counts | Paid in | Funded by | Section | Ticket |
 |---|---|---|---|---|---|
 | **Verified uploads** | Notes, past questions, lab manuals and worked solutions shared to the contribution pool, approved by curation, used by other students | Units at first; cash once the pool is switched on | Contribution pool (35% of margin) | §2, §3, §4 | E-01, E-03, E-06 |
-| **Curating** | Accepted reviews and fixes of AI lessons in subjects the student has mastered | Cash per accepted review | Ifiok's budget (a cost line) | §13 | E-02 |
+| **Curating** | Accepted reviews and fixes of AI lessons in subjects the student was approved to curate | Cash per accepted review | Ifiok's budget (a cost line) | §13 | E-02 |
 | **Explainers** | Written, voice or short video explainers that other students finish | Usage points → Units, then cash | Contribution pool | §4, §14 | E-04 |
 | **Tutoring** | Paid sessions with students who book them | Cash, minus Ifiok's commission | The learner's payment, held in escrow by a licensed partner | §12 | E-05 |
 
@@ -166,12 +166,12 @@ Admin creates a campaign `{sponsor, amount, course(s), rule (e.g. top 20 mastery
 - **Tax and terms:** tutor income may be taxable; terms state the commission, release, dispute and refund rules. Legal review before launch.
 
 ## 13. Student curator pay (owner decision 12 §4 Q39)
-- **Who:** students with **Mastered** in at least 5 concepts of a subject who pass a short curator check (fix three seeded lesson errors); verified payout account as in §5 rule 7.
+- **Who:** students who **apply** to curate a subject and are **approved by an admin** after review (no mastery requirement; owner decision, `12` §4 Q54); verified payout account as in §5 rule 7.
 - **Work:** the curator queue (flagged and `new` lessons in their subject, F2-FR6); a fix publishes a new version through `/api/lessons/:id` (verification gate, audit). Non-STEM lessons without sources go to curators first, which also answers the invented-facts risk (Q36 f).
 - **Pay:** a fixed amount per **accepted** review (`app_config.curator_fee_per_review`; the `09` §7 placeholder is ₦1,500), paid monthly by transfer from Ifiok's budget (a cost line, not the contributor pool). A second curator spot-checks 1 in 10 reviews; rejected reviews are unpaid; monthly cap per curator in config.
 
 ## 14. Student explainers (owner decisions 12 §4 Q40, Q41; F18)
-- **What:** a student who has mastered a concept (Mastered, server-written evidence) publishes an explainer for it: a written walkthrough, a voice note (≤ 5 min) or a **short video (≤ 3 min, 480p, ≤ 40 MB after on-device compression)**. Every voice and video explainer is transcribed so it has captions and can be searched and reviewed.
+- **What:** any student publishes an explainer for a concept they choose (no mastery required, `12` §4 Q52; their Ifiok mastery shows when they have it): a written walkthrough, a voice note (≤ 5 min) or a **short video (≤ 3 min, 480p, ≤ 40 MB after on-device compression)**. Every voice and video explainer is transcribed so it has captions and can be searched and reviewed.
 - **Checks before others see it:** AI review of the text or transcript, and of sampled video frames (`08` §7b); numbers checked by the engine where possible; curator review for each author's first 3 explainers; reports and the 3-flag hide rule apply.
 - **Pay:** explainers earn usage points like uploads (§4: one point per qualified consumer per month who finishes it), so pay comes from the contribution pool, never from a price set by the author. Fairness comes from the same rules as uploads: one point per (explainer, consumer, month), qualified consumers only, no self-use, and the pool's 20% cap per person (§3).
 - **Rights:** the author grants Ifiok the same licence as uploads (F11-FR5) and can withdraw it; withdrawn media is deleted from storage within 7 days.

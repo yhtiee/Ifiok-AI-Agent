@@ -4,7 +4,7 @@ import { LessonSpec, lessonSpecSchema } from "../dsl/schema";
 import { compileExpressionToAst } from "../expr/compile";
 import { checkStep } from "./steps";
 import { checkPlotFunction } from "./plot";
-import { checkQuote } from "./quote";
+import { checkQuote, snapQuote } from "./quote";
 import { renderKatex } from "./katex";
 import { mathEvaluate } from "./tools";
 
@@ -219,7 +219,10 @@ export function verifyLesson(
             if (!chunkContent) {
               errors.push(`${blockPath}: cited chunk_id ${block.chunk_id} not found in sources`);
             } else if (!checkQuote(block.quote, chunkContent)) {
-              errors.push(`${blockPath}: quote "${block.quote}" is not a substring of chunk ${block.chunk_id}`);
+              // Same words with different punctuation: use the source's exact wording instead.
+              const exact = snapQuote(block.quote, chunkContent);
+              if (exact) block.quote = exact;
+              else errors.push(`${blockPath}: quote "${block.quote}" is not a substring of chunk ${block.chunk_id}`);
             }
           }
           break;

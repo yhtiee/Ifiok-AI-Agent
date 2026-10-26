@@ -2,6 +2,7 @@ import "server-only";
 import type { Viewer } from "@/lib/auth/viewer";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { nextUp, type MasteryLevel } from "./path-rules";
 
 // Reads for the Courses pages. User-scoped reads go through RLS; aggregate counts (members) use
 // the service role and expose only numbers.
@@ -132,4 +133,81 @@ export async function getCourseView(viewer: Viewer, courseId: string) {
       isMine: r.editor_id === viewer.userId,
     })),
   };
+}
+
+export type CourseNextUp = { conceptIds: string[]; next: { conceptId: string; title: string } | null };
+
+/**
+ * For Today (app-overhaul §5.1): each course's topic concepts and its Next up (the first topic in
+ * outline order that isn't Proficient yet, the Path's rule), without the Path's lesson states.
+ */
+export async function getCourseNextUps(viewer: Viewer, courseIds: string[]): Promise<Map<string, CourseNextUp>> {
+  const result = new Map<string, CourseNextUp>();
+  if (!courseIds.length) return result;
+  const supabase = await createClient();
+  const { data: topics } = await supabase
+    .from("topics")
+    .select("id, course_id, title, week, position, concept_id")
+    .in("course_id", courseIds)
+    .is("archived_at", null)
+    .order("position");
+  const conceptIds = [...new Set((topics ?? []).flatMap((t) => (t.concept_id ? [t.concept_id] : [])))];
+  const { data: mastery } = conceptIds.length
+    ? await supabase
+        .from("mastery")
+        .select("concept_id, level")
+        .eq("user_id", viewer.userId)
+        .in("concept_id", conceptIds)
+    : { data: [] as { concept_id: string; level: string }[] };
+  const levels = new Map((mastery ?? []).map((m) => [m.concept_id, m.level as MasteryLevel]));
+
+  for (const id of courseIds) {
+    const own = (topics ?? []).filter((t) => t.course_id === id);
+    const next = nextUp(
+      own.map((t) => ({
+        topicId: t.id,
+        title: t.title,
+        week: t.week,
+        conceptId: t.concept_id,
+        lesson: "not_started" as const,
+        fromNotes: false,
+        covered: false,
+        mastery: (t.concept_id && levels.get(t.concept_id)) || "not_started",
+        tried: false, // "Next up" needs only the level
+        practice: 0,
+      })),
+    );
+    result.set(id, {
+      conceptIds: own.flatMap((t) => (t.concept_id ? [t.concept_id] : [])),
+      next: next?.conceptId ? { conceptId: next.conceptId, title: next.title } : null,
+    });
+  }
+  return result;
+}
+
+/** The topic after `conceptId` in a course's outline order, for the lesson's finish screen. */
+export async function getNextTopicInCourse(courseId: string, conceptId: string) {
+  const supabase = await createClient();
+  const { data: topics } = await supabase
+    .from("topics")
+    .select("title, concept_id")
+    .eq("course_id", courseId)
+    .is("archived_at", null)
+    .order("position");
+  const list = topics ?? [];
+  const at = list.findIndex((t) => t.concept_id === conceptId);
+  if (at === -1) return null;
+  const next = list.slice(at + 1).find((t) => t.concept_id);
+  return next?.concept_id ? { conceptId: next.concept_id, title: next.title } : null;
+}
+
+/** Whether the student follows a free-standing topic. */
+export async function isFollowing(viewer: Viewer, conceptId: string) {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("concept_follows")
+    .select("concept_id", { count: "exact", head: true })
+    .eq("user_id", viewer.userId)
+    .eq("concept_id", conceptId);
+  return (count ?? 0) > 0;
 }

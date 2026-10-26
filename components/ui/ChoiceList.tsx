@@ -2,7 +2,7 @@
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { Spinner } from "./Button";
+import { Spinner } from "./submit-button";
 
 // Full-width rows, not cards (07 §3.4 rule 2). Each row is a submit button, so picking an option
 // is one tap and works without JavaScript. On large screens rows can flow into two columns

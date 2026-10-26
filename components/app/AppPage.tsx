@@ -1,13 +1,19 @@
-import { ArrowLeftIcon, CaretRightIcon } from "@phosphor-icons/react/ssr";
+import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { Wordmark } from "@/components/marketing/Brand";
-import { greeting } from "@/lib/auth/names";
-import { getViewer } from "@/lib/auth/viewer";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { cn } from "@/lib/utils";
 
-// Every signed-in page: a fixed header (back button + breadcrumbs, always visible while
-// scrolling), the page title, then the content. Server-rendered, so breadcrumbs carry real names
-// (Courses › MTH 101) from the first paint.
+// Every signed-in page: a fixed header, the page title, then the content (app-overhaul §3.1).
+// Phones show the back button and this page's name; desktop shows breadcrumbs with real names
+// (Courses › MTH 101) from the first paint. Me lives in the tab bar and the sidebar, not here.
 
 export type Crumb = { label: string; href?: string };
 
@@ -18,24 +24,36 @@ type AppPageProps = {
   /** Small line above the title, sentence case (e.g. the date or the university). */
   eyebrow?: ReactNode;
   description?: ReactNode;
+  /** Controls beside the title (e.g. the course overflow menu). */
   actions?: ReactNode;
+  /** Controls at the right of the fixed header (e.g. the lesson overflow menu). */
+  headerActions?: ReactNode;
+  /** Narrower content for forms and reading (left-aligned, never centred). */
+  width?: "full" | "form" | "reading";
   children: ReactNode;
 };
 
-export async function AppPage({ crumbs, title, eyebrow, description, actions, children }: AppPageProps) {
-  const viewer = await getViewer();
-  const initial = (viewer?.profile.first_name || viewer?.email || "?").trim().charAt(0).toUpperCase();
-  const hello = greeting(viewer?.profile.first_name);
+export function AppPage({
+  crumbs,
+  title,
+  eyebrow,
+  description,
+  actions,
+  headerActions,
+  width = "full",
+  children,
+}: AppPageProps) {
   const parent = crumbs.length > 1 ? [...crumbs.slice(0, -1)].reverse().find((c) => c.href) : undefined;
+  const current = crumbs.at(-1)?.label ?? "";
 
   return (
     <>
-      <header className="sticky top-0 z-20 border-b border-line bg-surface">
+      <header className="sticky top-0 z-20 border-b border-line bg-surface print:hidden">
         <div className="flex h-14 items-center gap-2 px-2 sm:px-4 lg:h-16 lg:px-8">
           {parent ? (
             <Link
               href={parent.href!}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink hover:bg-paper"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink hover:bg-paper lg:hidden"
               aria-label={`Back to ${parent.label}`}
             >
               <ArrowLeftIcon size={22} aria-hidden="true" />
@@ -46,65 +64,56 @@ export async function AppPage({ crumbs, title, eyebrow, description, actions, ch
             </Link>
           )}
 
-          <nav aria-label="Breadcrumb" className={`min-w-0 flex-1 ${parent ? "" : "hidden lg:block"}`}>
-            <ol className="flex min-w-0 items-center gap-1 text-base">
+          {parent ? (
+            <p className="min-w-0 flex-1 truncate text-base font-semibold lg:hidden" aria-hidden="true">
+              {current}
+            </p>
+          ) : (
+            <span className="flex-1 lg:hidden" />
+          )}
+
+          <Breadcrumb className="hidden min-w-0 flex-1 lg:block">
+            <BreadcrumbList>
               {crumbs.map((crumb, i) => {
                 const last = i === crumbs.length - 1;
                 return (
-                  <li
-                    key={`${crumb.label}-${i}`}
-                    className={`flex min-w-0 items-center gap-1 ${last ? "" : "hidden sm:flex"}`}
-                  >
-                    {last ? (
-                      <span aria-current="page" className="truncate font-semibold">
-                        {crumb.label}
-                      </span>
-                    ) : crumb.href ? (
-                      <Link href={crumb.href} className="truncate text-ink-2 hover:text-ink hover:underline">
-                        {crumb.label}
-                      </Link>
-                    ) : (
-                      <span className="truncate text-ink-2">{crumb.label}</span>
-                    )}
-                    {!last ? <CaretRightIcon size={14} className="shrink-0 text-ink-3" aria-hidden="true" /> : null}
-                  </li>
+                  <Fragment key={`${crumb.label}-${i}`}>
+                    <BreadcrumbItem>
+                      {last ? (
+                        <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                      ) : crumb.href ? (
+                        <Link href={crumb.href} className="truncate text-ink-2 hover:text-ink hover:underline">
+                          {crumb.label}
+                        </Link>
+                      ) : (
+                        <span className="truncate text-ink-2">{crumb.label}</span>
+                      )}
+                    </BreadcrumbItem>
+                    {last ? null : <BreadcrumbSeparator />}
+                  </Fragment>
                 );
               })}
-            </ol>
-          </nav>
+            </BreadcrumbList>
+          </Breadcrumb>
 
-          {/* Greeting: always on wider screens; on phones only where there's no back button and trail. */}
-          <p
-            className={`ml-auto min-w-0 truncate pl-2 text-base text-ink-2 ${parent ? "hidden sm:block" : ""}`}
-            data-testid="greeting"
-          >
-            {hello}
-          </p>
-          <Link
-            href="/me"
-            aria-label="Me: your profile and settings"
-            className="flex h-11 w-11 shrink-0 items-center justify-center"
-          >
-            <span
-              aria-hidden="true"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-quantity-soft text-sm font-semibold text-quantity"
-            >
-              {initial}
-            </span>
-          </Link>
+          {headerActions ? <div className="flex shrink-0 items-center">{headerActions}</div> : null}
         </div>
       </header>
 
-      <div className="w-full max-w-[90rem] px-4 pt-5 sm:px-6 lg:px-10 lg:pt-8">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4 lg:mb-8">
-          <div className="min-w-0">
-            {eyebrow ? <p className="text-sm text-ink-2">{eyebrow}</p> : null}
-            <h1 className="font-display text-[1.75rem] leading-tight font-semibold lg:text-[2rem]">{title}</h1>
-            {description ? <p className="mt-1 max-w-[60ch] text-base text-ink-2">{description}</p> : null}
+      <div className="w-full px-4 pt-5 pb-6 has-[[data-action-bar]]:pb-28 sm:px-6 lg:px-10 lg:pt-8 lg:has-[[data-action-bar]]:pb-6">
+        <div className={cn(width === "full" ? "max-w-[90rem]" : width === "form" ? "max-w-2xl" : "max-w-[46rem]")}>
+          <div className="mb-6 flex items-start justify-between gap-3 lg:mb-8">
+            <div className="min-w-0">
+              {eyebrow ? <p className="text-sm text-ink-2">{eyebrow}</p> : null}
+              <h1 className="font-display text-[1.75rem] leading-tight font-semibold [overflow-wrap:anywhere] lg:text-[2rem]">
+                {title}
+              </h1>
+              {description ? <p className="mt-1 max-w-[60ch] text-base text-ink-2">{description}</p> : null}
+            </div>
+            {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
           </div>
-          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+          {children}
         </div>
-        {children}
       </div>
     </>
   );

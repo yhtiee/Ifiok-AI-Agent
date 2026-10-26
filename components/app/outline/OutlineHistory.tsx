@@ -1,15 +1,28 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Panel } from "@/components/app/Page";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useDecideRevision } from "@/lib/queries/courses";
 import { ApiError } from "@/lib/query/api";
+import { cn } from "@/lib/utils";
 
-// Outline history (F2-FR2 wiki-style edits, 08 §2.5b): who changed what, pending edits waiting
-// for another member, and one-tap restore of an earlier version.
+// Outline history (F2-FR2 wiki-style edits, 08 §2.5b, app-overhaul §5.5): who changed what,
+// pending edits waiting for another member, and restoring an earlier version (asked first).
+// Phones show the latest few here and the rest in a bottom sheet.
 
-type Revision = {
+export type Revision = {
   id: number;
   source: string;
   status: string;
@@ -26,6 +39,8 @@ const SOURCE_LABEL: Record<string, string> = {
   revert: "restored a version",
 };
 
+const PHONE_ROWS = 3;
+
 const when = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", {
     timeZone: "Africa/Lagos",
@@ -38,16 +53,14 @@ const when = (iso: string) =>
 export function OutlineHistory({ courseId, revisions }: { courseId: string; revisions: Revision[] }) {
   const router = useRouter();
   const decide = useDecideRevision(courseId);
-  const [message, setMessage] = useState<string | null>(null);
   const latestApplied = revisions.find((r) => r.status === "applied")?.id;
 
   const act = (revisionId: number, action: "confirm" | "reject" | "revert") => {
-    setMessage(null);
     decide.mutate(
       { revisionId, action },
       {
         onSuccess: (r) => {
-          setMessage(
+          toast(
             action === "revert"
               ? r.status === "pending"
                 ? "Restore saved. Another member will confirm it."
@@ -58,73 +71,108 @@ export function OutlineHistory({ courseId, revisions }: { courseId: string; revi
           );
           router.refresh();
         },
-        onError: (err) => setMessage(err instanceof ApiError ? err.message : "That didn't work. Try again."),
+        onError: (err) => toast(err instanceof ApiError ? err.message : "That didn't work. Try again."),
       },
     );
   };
 
+  // `clip`: on phones only the first few rows show; the sheet lists them all.
+  const list = (clip: boolean) => (
+    <ol className="divide-y divide-line border-y border-line" aria-label="Changes to the outline">
+      {revisions.map((r, i) => (
+        <RevisionRow
+          key={r.id}
+          className={clip && i >= PHONE_ROWS ? "max-lg:hidden" : undefined}
+          revision={r}
+          current={r.id === latestApplied}
+          busy={decide.isPending && decide.variables?.revisionId === r.id}
+          onAct={(action) => act(r.id, action)}
+        />
+      ))}
+    </ol>
+  );
+
   return (
-    <Panel title="Outline history">
-      {message ? (
-        <p role="status" className="mb-3 text-sm">
-          {message}
-        </p>
-      ) : null}
+    <section id="history" aria-labelledby="history-title" className="grid scroll-mt-20 content-start gap-3">
+      <h2 id="history-title" className="text-base font-semibold">
+        History
+      </h2>
       {revisions.length ? (
-        <ol className="grid divide-y divide-line">
-          {revisions.map((r) => {
-            const busy = decide.isPending && decide.variables?.revisionId === r.id;
-            return (
-              <li key={r.id} className="grid gap-1 py-3">
-                <p className="text-sm">
-                  <span className="font-semibold">{r.editor}</span> {SOURCE_LABEL[r.source] ?? "changed the outline"}
-                </p>
-                <p className="text-xs text-ink-2">
-                  {when(r.createdAt)}
-                  {r.status === "pending"
-                    ? " · Waiting for a member to confirm"
-                    : r.status === "rejected"
-                      ? " · Rejected"
-                      : null}
-                  {r.id === latestApplied ? " · Current version" : null}
-                </p>
-                {r.status === "pending" && !r.isMine ? (
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => act(r.id, "confirm")}
-                      className="min-h-11 px-2 text-sm font-semibold text-quantity hover:underline disabled:opacity-60"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => act(r.id, "reject")}
-                      className="min-h-11 px-2 text-sm text-ink-2 hover:underline disabled:opacity-60"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                ) : null}
-                {r.status === "applied" && r.id !== latestApplied ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => act(r.id, "revert")}
-                    className="min-h-11 justify-self-start px-2 text-sm font-semibold text-quantity hover:underline disabled:opacity-60"
-                  >
-                    {busy ? "Restoring…" : "Restore this version"}
-                  </button>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
+        <>
+          {list(true)}
+          {revisions.length > PHONE_ROWS ? (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="justify-self-start lg:hidden">
+                  See all {revisions.length} changes
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetTitle>Outline history</SheetTitle>
+                <SheetDescription>Every change, newest first. Anything can be undone.</SheetDescription>
+                {list(false)}
+              </SheetContent>
+            </Sheet>
+          ) : null}
+        </>
       ) : (
         <p className="text-base text-ink-2">Changes to the outline appear here, so anything can be undone.</p>
       )}
-    </Panel>
+    </section>
+  );
+}
+
+function RevisionRow(props: {
+  className?: string;
+  revision: Revision;
+  current: boolean;
+  busy: boolean;
+  onAct: (action: "confirm" | "reject" | "revert") => void;
+}) {
+  const { revision: r, current, busy, onAct } = props;
+  return (
+    <li className={cn("grid gap-2 py-3", props.className)}>
+      <div className="grid gap-0.5">
+        <p className="text-base">
+          <span className="font-semibold">{r.editor}</span> {SOURCE_LABEL[r.source] ?? "changed the outline"}
+        </p>
+        <p className="text-sm text-ink-2">
+          {when(r.createdAt)}
+          {r.status === "pending"
+            ? " · Waiting for a member to confirm"
+            : r.status === "rejected"
+              ? " · Rejected"
+              : null}
+          {current ? " · Current version" : null}
+        </p>
+      </div>
+      {r.status === "pending" && !r.isMine ? (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" disabled={busy} aria-busy={busy} onClick={() => onAct("confirm")}>
+            Confirm
+          </Button>
+          <Button variant="outline" size="sm" disabled={busy} onClick={() => onAct("reject")}>
+            Reject
+          </Button>
+        </div>
+      ) : null}
+      {r.status === "applied" && !current ? (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="sm" className="justify-self-start" disabled={busy} aria-busy={busy}>
+              {busy ? "Restoring…" : "Restore"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogTitle>Restore this version?</AlertDialogTitle>
+            <AlertDialogDescription>Everyone in the course will see it.</AlertDialogDescription>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep the current one</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onAct("revert")}>Restore</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
+    </li>
   );
 }

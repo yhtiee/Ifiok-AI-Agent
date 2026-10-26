@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupRow } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 import type { LessonFlagReason } from "@/lib/lessons/types";
 import { useFlagBlock } from "@/lib/queries/lessons";
 
@@ -63,9 +66,9 @@ export function FlagModal({ isOpen, lessonId, blockId, onClose, onSuccess }: Fla
       ref={dialogRef}
       onClose={onClose}
       aria-labelledby="flag-title"
-      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-lg border border-line bg-surface p-6 text-ink backdrop:bg-ink/50"
+      className="m-auto w-[calc(100%-2rem)] max-w-md rounded-[12px] border border-line bg-surface p-5 text-ink backdrop:bg-ink/40"
     >
-      <h2 id="flag-title" className="font-display text-lg font-bold">
+      <h2 id="flag-title" className="text-lg font-semibold">
         Flag this block
       </h2>
       <p className="mt-1 text-sm text-ink-2">
@@ -73,57 +76,40 @@ export function FlagModal({ isOpen, lessonId, blockId, onClose, onSuccess }: Fla
       </p>
 
       {flag.isError ? (
-        <p role="alert" className="mt-3 rounded-lg border-l-4 border-bad bg-change-soft p-3 text-sm">
+        <p role="alert" className="mt-3 text-base text-bad">
           {flag.error.message}
         </p>
       ) : null}
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-        <fieldset>
-          <legend className="text-sm font-semibold">What&apos;s the problem?</legend>
-          <div className="mt-2 space-y-2">
+        <fieldset className="grid gap-2">
+          <legend className="mb-1 text-base font-semibold">What&apos;s the problem?</legend>
+          <RadioGroup
+            value={reason}
+            onValueChange={(v) => setReason(v as LessonFlagReason)}
+            aria-label="What's the problem?"
+            className="divide-y divide-line overflow-hidden rounded-[var(--radius-input)] border border-line"
+          >
             {REASONS.map((opt) => (
-              <label
-                key={opt.value}
-                className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border p-3 text-base ${
-                  reason === opt.value ? "border-change bg-change-soft" : "border-line hover:bg-paper"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="flag-reason"
-                  value={opt.value}
-                  checked={reason === opt.value}
-                  onChange={() => setReason(opt.value)}
-                  className="accent-[var(--change)]"
-                />
-                <span>{opt.label}</span>
-              </label>
+              <RadioGroupRow key={opt.value} value={opt.value} label={opt.label} />
             ))}
-          </div>
+          </RadioGroup>
         </fieldset>
 
-        <div>
-          <label htmlFor="flag-note" className="block text-sm font-semibold">
-            What exactly? <span className="font-normal text-ink-3">(optional)</span>
-          </label>
-          <textarea
-            id="flag-note"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            maxLength={500}
-            rows={3}
-            className="mt-1 w-full rounded-lg border border-line bg-paper p-3 text-base text-ink placeholder:text-ink-3 focus:border-change focus:outline-hidden"
-          />
-          <p className="mt-1 text-sm text-ink-3">Don&apos;t include your name or contact details.</p>
+        <div className="grid gap-1.5">
+          <Label htmlFor="flag-note">
+            What exactly? <span className="font-normal text-ink-2">(optional)</span>
+          </Label>
+          <Textarea id="flag-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} rows={3} />
+          <p className="text-sm text-ink-2">Don&apos;t include your name or contact details.</p>
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={flag.isPending}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={flag.isPending}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={flag.isPending}>
-            {flag.isPending ? "Sending flag" : "Send flag"}
+          <Button type="submit" disabled={flag.isPending} aria-busy={flag.isPending}>
+            {flag.isPending ? "Sending…" : "Send flag"}
           </Button>
         </div>
       </form>
