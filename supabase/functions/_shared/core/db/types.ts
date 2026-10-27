@@ -775,6 +775,51 @@ export type Database = {
           },
         ]
       }
+      earned_units_pending: {
+        Row: {
+          created_at: string
+          id: number
+          key: string
+          month: string
+          reason: string
+          units: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          key: string
+          month: string
+          reason: string
+          units: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          key?: string
+          month?: string
+          reason?: string
+          units?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "earned_units_pending_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earned_units_pending_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enrollments: {
         Row: {
           course_id: string
@@ -963,6 +1008,163 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      explainer_reports: {
+        Row: {
+          created_at: string
+          explainer_id: string
+          reason: string
+          reporter_id: string
+        }
+        Insert: {
+          created_at?: string
+          explainer_id: string
+          reason: string
+          reporter_id: string
+        }
+        Update: {
+          created_at?: string
+          explainer_id?: string
+          reason?: string
+          reporter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "explainer_reports_explainer_id_fkey"
+            columns: ["explainer_id"]
+            isOneToOne: false
+            referencedRelation: "explainers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "explainer_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "explainer_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      explainers: {
+        Row: {
+          ai_review: Json | null
+          approved_at: string | null
+          approved_by: string | null
+          audio_bytes: number | null
+          audio_path: string | null
+          author_id: string
+          auto_published: boolean
+          body_md: string | null
+          captions: Json | null
+          concept_id: string
+          created_at: string
+          duration_s: number | null
+          id: string
+          kind: string
+          media_bytes: number | null
+          media_path: string | null
+          numbers_checked: boolean | null
+          review_reason: string | null
+          spot_checked_at: string | null
+          status: string
+          title: string
+          transcript: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_review?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          audio_bytes?: number | null
+          audio_path?: string | null
+          author_id: string
+          auto_published?: boolean
+          body_md?: string | null
+          captions?: Json | null
+          concept_id: string
+          created_at?: string
+          duration_s?: number | null
+          id?: string
+          kind: string
+          media_bytes?: number | null
+          media_path?: string | null
+          numbers_checked?: boolean | null
+          review_reason?: string | null
+          spot_checked_at?: string | null
+          status?: string
+          title: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_review?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          audio_bytes?: number | null
+          audio_path?: string | null
+          author_id?: string
+          auto_published?: boolean
+          body_md?: string | null
+          captions?: Json | null
+          concept_id?: string
+          created_at?: string
+          duration_s?: number | null
+          id?: string
+          kind?: string
+          media_bytes?: number | null
+          media_path?: string | null
+          numbers_checked?: boolean | null
+          review_reason?: string | null
+          spot_checked_at?: string | null
+          status?: string
+          title?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "explainers_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "explainers_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "explainers_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "explainers_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "explainers_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "concepts"
             referencedColumns: ["id"]
           },
         ]
@@ -2101,6 +2303,7 @@ export type Database = {
           concept_id: string | null
           course_id: string | null
           created_at: string
+          file_bytes: number | null
           id: string
           is_lecturer_source: boolean
           kind: Database["public"]["Enums"]["source_kind"]
@@ -2110,7 +2313,10 @@ export type Database = {
           review: Database["public"]["Enums"]["review_status"]
           review_reason: string | null
           sha256: string | null
+          shared_at: string | null
+          shared_concepts: string[]
           storage_path: string | null
+          thumb_path: string | null
           title: string
           visibility: Database["public"]["Enums"]["source_visibility"]
         }
@@ -2118,6 +2324,7 @@ export type Database = {
           concept_id?: string | null
           course_id?: string | null
           created_at?: string
+          file_bytes?: number | null
           id?: string
           is_lecturer_source?: boolean
           kind: Database["public"]["Enums"]["source_kind"]
@@ -2127,7 +2334,10 @@ export type Database = {
           review?: Database["public"]["Enums"]["review_status"]
           review_reason?: string | null
           sha256?: string | null
+          shared_at?: string | null
+          shared_concepts?: string[]
           storage_path?: string | null
+          thumb_path?: string | null
           title: string
           visibility?: Database["public"]["Enums"]["source_visibility"]
         }
@@ -2135,6 +2345,7 @@ export type Database = {
           concept_id?: string | null
           course_id?: string | null
           created_at?: string
+          file_bytes?: number | null
           id?: string
           is_lecturer_source?: boolean
           kind?: Database["public"]["Enums"]["source_kind"]
@@ -2144,7 +2355,10 @@ export type Database = {
           review?: Database["public"]["Enums"]["review_status"]
           review_reason?: string | null
           sha256?: string | null
+          shared_at?: string | null
+          shared_concepts?: string[]
           storage_path?: string | null
+          thumb_path?: string | null
           title?: string
           visibility?: Database["public"]["Enums"]["source_visibility"]
         }
@@ -2381,6 +2595,36 @@ export type Database = {
           },
         ]
       }
+      tutor_concepts: {
+        Row: {
+          concept_id: string
+          user_id: string
+        }
+        Insert: {
+          concept_id: string
+          user_id: string
+        }
+        Update: {
+          concept_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_concepts_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutor_concepts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "tutor_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       tutor_messages: {
         Row: {
           content: Json
@@ -2428,6 +2672,42 @@ export type Database = {
             foreignKeyName: "tutor_messages_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tutor_profiles: {
+        Row: {
+          active: boolean
+          availability: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          availability: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          availability?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutor_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
@@ -2511,6 +2791,65 @@ export type Database = {
           staff_email_domain?: string | null
         }
         Relationships: []
+      }
+      usage_points: {
+        Row: {
+          consumer_id: string
+          contributor_id: string
+          created_at: string
+          id: number
+          month: string
+          resource_id: string
+          resource_kind: string
+        }
+        Insert: {
+          consumer_id: string
+          contributor_id: string
+          created_at?: string
+          id?: never
+          month: string
+          resource_id: string
+          resource_kind: string
+        }
+        Update: {
+          consumer_id?: string
+          contributor_id?: string
+          created_at?: string
+          id?: never
+          month?: string
+          resource_id?: string
+          resource_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_points_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_points_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_points_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_points_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_labs: {
         Row: {
@@ -2613,6 +2952,23 @@ export type Database = {
         Args: { p_course: string; p_topics: Json }
         Returns: undefined
       }
+      approve_shared_source: {
+        Args: { p_concepts: string[]; p_source: string }
+        Returns: number
+      }
+      award_pending_units: {
+        Args: {
+          p_key: string
+          p_reason: string
+          p_units: number
+          p_user: string
+        }
+        Returns: number
+      }
+      bank_duplicate_share: {
+        Args: { p_source: string; p_threshold?: number }
+        Returns: number
+      }
       consume_quota: {
         Args: { p_feature: string; p_limit: number; p_user: string }
         Returns: boolean
@@ -2630,6 +2986,14 @@ export type Database = {
           p_title: string
         }
         Returns: string
+      }
+      curate_candidates: {
+        Args: { p_limit?: number; p_source: string }
+        Returns: {
+          concept_id: string
+          score: number
+          title: string
+        }[]
       }
       enqueue_job: {
         Args: {
@@ -2657,6 +3021,8 @@ export type Database = {
       is_course_lecturer: { Args: { p_course: string }; Returns: boolean }
       is_curator: { Args: { p_concept: string }; Returns: boolean }
       is_member: { Args: { p_course: string }; Returns: boolean }
+      is_qualified_consumer: { Args: { p_user: string }; Returns: boolean }
+      is_review_admin: { Args: never; Returns: boolean }
       match_chunks: {
         Args: {
           p_concept: string
@@ -2795,9 +3161,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_usage: {
+        Args: { p_consumer: string; p_kind: string; p_resource: string }
+        Returns: boolean
+      }
       refund_quota: {
         Args: { p_feature: string; p_user: string }
         Returns: undefined
+      }
+      report_explainer: {
+        Args: { p_explainer: string; p_reason: string; p_reporter: string }
+        Returns: number
+      }
+      report_source: {
+        Args: { p_reason: string; p_reporter: string; p_source: string }
+        Returns: number
       }
       search_courses: {
         Args: { p_limit?: number; p_query: string; p_university: string }

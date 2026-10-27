@@ -106,8 +106,8 @@ export function Teach({ copy }: { copy: LandingCopy }) {
     <PathSection
       path="teach"
       band="paper"
-      title="Teach: explain topics you've Mastered, and tutor them"
-      lead="When you reach Mastered on a topic, you can teach it. Mastered comes from your answers, checked on our server; nobody can just claim it."
+      title="Teach: explain topics you know, and tutor them"
+      lead="You don't need to have mastered a topic on Ifiok to teach it. When you have, learners see your level: it comes from your answers, checked on our server, so nobody can just claim it."
       stage={<LadderScene />}
     >
       <ul className="lp-items">
@@ -121,9 +121,8 @@ export function Teach({ copy }: { copy: LandingCopy }) {
         </PathItem>
         <PathItem title="Tutoring">
           <p>
-            Tutor students who book you on topics you&apos;ve Mastered. To tutor, your account must be at least 30 days
-            old, with Mastered in each topic you offer and a verified payout account in your own name. You set your
-            price within a range and keep 85% of it.
+            Tutor students who book you on topics you know well. To tutor, your account must be at least 30 days old,
+            with a verified payout account in your own name. You set your price within a range and keep 85% of it.
           </p>
           <p className="lp-status-line">{copy.teach.tutoringStatus}</p>
           <p className="lp-example-line">
@@ -133,9 +132,8 @@ export function Teach({ copy }: { copy: LandingCopy }) {
         </PathItem>
         <PathItem title="Curating lessons" badge={copy.teach.curatingBadge}>
           <p>
-            Check and fix AI lessons in a subject you know. Curators need Mastered in at least 5 topics of the subject
-            and must pass a short check: find and fix three planted mistakes. ₦1,500 for each accepted review, paid
-            monthly.
+            Check and fix AI lessons in a subject you know. You apply to curate a subject and an admin reviews and
+            approves you. ₦1,500 for each accepted review, paid monthly.
           </p>
         </PathItem>
       </ul>

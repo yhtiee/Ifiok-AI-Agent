@@ -147,7 +147,7 @@ test.describe("materials: upload and understand", () => {
     // The student's only course is preselected; outlines are added on the outline page, not here.
     await expect(page.getByText(/Adding to ZTM \d+/)).toBeVisible();
     await expect(page.getByRole("group", { name: "What is it?" })).toBeVisible();
-    await expect(page.getByRole("radio")).toHaveCount(4);
+    await expect(page.getByRole("radio")).toHaveCount(5);
     await expect(page.getByRole("radio", { name: "Course outline" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Choose a PDF" })).toBeVisible();
     await shot(page, "03-add-page");

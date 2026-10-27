@@ -1,6 +1,7 @@
 import type { SkillName } from "../types";
 import { claimCheck } from "./claim-check";
 import { outlineDraft, schemeExtract, topicResolve } from "./courses";
+import { curateClassify, explainerFrames, explainerReview } from "./contribute";
 import { examClassify, examExtract, workedSolution } from "./exam";
 import { explainError } from "./explain-error";
 import { labExtract } from "./labs";
@@ -27,6 +28,9 @@ export const SKILL_REGISTRY: Partial<Record<SkillName, SkillDefinition>> = {
   exam_classify: examClassify as unknown as SkillDefinition,
   worked_solution: workedSolution as unknown as SkillDefinition,
   lab_extract: labExtract as unknown as SkillDefinition,
+  curate_classify: curateClassify as unknown as SkillDefinition,
+  explainer_review: explainerReview as unknown as SkillDefinition,
+  explainer_frames: explainerFrames as unknown as SkillDefinition,
 };
 
 /** Skills that spend the library generation budget rather than the per-learner cap (04 §5). */
@@ -39,4 +43,5 @@ export const LIBRARY_SKILLS: readonly SkillName[] = [
   "exam_extract",
   "exam_classify",
   "outline_draft",
+  "curate_classify",
 ];

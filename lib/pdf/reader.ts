@@ -61,6 +61,23 @@ export async function openPdf(file: File): Promise<PdfDoc> {
     throw new PdfError("failed", MESSAGES.failed);
   }
 
+  return wrap(doc);
+}
+
+/**
+ * A Library document (12 §4 Q59), from a short-lived signed URL, for Ifiok's own viewer (08 §2.5:
+ * never the browser's native PDF viewer from our origin).
+ */
+export async function openPdfUrl(url: string): Promise<PdfDoc> {
+  const pdfjs = await loadPdfJs();
+  try {
+    return wrap(await pdfjs.getDocument({ url }).promise);
+  } catch {
+    throw new PdfError("failed", "Ifiok couldn't open this document. Check your connection and try again.");
+  }
+}
+
+function wrap(doc: PDFDocumentProxy): PdfDoc {
   const textCache = new Map<number, Promise<string>>();
 
   return {

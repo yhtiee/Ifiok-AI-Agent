@@ -12,6 +12,7 @@ const topic = (id: string, over: Partial<PathTopic> = {}): PathTopic => ({
   mastery: "not_started",
   tried: false,
   practice: 0,
+  explainers: 0,
   ...over,
 });
 

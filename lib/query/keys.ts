@@ -49,6 +49,11 @@ const labs = {
   all: () => ["labs"] as const,
 };
 
+/** Contribute, teach and earn (MVP-06): explainers, tutor profile, earnings, admin review. */
+const contribute = {
+  all: () => ["contribute"] as const,
+};
+
 const jobs = {
   all: () => ["jobs"] as const,
   detail: (jobId: string) => [...jobs.all(), "detail", jobId] as const,
@@ -63,5 +68,6 @@ export const queryKeys = {
   practice,
   materials,
   labs,
+  contribute,
   jobs,
 };

@@ -19,21 +19,26 @@ const before = new Date("2026-10-19T12:00:00Z");
 const after = new Date("2026-11-20T12:00:00Z");
 
 describe("flags", () => {
-  it("everything through virtual labs is open today", () => {
+  it("everything through contribute, teach and earn is open today", () => {
     const open = Object.entries(FEATURES)
       .filter(([, v]) => v.open)
       .map(([k]) => k)
       .sort();
     expect(open).toEqual([
       "course",
+      "earnings",
       "examPrep",
+      "explainers",
       "labs",
+      "library",
       "outline",
       "path",
       "practice",
       "privateLessons",
+      "share",
       "sharedLessons",
       "topic",
+      "tutorProfiles",
       "upload",
       "weakAreas",
     ]);
@@ -53,9 +58,9 @@ describe("landing copy against today's flags (04 §5)", () => {
     expect(labels).toEqual([
       ["Open now"],
       ["Open now"],
-      ["Building now"],
-      ["Building now"],
-      ["Points and Units: Building now", "Cash: After launch"],
+      ["Open now"],
+      ["Open now"],
+      ["Points and Units: Open now", "Cash: After launch"],
     ]);
   });
 
@@ -66,12 +71,12 @@ describe("landing copy against today's flags (04 §5)", () => {
 
   it("generates 'What works today' exactly as 04 §5.10 renders it today", () => {
     expect(whatWorksToday(today)).toBe(
-      "Today: find or create your course, add the outline, open lessons for any topic, lessons from your notes, your Path, practice and weak areas, exam prep, and virtual labs. Being built now: sharing, explainers and earnings. After launch, when payments are set up: Plus billing, Units top-ups, cash payouts, paid curating and tutoring bookings.",
+      "Today: find or create your course, add the outline, open lessons for any topic, lessons from your notes, your Path, practice and weak areas, exam prep, virtual labs, sharing, explainers, and earnings. After launch, when payments are set up: Plus billing, Units top-ups, cash payouts, paid curating and tutoring bookings.",
     );
   });
 
-  it("tutoring status line and earn table use the closed variants", () => {
-    expect(copy.teach.tutoringStatus).toBe("Tutoring: Building now. Bookings and payments: After launch.");
+  it("tutoring offers the profile now and keeps bookings and payments for after launch", () => {
+    expect(copy.teach.tutoringStatus).toBe("Set up your tutor profile now. Bookings open after launch.");
     expect(copy.earnRows.find((r) => r.way === "Tutoring")!.status[0]!.label).toBe("After launch");
     expect(copy.moneyLines).toHaveLength(2);
     expect(copy.moneyLines.join(" ")).not.toMatch(/sandbox/i);
@@ -146,7 +151,7 @@ describe("JSON-LD", () => {
       offers: Record<string, unknown>[];
     };
     expect(app.featureList).toEqual(openFeatureList(today));
-    expect(app.featureList).toHaveLength(9);
+    expect(app.featureList).toHaveLength(12);
     expect(app.offers.filter((o) => "availability" in o)).toHaveLength(1);
     const text = JSON.stringify(ld);
     expect(text).not.toMatch(/aggregateRating|"review"|sameAs/);

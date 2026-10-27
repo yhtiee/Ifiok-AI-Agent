@@ -32,7 +32,7 @@ export async function getCoursePath(viewer: Viewer, courseId: string): Promise<C
   const priv = privateLessonRepo();
   const cfg = await priv.config();
 
-  const [own, jobs, mastery, items, coverage] = await Promise.all([
+  const [own, jobs, mastery, items, coverage, explainers] = await Promise.all([
     supabase
       .from("lessons")
       .select("concept_id")
@@ -48,6 +48,7 @@ export async function getCoursePath(viewer: Viewer, courseId: string): Promise<C
       .in("concept_id", conceptIds),
     supabase.from("items").select("concept_id").in("type", ["mcq", "numeric"]).in("concept_id", conceptIds),
     priv.coverage({ userId: viewer.userId, courseId }, null, cfg).catch(() => new Map<string, number>()),
+    supabase.from("explainers").select("concept_id").eq("status", "approved").in("concept_id", conceptIds),
   ]);
 
   const ownSet = new Set((own.data ?? []).map((l) => l.concept_id));
@@ -58,6 +59,8 @@ export async function getCoursePath(viewer: Viewer, courseId: string): Promise<C
   const tried = new Set((mastery.data ?? []).filter((m) => m.attempts_count > 0).map((m) => m.concept_id));
   const practice = new Map<string, number>();
   for (const i of items.data ?? []) practice.set(i.concept_id, (practice.get(i.concept_id) ?? 0) + 1);
+  const explained = new Map<string, number>();
+  for (const e of explainers.data ?? []) explained.set(e.concept_id, (explained.get(e.concept_id) ?? 0) + 1);
 
   const path = topics.map((t) => {
     const c = t.concept_id;
@@ -73,6 +76,7 @@ export async function getCoursePath(viewer: Viewer, courseId: string): Promise<C
       mastery: levels.get(c) ?? "not_started",
       tried: tried.has(c),
       practice: practice.get(c) ?? 0,
+      explainers: explained.get(c) ?? 0,
     } satisfies PathTopic;
   });
   return { topics: path, nextUpTopicId: nextUp(path)?.topicId ?? null };
@@ -90,5 +94,6 @@ function base(t: { id: string; title: string; week: number | null }, conceptId: 
     mastery: "not_started",
     tried: false,
     practice: 0,
+    explainers: 0,
   };
 }

@@ -43,7 +43,9 @@ export async function userIdFor(email: string, password: string) {
 }
 
 export async function deleteTestUser(id: string) {
-  await adminClient().auth.admin.deleteUser(id);
+  // Loud on purpose: a user that can't be deleted means account deletion is broken (08 §6).
+  const { error } = await adminClient().auth.admin.deleteUser(id);
+  if (error) throw new Error(`deleteUser failed: ${error.message}`);
 }
 
 /**

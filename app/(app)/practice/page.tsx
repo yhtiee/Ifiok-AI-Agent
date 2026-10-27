@@ -1,4 +1,4 @@
-import { ExamIcon, FlaskIcon, WarningCircleIcon } from "@phosphor-icons/react/ssr";
+import { ExamIcon, FlaskIcon, PlayCircleIcon, WarningCircleIcon } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppPage } from "@/components/app/AppPage";
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Practice", robots: { index: false } 
 // Practice (10 MVP-03): Weak areas first (low mastery and recent mistakes, with the evidence, the
 // most common mistake and one next step), then every topic with practice questions. Built only from
 // server-recorded answers (guardrail 6). The one camwood action is the weakest topic's next step.
-// On phones a link leads to Labs (desktop has it in the sidebar; 12 §4 Q56).
+// On phones, links lead to Labs and the Library (desktop has them in the sidebar; 12 §4 Q56, Q58).
 export default async function PracticePage() {
   const viewer = await requireOnboardedPage();
   const [weak, topics, labs] = await Promise.all([getWeakAreas(viewer), getPracticeTopics(viewer), getLabs(viewer)]);
@@ -80,7 +80,7 @@ export default async function PracticePage() {
       </div>
 
       <div className="mt-10 lg:hidden">
-        <RowList label="Labs">
+        <RowList label="More to learn with">
           <Row
             href="/labs"
             icon={<FlaskIcon size={22} />}
@@ -92,6 +92,13 @@ export default async function PracticePage() {
                 ? `${n} ${n === 1 ? "lab" : "labs"} · request a practical`
                 : "Virtual practicals: request one by name";
             })()}
+          />
+          <Row
+            href="/library"
+            icon={<PlayCircleIcon size={22} />}
+            tone="course"
+            title="Library"
+            meta="Explainers and notes shared by students"
           />
         </RowList>
       </div>

@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import { Eye, Ground, Stage } from "./parts";
 import { usePointerEyes } from "./usePointerEyes";
 
-// Teach: Bubble on the mastery ladder (specifications/landing/05 §3.3). Teaching opens at Mastered.
+// Teach: Bubble on the mastery ladder (specifications/landing/05 §3.3). Anyone can teach (12 §4 Q52);
+// the level shows learners how far the teacher has got on Ifiok.
 
 export const LEVELS = ["Not started", "Familiar", "Proficient", "Mastered"] as const;
 const POS: [number, number][] = [
@@ -14,10 +15,10 @@ const POS: [number, number][] = [
   [321, 130],
 ];
 const NOTES = [
-  "Not started: teaching opens at Mastered.",
-  "Familiar: teaching opens at Mastered.",
-  "Proficient: teaching opens at Mastered.",
-  "Mastered: write, record a voice note or a short video.",
+  "Not started: you can still teach what you know.",
+  "Familiar: learners see your level when you teach.",
+  "Proficient: learners see your level when you teach.",
+  "Mastered: shown on what you write, record or film.",
 ];
 const STEP_FILL = ["var(--ill-white)", "var(--ill-built-1)", "var(--ill-built-2)", "var(--ill-contribute)"];
 

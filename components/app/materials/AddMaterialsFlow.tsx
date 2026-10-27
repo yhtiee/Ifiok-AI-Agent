@@ -36,7 +36,7 @@ export type Destination =
   | { kind: "topic"; id: string; label: string; detail: string };
 
 type Kind = AddMaterialInput["kind"];
-const KINDS: Kind[] = ["notes", "textbook", "past_questions", "lab_manual"];
+const KINDS: Kind[] = ["notes", "textbook", "past_questions", "lab_manual", "solutions"];
 
 type Step = { kind: "where" } | { kind: "what" } | { kind: "pick"; file: File } | { kind: "paste" };
 
@@ -50,6 +50,7 @@ const KIND_NOTE: Record<Kind, string> = {
   textbook: "Textbook pages stay private to you and are never shared. Only the text of the pages you pick is sent.",
   past_questions: `Up to ${MATERIAL_LIMITS.maxPages} pages at a time. Only the text of the pages you pick is sent; the PDF stays on your phone. Scanned pages can't be read yet.`,
   lab_manual: `Up to ${MATERIAL_LIMITS.maxPages} pages at a time. Only the text of the pages you pick is sent; the PDF stays on your phone. Scanned pages can't be read yet.`,
+  solutions: `Your own worked solutions. Up to ${MATERIAL_LIMITS.maxPages} pages at a time; only the text of the pages you pick is sent.`,
 };
 
 function addedNotice(r: AddMaterialResult) {

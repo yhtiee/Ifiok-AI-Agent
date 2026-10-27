@@ -94,8 +94,8 @@ export function Journey({ steps }: { steps: JourneyStep[] }) {
           From your first lesson to getting paid for what you know
         </h2>
         <p className="lp-lead">
-          Five steps, in the order most students take them. You teach and earn from topics you&apos;ve Mastered, so it
-          all starts with learning.
+          Five steps, in the order most students take them. Anyone can teach and earn from what they know; most students
+          start by learning.
         </p>
         <JourneyList>
           <ol className="lp-jrows">

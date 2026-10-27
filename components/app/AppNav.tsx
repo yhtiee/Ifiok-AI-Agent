@@ -1,18 +1,28 @@
 "use client";
 
-import { BooksIcon, ExamIcon, FlaskIcon, SunHorizonIcon, UserCircleIcon, type Icon } from "@phosphor-icons/react";
+import {
+  BooksIcon,
+  ExamIcon,
+  FlaskIcon,
+  PlayCircleIcon,
+  ShieldCheckIcon,
+  SunHorizonIcon,
+  UserCircleIcon,
+  type Icon,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-// Student navigation (app-overhaul §3.1, 12 §4 Q50, Q52, Q56): Today · Courses · Practice · Labs · Me.
-// Nothing that isn't live is listed. Labs is desktop-only: the phone tab bar keeps four items, and
-// Practice links to Labs there.
+// Student navigation (app-overhaul §3.1, 12 §4 Q50, Q52, Q56, Q58): Today · Courses · Practice · Labs ·
+// Library · Me, and Admin for admins. Nothing that isn't live is listed. Labs and Library are
+// desktop-only: the phone tab bar keeps four items, and Practice links to both there.
 export const NAV_ITEMS: { href: string; label: string; icon: Icon; phone: boolean }[] = [
   { href: "/today", label: "Today", icon: SunHorizonIcon, phone: true },
   { href: "/courses", label: "Courses", icon: BooksIcon, phone: true },
   { href: "/practice", label: "Practice", icon: ExamIcon, phone: true },
   { href: "/labs", label: "Labs", icon: FlaskIcon, phone: false },
+  { href: "/library", label: "Library", icon: PlayCircleIcon, phone: false },
   { href: "/me", label: "Me", icon: UserCircleIcon, phone: true },
 ];
 
@@ -28,12 +38,16 @@ function useIsActive() {
   return (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Desktop sidebar links (lg+). Me lives in the sidebar footer. */
-export function SidebarNav() {
+/** Desktop sidebar links (lg+). Me lives in the sidebar footer; Admin shows only for admins. */
+export function SidebarNav({ admin = false }: { admin?: boolean }) {
   const isActive = useIsActive();
+  const items = [
+    ...NAV_ITEMS.filter((item) => item.href !== "/me"),
+    ...(admin ? [{ href: "/admin", label: "Admin", icon: ShieldCheckIcon, phone: false }] : []),
+  ];
   return (
     <nav aria-label="Main" className="grid gap-1">
-      {NAV_ITEMS.filter((item) => item.href !== "/me").map(({ href, label, icon: IconCmp }) => {
+      {items.map(({ href, label, icon: IconCmp }) => {
         const active = isActive(href);
         return (
           <Link

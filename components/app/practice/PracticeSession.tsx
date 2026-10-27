@@ -28,6 +28,8 @@ export function PracticeSession(props: {
   questions: PracticeQuestion[];
   back: { href: string; label: string };
   lessonHref: string;
+  /** Student explainers for the topic, offered after a wrong answer (F18-FR6, MVP-06). */
+  explainersHref?: string | null;
 }) {
   const { questions, back, lessonHref } = props;
   const router = useRouter();
@@ -191,6 +193,14 @@ export function PracticeSession(props: {
             <p className="text-base">
               <RichText text={marked.why} />
             </p>
+          ) : null}
+          {!marked.correct && props.explainersHref ? (
+            <Link
+              href={props.explainersHref}
+              className="inline-flex min-h-11 items-center text-base font-semibold text-quantity hover:underline"
+            >
+              A student explains this
+            </Link>
           ) : null}
         </div>
       ) : null}

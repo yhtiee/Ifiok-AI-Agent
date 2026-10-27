@@ -31,6 +31,17 @@ const rawConfig: Record<ConfigKey, unknown> = {
   economy_enabled: false,
   private_lessons: { min_similarity: 0.8, min_chunks: 3, max_chunks: 12, items_per_topic: 10 },
   curation: { sensitive_lessons_need_curator: false, order_match_items_need_review: false },
+  usage: {
+    min_account_days: 0,
+    min_sessions_14d: 1,
+    require_email_verified: true,
+    earned_units_monthly_cap: 40,
+    approved_upload_units: 5,
+  },
+  moderation: { trusted_after_approved: 3, hide_after_reports: 3, spot_checks: 5 },
+  audio_prices: [
+    { provider: "groq", model: "whisper-large-v3-turbo", usd_per_hour: 0.04, effective_from: "2026-01-01" },
+  ],
 };
 
 function configReader(overrides: Partial<Record<ConfigKey, unknown>> = {}): ConfigReader {
@@ -467,5 +478,64 @@ describe("uncapped output (12 §4 Q27)", () => {
     expect(result.output.answer).toBe("fixed");
     expect(t.gemini.requests[1]!.user).toContain("could not be used");
     expect(t.gemini.requests[1]!.maxOutputTokens).toBeUndefined();
+  });
+});
+
+describe("transcribe (F18 captions)", () => {
+  const routes = {
+    ...(rawConfig.ai_routes as Record<string, unknown>),
+    transcribe: { provider: "groq", model: "whisper-large-v3-turbo" },
+  };
+  function withWhisper(result: "ok" | "fail", overrides: Partial<Record<ConfigKey, unknown>> = {}) {
+    const mem = memoryStore();
+    const audio: Uint8Array[] = [];
+    const groq: Provider = {
+      name: "groq",
+      available: () => true,
+      generate: async () => {
+        throw new Error("not used");
+      },
+      async transcribe(req) {
+        audio.push(req.audio);
+        if (result === "fail") throw new ProviderError("Groq 500", "http", 500);
+        return { text: "Walk the loop.", durationS: 90, segments: [{ start: 0, end: 2, text: "Walk the loop." }] };
+      },
+    };
+    const gateway = createGateway({
+      config: configReader({ ai_routes: routes, ai_quotas: { transcribe: { limit: 1 } }, ...overrides }),
+      providers: { groq },
+      store: mem.store,
+      registry,
+      now: () => NOW,
+    });
+    return { gateway, audio, ...mem };
+  }
+
+  it("reserves the allowance, records a free-tier call at no cost with its list price, and returns captions", async () => {
+    const t = withWhisper("ok", { ai_billing: { gemini: "paid", anthropic: "paid", groq: "free" } });
+    const out = await t.gateway.transcribe({ userId: USER, audio: new Uint8Array([1, 2]), mime: "audio/webm" });
+    expect(out.segments[0]!.text).toBe("Walk the loop.");
+    expect(t.calls).toEqual([
+      expect.objectContaining({ feature: "transcribe", ok: true, cost_micros: 0, list_cost_micros: 1000 }),
+    ]);
+    await expectCode(
+      t.gateway.transcribe({ userId: USER, audio: new Uint8Array([1]), mime: "audio/webm" }),
+      "quota_exhausted",
+    );
+  });
+
+  it("refunds the allowance when the provider fails, and honours the kill switch", async () => {
+    const t = withWhisper("fail");
+    await expectCode(
+      t.gateway.transcribe({ userId: USER, audio: new Uint8Array([1]), mime: "audio/webm" }),
+      "provider_failed",
+    );
+    expect(t.refunds).toEqual(["transcribe"]);
+    const killed = withWhisper("ok", { kill_switches: { skills: ["transcribe"], models: [] } });
+    await expectCode(
+      killed.gateway.transcribe({ userId: USER, audio: new Uint8Array([1]), mime: "audio/webm" }),
+      "kill_switched",
+    );
+    expect(killed.audio).toHaveLength(0);
   });
 });

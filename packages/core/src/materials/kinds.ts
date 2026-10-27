@@ -1,7 +1,7 @@
 // What a student can add as materials (10 MVP-01, F11-FR1), shared by the page picker in the
 // browser and the server checks. Kept dependency-free so client code can import it.
 
-export const MATERIAL_KINDS = ["outline", "notes", "textbook", "past_questions", "lab_manual"] as const;
+export const MATERIAL_KINDS = ["outline", "notes", "textbook", "past_questions", "lab_manual", "solutions"] as const;
 export type MaterialKind = (typeof MATERIAL_KINDS)[number];
 
 /** Each kind's `source_kind`. Course outlines don't become sources: they go to scheme_extract. */
@@ -10,6 +10,7 @@ export const SOURCE_KIND_OF = {
   textbook: "textbook_private",
   past_questions: "past_paper",
   lab_manual: "lab_manual",
+  solutions: "solution",
 } as const satisfies Record<Exclude<MaterialKind, "outline">, string>;
 
 export const MATERIAL_LABELS: Record<MaterialKind, string> = {
@@ -18,7 +19,11 @@ export const MATERIAL_LABELS: Record<MaterialKind, string> = {
   textbook: "Textbook pages",
   past_questions: "Past questions",
   lab_manual: "Lab manual",
+  solutions: "Worked solutions",
 };
+
+/** Kinds a student may share to the contribution pool (F11-FR1): never textbook pages. */
+export const SHAREABLE_SOURCE_KINDS = ["notes", "past_paper", "lab_manual", "solution"] as const;
 
 export const SOURCE_KIND_LABELS: Record<string, string> = {
   notes: "Lecture notes",

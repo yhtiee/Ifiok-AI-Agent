@@ -18,6 +18,8 @@ export type PathTopic = {
   tried: boolean;
   /** Published practice questions the student can use (shared and their own). */
   practice: number;
+  /** Approved student explainers for the topic (F18, MVP-06). */
+  explainers: number;
 };
 
 export const MASTERY_LABELS: Record<MasteryLevel, string> = {

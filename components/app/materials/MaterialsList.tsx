@@ -4,6 +4,7 @@ import {
   CheckCircleIcon,
   HourglassMediumIcon,
   MagnifyingGlassIcon,
+  ShareNetworkIcon,
   TrashIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
@@ -27,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   useDeleteMaterial,
   useMaterials,
+  useShareMaterial,
   useMaterialSearch,
   type Material,
   type MaterialScope,
@@ -35,9 +37,17 @@ import { ApiError } from "@/lib/query/api";
 import { SOURCE_KIND_LABELS } from "@ifiok/core/materials/kinds";
 
 // A course's Materials tab (app-overhaul §5.4, 10 MVP-01): each material's status in words, delete
-// (asked first), and find things in them. Adding happens on /materials/add only.
+// (asked first), and find things in them. Adding happens on /materials/add only. MVP-06: share your
+// own material to the library (with the licence attestation) and see how its check went.
 
 const errorText = (err: unknown) => (err instanceof ApiError ? err.message : "That didn't work. Try again.");
+
+const SHARE_TEXT = {
+  checking: "Sharing: Ifiok is checking it",
+  approved: "In the library: helping other students",
+  held: "Shared: waiting for a person to check it",
+  rejected: "Not added to the library",
+} as const;
 
 const STATUS = {
   processing: { label: "Processing", Icon: HourglassMediumIcon, className: "text-ink-2" },
@@ -110,7 +120,10 @@ export function MaterialsList({ scope, addHref }: { scope: MaterialScope; addHre
 
 function MaterialRow({ material: m }: { material: Material }) {
   const del = useDeleteMaterial();
+  const share = useShareMaterial();
   const status = STATUS[m.status];
+  const canShare =
+    m.share.shareable && m.status === "ready" && (m.share.state === "none" || m.share.state === "rejected");
 
   return (
     <Row
@@ -128,41 +141,93 @@ function MaterialRow({ material: m }: { material: Material }) {
               <status.Icon size={16} aria-hidden="true" /> {status.label}
             </span>
           </span>
-          {del.isError ? (
+          {m.share.state !== "none" ? (
+            <span className={m.share.state === "approved" ? "text-built" : undefined}>
+              {SHARE_TEXT[m.share.state]}
+              {m.share.reason ? `: ${m.share.reason}` : ""}
+            </span>
+          ) : null}
+          {del.isError || share.isError ? (
             <span role="alert" className="text-bad">
-              {errorText(del.error)}
+              {errorText(del.error ?? share.error)}
             </span>
           ) : null}
         </span>
       }
       trailing={
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Delete ${m.title}`}
-              disabled={del.isPending}
-              aria-busy={del.isPending}
-            >
-              <TrashIcon size={20} aria-hidden="true" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogTitle>Delete “{m.title}”?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Lessons already built from it stay. It won&apos;t be used again.
-            </AlertDialogDescription>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Keep</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" onClick={() => del.mutate(m.id)}>
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <span className="flex items-center">
+          {canShare ? <ShareDialog title={m.title} busy={share.isPending} onShare={() => share.mutate(m.id)} /> : null}
+          {m.share.state === "approved" ? null : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Delete ${m.title}`}
+                  disabled={del.isPending}
+                  aria-busy={del.isPending}
+                >
+                  <TrashIcon size={20} aria-hidden="true" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogTitle>Delete “{m.title}”?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Lessons already built from it stay. It won&apos;t be used again.
+                </AlertDialogDescription>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep</AlertDialogCancel>
+                  <AlertDialogAction variant="destructive" onClick={() => del.mutate(m.id)}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </span>
       }
     />
+  );
+}
+
+/** Share to the library: the licence attestation (F11-FR5) is required before it's sent. */
+function ShareDialog(props: { title: string; busy: boolean; onShare: () => void }) {
+  const [own, setOwn] = useState(false);
+  return (
+    <AlertDialog onOpenChange={(open) => !open && setOwn(false)}>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`Share ${props.title}`}
+          disabled={props.busy}
+          aria-busy={props.busy}
+        >
+          <ShareNetworkIcon size={20} aria-hidden="true" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogTitle>Share “{props.title}” with other students?</AlertDialogTitle>
+        <AlertDialogDescription>
+          Ifiok checks it first. Once it&apos;s in the library, lessons for its topics can quote it for students at any
+          university; they see short quotes, never your file. You earn Units when it helps others, and you can withdraw
+          it later.
+        </AlertDialogDescription>
+        <label className="flex min-h-11 items-start gap-3 text-base">
+          <input type="checkbox" checked={own} onChange={(e) => setOwn(e.target.checked)} className="mt-1 h-5 w-5" />
+          <span>
+            These are my own notes, past questions, lab manual or solutions, not pages from a published book, and I let
+            Ifiok use them as described in the contributor terms.
+          </span>
+        </label>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Not now</AlertDialogCancel>
+          <AlertDialogAction disabled={!own} onClick={props.onShare}>
+            Share
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

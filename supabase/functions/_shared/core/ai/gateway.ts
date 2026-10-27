@@ -15,6 +15,7 @@ import {
   type ProviderResponse,
   type SkillName,
   type ThinkingLevel,
+  type TranscribeResponse,
 } from "./types.ts";
 
 // The AI gateway (specifications/04-ai.md §2). Every model call in Ifiok goes through here, on
@@ -475,7 +476,93 @@ export function createGateway(deps: GatewayDeps) {
     };
   }
 
-  return { run };
+  /**
+   * Speech to text (F18 captions): the same policy, kill switch, caps and per-student allowance as
+   * a skill, then one Whisper call priced by audio duration and recorded in ai_calls.
+   */
+  async function transcribe(options: {
+    userId: string | null;
+    audio: Uint8Array;
+    mime: string;
+  }): Promise<TranscribeResponse & { provider: ProviderName; model: string }> {
+    if (options.userId) {
+      const policy = await deps.store.loadUserPolicy(options.userId);
+      if (!policy || !policy.active || !policy.adult || !policy.consented) {
+        throw new GatewayError("not_allowed", MESSAGES.not_allowed);
+      }
+    }
+    const [{ routes }, audioPrices, caps, kills, quotas, billing] = await Promise.all([
+      deps.config("ai_routes"),
+      deps.config("audio_prices"),
+      deps.config("ai_caps"),
+      deps.config("kill_switches"),
+      deps.config("ai_quotas"),
+      deps.config("ai_billing"),
+    ]);
+    if (kills.skills.includes("transcribe")) throw new GatewayError("kill_switched", MESSAGES.kill_switched);
+    const route = routes.transcribe;
+    const provider = route ? deps.providers[route.provider] : undefined;
+    if (!route || !provider?.transcribe || !provider.available() || kills.models.includes(route.model)) {
+      throw new GatewayError("unavailable", MESSAGES.unavailable);
+    }
+    const at = now();
+    const price = audioPrices
+      .filter((p) => p.provider === route.provider && p.model === route.model && p.effective_from <= lagosDay(at))
+      .sort((a, b) => b.effective_from.localeCompare(a.effective_from))[0];
+    if (!price) {
+      log({ type: "missing_price", provider: route.provider, model: route.model });
+      throw new GatewayError("unavailable", MESSAGES.unavailable);
+    }
+    const spent = await deps.store.spendSince(lagosStart(at, "day"), { features: PER_LEARNER_SKILLS });
+    if (spent >= caps.global_daily_usd * USD) throw new GatewayError("ai_resting", MESSAGES.ai_resting);
+
+    let reserved = false;
+    if (options.userId) {
+      const limit = quotas.transcribe?.limit ?? 0;
+      if (!(await deps.store.consumeQuota(options.userId, "transcribe", limit))) {
+        throw new GatewayError("quota_exhausted", "You've sent today's recordings. More tomorrow.");
+      }
+      reserved = true;
+    }
+    const row = (ok: boolean, seconds: number): AiCallRow => {
+      const list = Math.round((seconds / 3600) * price.usd_per_hour * USD);
+      return {
+        user_id: options.userId,
+        feature: "transcribe",
+        prompt_version: 1,
+        provider: route.provider,
+        model: route.model,
+        input_tokens: 0,
+        output_tokens: 0,
+        thinking_tokens: 0,
+        tool_rounds: 0,
+        cost_micros: billing[route.provider] === "free" ? 0 : list,
+        list_cost_micros: list,
+        ok,
+      };
+    };
+    try {
+      const out = await provider.transcribe({
+        model: route.model,
+        audio: options.audio,
+        mime: options.mime,
+        timeoutMs: JOB_TIMEOUT_MS,
+      });
+      await deps.store.recordCall(row(true, out.durationS));
+      return { ...out, provider: route.provider, model: route.model };
+    } catch (err) {
+      await deps.store.recordCall(row(false, 0)).catch(() => {});
+      if (reserved && options.userId) {
+        await deps.store
+          .refundQuota(options.userId, "transcribe")
+          .catch(() => log({ type: "refund_failed", skill: "transcribe" }));
+      }
+      if (err instanceof GatewayError) throw err;
+      throw new GatewayError("provider_failed", "Ifiok couldn't transcribe the recording. Try again in a minute.");
+    }
+  }
+
+  return { run, transcribe };
 }
 
 export type Gateway = ReturnType<typeof createGateway>;

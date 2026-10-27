@@ -165,7 +165,7 @@ export async function syncEvidence(
   let screens = 0;
   if (body.screens.length) {
     const ids = [...new Set(body.screens.map((s) => s.lesson_id))];
-    const { data: lessons } = await admin.from("lessons").select("id, owner_id, status").in("id", ids);
+    const { data: lessons } = await admin.from("lessons").select("id, owner_id, status, spec").in("id", ids);
     const ok = new Set(
       (lessons ?? [])
         .filter(
@@ -174,6 +174,7 @@ export async function syncEvidence(
         )
         .map((l) => l.id),
     );
+    const finished: { lesson_id: string; screen_id: string }[] = [];
     for (const s of body.screens) {
       if (!ok.has(s.lesson_id)) continue;
       const { data } = await admin.rpc("record_screen", {
@@ -183,11 +184,43 @@ export async function syncEvidence(
         p_screen: s.screen_id,
         p_completed_at: s.completed_at,
       });
-      if (data) screens++;
+      if (data) {
+        screens++;
+        finished.push(s);
+      }
     }
+    // Usage points (06 §4, MVP-06): a finished screen of a shared lesson that quotes material from
+    // the contribution pool counts once per (material, student, month) for its contributor.
+    await recordSourceUsage(admin, viewer.userId, finished, lessons ?? []);
   }
 
   return { result: { attempts: results, screens }, explain };
+}
+
+/** The pool sources quoted on the finished screens of shared lessons, each recorded once. */
+async function recordSourceUsage(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  finished: { lesson_id: string; screen_id: string }[],
+  lessons: { id: string; owner_id: string | null; spec: unknown }[],
+) {
+  const chunkIds = new Set<number>();
+  for (const f of finished) {
+    const lesson = lessons.find((l) => l.id === f.lesson_id && l.owner_id === null);
+    const screen = (
+      lesson?.spec as { screens?: { id?: string; blocks?: { chunk_id?: unknown }[] }[] } | undefined
+    )?.screens?.find((x) => x.id === f.screen_id);
+    for (const block of screen?.blocks ?? []) if (typeof block.chunk_id === "number") chunkIds.add(block.chunk_id);
+  }
+  if (!chunkIds.size) return;
+  const { data: chunks } = await admin
+    .from("chunks")
+    .select("source_id")
+    .in("id", [...chunkIds])
+    .eq("visibility", "bank");
+  for (const source of new Set((chunks ?? []).map((c) => c.source_id))) {
+    await admin.rpc("record_usage", { p_kind: "source", p_resource: source, p_consumer: userId });
+  }
 }
 
 /** Explains wrong answers and tags them with a micro-skill. Runs after the response; never throws. */

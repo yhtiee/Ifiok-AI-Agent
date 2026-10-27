@@ -31,6 +31,25 @@ export async function requireAdmin(): Promise<Viewer> {
   return viewer;
 }
 
+/**
+ * The admin section (/admin): the admin role, signed in with email and password, until TOTP admin
+ * sign-in ships with L-02 (owner decision, 12 §4 Q58). Other admin-only actions use requireAdmin().
+ */
+export async function requireReviewAdmin(): Promise<Viewer> {
+  const viewer = await requireUser();
+  const supabase = await createClient();
+  const { data: ok } = await supabase.rpc("is_review_admin");
+  if (!ok) throw new RouteError(403, "Only admins can do that.", "not_admin");
+  return viewer;
+}
+
+/** For admin pages: anyone else gets a 404, as if the page didn't exist. */
+export async function isReviewAdmin(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("is_review_admin");
+  return Boolean(data);
+}
+
 // ---- Pages: redirect instead of throwing ----
 
 /** For signed-in app pages: signed out → sign-in; not finished onboarding → the right step. */

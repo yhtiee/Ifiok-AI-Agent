@@ -139,7 +139,7 @@ test.describe("student app: only what works, one job per screen", () => {
       await expect(nav.getByRole("link")).toHaveText(["Today", "Courses", "Practice", "Me"]);
       await expect(nav.getByRole("link", { name: "Today" })).toHaveAttribute("aria-current", "page");
     } else {
-      await expect(nav.getByRole("link")).toHaveText(["Today", "Courses", "Practice", "Labs"]);
+      await expect(nav.getByRole("link")).toHaveText(["Today", "Courses", "Practice", "Labs", "Library"]);
       await expect(page.getByRole("complementary").getByRole("link", { name: /Test UNIUYO/ })).toHaveAttribute(
         "href",
         "/me",

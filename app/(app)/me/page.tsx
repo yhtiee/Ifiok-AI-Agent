@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AppPage } from "@/components/app/AppPage";
-import { SectionHeading } from "@/components/app/Page";
+import { Row, RowList, SectionHeading } from "@/components/app/Page";
+import { ChalkboardTeacherIcon, CoinsIcon, PresentationChartIcon, ShieldCheckIcon } from "@phosphor-icons/react/ssr";
 import { Button } from "@/components/ui/button";
-import { requireOnboardedPage } from "@/lib/auth/guards";
+import { isReviewAdmin, requireOnboardedPage } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { NameForm } from "./NameForm";
 
@@ -24,6 +25,7 @@ export default async function MePage() {
     const { data } = await supabase.from("universities").select("name").eq("id", profile.university_id).maybeSingle();
     university = data?.name ?? university;
   }
+  const isAdmin = await isReviewAdmin();
   const level = profile.level ? (LEVEL_LABEL[profile.level] ?? `${profile.level} level`) : "Not set";
 
   return (
@@ -55,6 +57,42 @@ export default async function MePage() {
               <Item label="University" value={university} />
               <Item label="Level" value={level} />
             </ul>
+          </section>
+
+          <section aria-labelledby="teach-earn" className="grid gap-3">
+            <SectionHeading id="teach-earn">Teach and earn</SectionHeading>
+            <RowList labelledBy="teach-earn">
+              <Row
+                href="/me/earnings"
+                icon={<CoinsIcon size={22} />}
+                tone="add"
+                title="My earnings"
+                meta="Usage points and Units from what you share and explain"
+              />
+              <Row
+                href="/me/explainers"
+                icon={<PresentationChartIcon size={22} />}
+                tone="topic"
+                title="Explainers"
+                meta="Teach a topic in writing, a voice note or a short video"
+              />
+              <Row
+                href="/me/tutor"
+                icon={<ChalkboardTeacherIcon size={22} />}
+                tone="course"
+                title="Tutor profile"
+                meta="Offer to tutor topics; bookings open after launch"
+              />
+              {isAdmin ? (
+                <Row
+                  href="/admin"
+                  icon={<ShieldCheckIcon size={22} />}
+                  tone="plain"
+                  title="Review"
+                  meta="Explainers and held shares waiting for an admin"
+                />
+              ) : null}
+            </RowList>
           </section>
 
           <section aria-labelledby="account" className="grid gap-3">

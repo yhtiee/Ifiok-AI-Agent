@@ -24,6 +24,9 @@ export const SKILLS = [
   "item_solve",
   "worked_solution",
   "lab_extract",
+  "explainer_review",
+  "explainer_frames",
+  "transcribe",
   "claim_check",
   "brief_rewrite",
   "moderate",
@@ -85,4 +88,10 @@ export interface Provider {
   /** False when its API key isn't configured: the gateway skips it. */
   available(): boolean;
   generate(request: ProviderRequest): Promise<ProviderResponse>;
+  /** Speech to text (Whisper), for providers that offer it. Called only through the gateway. */
+  transcribe?(request: TranscribeRequest): Promise<TranscribeResponse>;
 }
+
+export type TranscribeRequest = { model: string; audio: Uint8Array; mime: string; timeoutMs: number };
+export type TranscribeSegment = { start: number; end: number; text: string };
+export type TranscribeResponse = { text: string; durationS: number; segments: TranscribeSegment[] };

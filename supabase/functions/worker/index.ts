@@ -13,6 +13,8 @@ import type { Database } from "../_shared/core/db/types.ts";
 import { createEmbedHandler } from "../_shared/core/jobs/embed.ts";
 import { createExamExtractHandler, createSupabaseExamRepo } from "../_shared/core/jobs/exam-extract.ts";
 import { createLabExtractHandler, createSupabaseLabRepo } from "../_shared/core/jobs/lab-extract.ts";
+import { createCurateHandler, createSupabaseCurateRepo } from "../_shared/core/jobs/curate.ts";
+import { createExplainerHandler, createSupabaseExplainerRepo } from "../_shared/core/jobs/explainer.ts";
 import { createItemsGenHandler, createSupabaseItemsRepo } from "../_shared/core/jobs/items-gen.ts";
 import { createLessonGenHandler } from "../_shared/core/jobs/lesson-gen.ts";
 import { noopHandler } from "../_shared/core/jobs/noop.ts";
@@ -81,6 +83,12 @@ function buildWorker() {
       items_gen: createItemsGenHandler({ items: createSupabaseItemsRepo(db), lessons, privateLessons, gateway }),
       exam_extract: createExamExtractHandler({ repo: createSupabaseExamRepo(db), gateway }),
       lab_extract: createLabExtractHandler({ repo: createSupabaseLabRepo(db), gateway }),
+      curate: createCurateHandler({ repo: createSupabaseCurateRepo(db), gateway, usage: () => config("usage") }),
+      explainer: createExplainerHandler({
+        repo: createSupabaseExplainerRepo(db),
+        gateway,
+        moderation: () => config("moderation"),
+      }),
       embed: createEmbedHandler({
         repo: createSupabaseMaterialsRepo(db),
         embed: createEmbedder({ supabaseUrl: url, secret }),

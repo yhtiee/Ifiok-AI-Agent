@@ -154,6 +154,7 @@ const pathTopic = z.object({
   fromNotes: z.boolean(),
   covered: z.boolean(),
   tried: z.boolean(),
+  explainers: z.number(),
   mastery: z.enum(["not_started", "familiar", "proficient", "mastered"]),
   practice: z.number(),
 });

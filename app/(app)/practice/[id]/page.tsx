@@ -4,6 +4,7 @@ import { AppPage } from "@/components/app/AppPage";
 import { PracticeSession } from "@/components/app/practice/PracticeSession";
 import { requireOnboardedPage } from "@/lib/auth/guards";
 import { getPracticeSet } from "@/lib/learning/progress";
+import { explainerCounts } from "@/lib/contribute/explainers";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Practice", robots: { index: false } };
@@ -26,6 +27,7 @@ export default async function PracticeTopicPage({ params, searchParams }: PagePr
       : Promise.resolve({ data: null }),
     getPracticeSet(viewer, id),
   ]);
+  const explained = (await explainerCounts([id])).get(id) ?? 0;
   if (!concept) notFound();
 
   const lessonHref = `/learn/${concept.id}${course ? `?course=${course.id}` : ""}`;
@@ -39,6 +41,7 @@ export default async function PracticeTopicPage({ params, searchParams }: PagePr
         key={questions.map((q) => q.id).join(",")}
         questions={questions}
         lessonHref={lessonHref}
+        explainersHref={explained ? `/explainers/${id}` : null}
         back={
           course
             ? { href: `/courses/${course.id}`, label: `Back to ${course.code}` }

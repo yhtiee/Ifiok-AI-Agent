@@ -1,9 +1,17 @@
-import { ProviderError, type Provider, type ProviderRequest, type ProviderResponse } from "../types";
+import {
+  ProviderError,
+  type Provider,
+  type ProviderRequest,
+  type ProviderResponse,
+  type TranscribeRequest,
+  type TranscribeResponse,
+} from "../types";
 
 // Groq via OpenAI-compatible chat completions endpoint (https://api.groq.com/openai/v1/chat/completions).
 // Used alongside Gemini for fast skills (claim_check), lesson generation, and instant failover.
 
 const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+const TRANSCRIBE_ENDPOINT = "https://api.groq.com/openai/v1/audio/transcriptions";
 
 // Groq counts input + max_completion_tokens against the tokens-per-minute limit before it runs a
 // request (free tier: 8,000/min for gpt-oss-120b), and with no max it falls back to a small default
@@ -138,6 +146,45 @@ export function createGroqProvider(apiKey: string | undefined): Provider {
         text: choice?.message?.content ?? "",
         usage,
         finish,
+      };
+    },
+
+    /** Whisper speech-to-text with timed segments (captions). Audio goes as a multipart file. */
+    async transcribe(req: TranscribeRequest): Promise<TranscribeResponse> {
+      if (!apiKey) throw new ProviderError("GROQ_API_KEY is not set", "config");
+      const form = new FormData();
+      const ext = req.mime.includes("mp4") ? "m4a" : req.mime.includes("ogg") ? "ogg" : "webm";
+      form.append("file", new Blob([new Uint8Array(req.audio)], { type: req.mime }), `audio.${ext}`);
+      form.append("model", req.model);
+      form.append("response_format", "verbose_json");
+      form.append("temperature", "0");
+      let res: Response;
+      try {
+        res = await fetch(TRANSCRIBE_ENDPOINT, {
+          method: "POST",
+          headers: { authorization: `Bearer ${apiKey}` },
+          body: form,
+          signal: AbortSignal.timeout(req.timeoutMs),
+        });
+      } catch (err) {
+        const timedOut = err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError");
+        throw new ProviderError(timedOut ? "Groq timed out" : "Groq unreachable", timedOut ? "timeout" : "network");
+      }
+      const json = (await res.json().catch(() => ({}))) as {
+        text?: string;
+        duration?: number;
+        segments?: { start?: number; end?: number; text?: string }[];
+        error?: { message?: string };
+      };
+      if (!res.ok) throw new ProviderError(`Groq ${res.status}: ${json.error?.message ?? "error"}`, "http", res.status);
+      return {
+        text: (json.text ?? "").trim(),
+        durationS: json.duration ?? 0,
+        segments: (json.segments ?? []).map((s) => ({
+          start: s.start ?? 0,
+          end: s.end ?? 0,
+          text: (s.text ?? "").trim(),
+        })),
       };
     },
   };

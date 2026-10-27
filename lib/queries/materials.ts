@@ -22,6 +22,11 @@ const material = z.object({
   pageCount: z.number(),
   createdAt: z.string(),
   status: z.enum(["processing", "ready", "failed"]),
+  share: z.object({
+    state: z.enum(["none", "checking", "approved", "held", "rejected"]),
+    reason: z.nullable(z.string()),
+    shareable: z.boolean(),
+  }),
 });
 export type Material = z.infer<typeof material>;
 
@@ -32,7 +37,10 @@ export const materialsQuery = (scope: MaterialScope) =>
     queryKey: queryKeys.materials.list(scopeKey(scope)),
     queryFn: ({ signal }) => apiFetch(`/api/materials?${scopeQuery(scope)}`, { schema: listResponse, signal }),
     // Poll while anything is still being embedded; stop once everything is ready or failed.
-    refetchInterval: (query) => (query.state.data?.materials.some((m) => m.status === "processing") ? 4_000 : false),
+    refetchInterval: (query) =>
+      query.state.data?.materials.some((m) => m.status === "processing" || m.share.state === "checking")
+        ? 4_000
+        : false,
   });
 
 export function useMaterials(scope: MaterialScope) {
@@ -50,7 +58,7 @@ const createResponse = z.object({
 export type AddMaterialResult = z.infer<typeof createResponse>;
 
 export type AddMaterialInput = {
-  kind: "notes" | "textbook" | "past_questions" | "lab_manual";
+  kind: "notes" | "textbook" | "past_questions" | "lab_manual" | "solutions";
   title: string;
   pages: { page: number | null; text: string }[];
 };
@@ -67,6 +75,19 @@ export function useDeleteMaterial() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch(`/api/materials/${id}`, { method: "DELETE", schema: z.object({ deleted: z.boolean() }) }),
+    meta: { invalidates: [queryKeys.materials.all()] },
+  });
+}
+
+/** Share the student's own material to the contribution pool (MVP-06); it's checked in the background. */
+export function useShareMaterial() {
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/materials/${id}/share`, {
+        method: "POST",
+        body: { attest: true },
+        schema: z.object({ jobId: z.string() }),
+      }),
     meta: { invalidates: [queryKeys.materials.all()] },
   });
 }

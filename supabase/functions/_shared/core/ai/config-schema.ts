@@ -92,6 +92,36 @@ export const curationSchema = z.object({
 });
 export type CurationConfig = z.output<typeof curationSchema>;
 
+/** Usage points and Units earned (06 §2, §4; demo thresholds during the hackathon, 12 §4 Q57). */
+export const usageSchema = z.object({
+  min_account_days: z.number().int().min(0).default(3),
+  min_sessions_14d: z.number().int().min(0).default(3),
+  require_email_verified: z.boolean().default(true),
+  earned_units_monthly_cap: z.number().int().min(0).default(40),
+  approved_upload_units: z.number().int().min(0).default(5),
+});
+export type UsageConfig = z.output<typeof usageSchema>;
+
+/** Speech-to-text prices, per hour of audio (Whisper is billed by duration, not tokens). */
+export const audioPricesSchema = z.array(
+  z.object({
+    provider: providerNameSchema,
+    model: z.string().min(1),
+    usd_per_hour: z.number().min(0),
+    effective_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  }),
+);
+
+/** Explainer moderation (12 §4 Q58): auto-publish for trusted authors, reports, spot checks. */
+export const moderationSchema = z.object({
+  /** Explainers a person must approve before an author's next ones publish on passing checks. */
+  trusted_after_approved: z.number().int().min(0).default(3),
+  hide_after_reports: z.number().int().min(1).default(3),
+  /** Auto-published explainers shown to the admin for a spot check at a time. */
+  spot_checks: z.number().int().min(0).default(5),
+});
+export type ModerationConfig = z.output<typeof moderationSchema>;
+
 export const CONFIG_SCHEMAS = {
   ai_routes: aiRoutesSchema,
   ai_prices: aiPricesSchema,
@@ -102,6 +132,9 @@ export const CONFIG_SCHEMAS = {
   economy_enabled: z.boolean(),
   private_lessons: privateLessonsSchema,
   curation: curationSchema,
+  usage: usageSchema,
+  audio_prices: audioPricesSchema,
+  moderation: moderationSchema,
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_SCHEMAS;

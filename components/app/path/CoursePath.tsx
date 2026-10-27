@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretRightIcon, NotebookIcon, ExamIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, ChalkboardTeacherIcon, NotebookIcon, ExamIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { ActionBar } from "@/components/app/Page";
@@ -156,6 +156,15 @@ function PathNode(props: { topic: PathTopic; index: number; last: boolean; isNex
         >
           <ExamIcon size={16} aria-hidden="true" />
           Practise · {t.practice} {t.practice === 1 ? "question" : "questions"}
+        </Link>
+      ) : null}
+      {t.conceptId && t.explainers ? (
+        <Link
+          href={`/explainers/${t.conceptId}`}
+          className="-mt-4 mb-2 ml-11 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-quantity hover:underline"
+        >
+          <ChalkboardTeacherIcon size={16} aria-hidden="true" />
+          {t.explainers} student {t.explainers === 1 ? "explainer" : "explainers"}
         </Link>
       ) : null}
     </li>

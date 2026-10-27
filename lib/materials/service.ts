@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { redactPersonalData } from "@ifiok/core/ai/redact";
 import { chunkPages, cleanText } from "@ifiok/core/materials/chunk";
-import { MATERIAL_KINDS, MATERIAL_LIMITS, SOURCE_KIND_OF } from "@ifiok/core/materials/kinds";
+import { MATERIAL_KINDS, MATERIAL_LIMITS, SHAREABLE_SOURCE_KINDS, SOURCE_KIND_OF } from "@ifiok/core/materials/kinds";
 import { getConfig } from "@/lib/config";
 import { retrieveChunks, type RetrievalScope } from "@/lib/ai/retrieve";
 import { RouteError } from "@/lib/api/route";
@@ -98,7 +98,15 @@ export type CreateMaterialResult = {
   skippedPages: number;
 };
 
-export async function createMaterial(viewer: Viewer, body: CreateMaterialBody): Promise<CreateMaterialResult> {
+/**
+ * `forLibrary`: an upload straight to the Library (12 §4 Q58) is shared, not studied from a course,
+ * so it doesn't start the course's exam or lab extraction.
+ */
+export async function createMaterial(
+  viewer: Viewer,
+  body: CreateMaterialBody,
+  options: { forLibrary?: boolean } = {},
+): Promise<CreateMaterialResult> {
   const scope = parseScope(body);
   await checkScope(viewer, scope);
 
@@ -192,7 +200,7 @@ export async function createMaterial(viewer: Viewer, body: CreateMaterialBody): 
 
     // Past questions filed under a course: read the questions out for the student to review (MVP-04).
     let examJobId: string | null = null;
-    if (body.kind === "past_questions" && scope.courseId) {
+    if (body.kind === "past_questions" && scope.courseId && !options.forLibrary) {
       const { data: exam, error: examError } = await admin.rpc("enqueue_job_once", {
         p_queue: "exam_extract",
         p_payload: { source_id: source.id, course_id: scope.courseId, user_id: viewer.userId },
@@ -205,7 +213,7 @@ export async function createMaterial(viewer: Viewer, body: CreateMaterialBody): 
 
     // A lab manual: turn its practicals into virtual labs (MVP-05, 04 §4.8).
     let labJobId: string | null = null;
-    if (body.kind === "lab_manual") {
+    if (body.kind === "lab_manual" && !options.forLibrary) {
       const { data: lab, error: labError } = await admin.rpc("enqueue_job_once", {
         p_queue: "lab_extract",
         p_payload: { mode: "manual", source_id: source.id, course_id: scope.courseId ?? null, user_id: viewer.userId },
@@ -239,6 +247,8 @@ export type MaterialSummary = {
   pageCount: number;
   createdAt: string;
   status: MaterialStatus;
+  /** Sharing to the contribution pool (MVP-06): never shared, being checked, or the outcome. */
+  share: { state: "none" | "checking" | "approved" | "held" | "rejected"; reason: string | null; shareable: boolean };
 };
 
 /** The viewer's own materials for a course or topic (RLS: owner only). */
@@ -267,14 +277,42 @@ export async function listMaterials(viewer: Viewer, scope: RetrievalScope): Prom
     }
   }
 
-  return rows.map((r) => ({
-    id: r.id,
-    kind: r.kind,
-    title: r.title,
-    pageCount: r.page_count ?? 0,
-    createdAt: r.created_at,
-    status: r.pending_chunks === 0 ? "ready" : failed.has(r.id) ? "failed" : "processing",
-  }));
+  const { data: shared } = rows.length
+    ? await supabase
+        .from("sources")
+        .select("id, shared_at, review, review_reason")
+        .in(
+          "id",
+          rows.map((r) => r.id),
+        )
+    : { data: [] };
+  const shareOf = new Map((shared ?? []).map((s) => [s.id, s]));
+
+  return rows.map((r) => {
+    const s = shareOf.get(r.id);
+    const state: MaterialSummary["share"]["state"] = !s?.shared_at
+      ? "none"
+      : s.review === "approved"
+        ? "approved"
+        : s.review === "needs_review"
+          ? "held"
+          : s.review === "rejected"
+            ? "rejected"
+            : "checking";
+    return {
+      id: r.id,
+      kind: r.kind,
+      title: r.title,
+      pageCount: r.page_count ?? 0,
+      createdAt: r.created_at,
+      status: r.pending_chunks === 0 ? "ready" : failed.has(r.id) ? "failed" : "processing",
+      share: {
+        state,
+        reason: state === "held" || state === "rejected" ? (s?.review_reason ?? null) : null,
+        shareable: (SHAREABLE_SOURCE_KINDS as readonly string[]).includes(r.kind),
+      },
+    };
+  });
 }
 
 export async function deleteMaterial(viewer: Viewer, sourceId: string): Promise<void> {

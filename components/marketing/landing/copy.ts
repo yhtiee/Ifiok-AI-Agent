@@ -139,7 +139,7 @@ export function faqGroups(f: FeatureFlags, now: Date): FaqGroups {
     },
     {
       q: "How can I make money as a student on Ifiok?",
-      a: "Four ways: uploads other students learn from, explainers, curating AI lessons and tutoring topics you've Mastered. Uploads and explainers earn points toward a monthly pool and Units. Curators get ₦1,500 per accepted review and tutors keep 85% of their price. These are launch rates; cash payouts, curating and tutoring bookings open after launch.",
+      a: "Four ways: uploads other students learn from, explainers, curating AI lessons and tutoring topics you know well. Uploads and explainers earn points toward a monthly pool and Units. Curators get ₦1,500 per accepted review and tutors keep 85% of their price. These are launch rates; cash payouts, curating and tutoring bookings open after launch.",
     },
     {
       q: "When do cash payouts start?",
@@ -163,7 +163,7 @@ export function faqGroups(f: FeatureFlags, now: Date): FaqGroups {
     },
     {
       q: "Who can tutor, and how much do tutors keep?",
-      a: `Tutors need an account at least 30 days old, Mastered in each topic they offer, and a verified payout account in their own name. They set a price within a range and keep 85% of it. ${
+      a: `Tutors need an account at least 30 days old and a verified payout account in their own name; you don't have to have mastered a topic on Ifiok to offer it, and learners see your Ifiok level when you have one. They set a price within a range and keep 85% of it. ${
         f.tutoringBookings
           ? "The payment is held until the session and refunded in full if the tutor doesn't show."
           : "Tutoring bookings open after launch."
@@ -204,7 +204,7 @@ export function faqGroups(f: FeatureFlags, now: Date): FaqGroups {
         },
         {
           q: "Can Ifiok's AI move money on its own?",
-          a: "No. When you keep missing a topic, the study agent can suggest a tutor who has Mastered it and draft the booking, but only your tap creates the payment. Payout explanations use the ledger's numbers, not the model's.",
+          a: "No. When you keep missing a topic, the study agent can suggest a tutor for it and draft the booking, but only your tap creates the payment. Payout explanations use the ledger's numbers, not the model's.",
         },
       );
     }
@@ -225,7 +225,7 @@ export function openFeatureList(f: FeatureFlags): string[] {
   if (f.examPrep) list.push("Exam prep from your past questions and a study plan to your exam date");
   if (f.labs) list.push("Virtual labs with readings, graphs and a lab report");
   if (f.share) list.push("Share your notes and past questions after checks");
-  if (f.explainers) list.push("Explainers in writing, voice or short video for topics you've Mastered");
+  if (f.explainers) list.push("Explainers in writing, voice or short video for topics you know");
   if (f.earnings) list.push("Points and Units recorded when your work helps other students");
   return list;
 }
@@ -267,7 +267,7 @@ export function landingCopy(f: FeatureFlags, now: Date = new Date()) {
       id: "teach",
       title: "Teach",
       forWho: "Strong in a subject",
-      line: "Explain topics you've Mastered in writing, voice or short video, and tutor them.",
+      line: "Explain topics you know in writing, voice or short video, and tutor them.",
       badges: [openOr(f.explainers)],
       link: { href: "#teach", text: "See how teaching works →" },
     },

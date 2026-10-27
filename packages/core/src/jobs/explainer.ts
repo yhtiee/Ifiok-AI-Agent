@@ -1,0 +1,326 @@
+import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { GatewayError, type Gateway } from "../ai/gateway";
+import type { ExplainerFramesOutput, ExplainerReviewOutput } from "../ai/skills/contribute";
+import type { ModerationConfig } from "../ai/config-schema";
+import type { TranscribeSegment } from "../ai/types";
+import type { Database, Json } from "../db/types";
+import { numericMatches } from "../dsl/numeric";
+import { engineValue } from "../items/check";
+import { JobFailure, type JobHandler } from "./types";
+
+// explainer (F18-FR3/FR4, 08 §2.5c, §7b, 10 MVP-06): checks the uploaded media (type, size,
+// duration), transcribes the audio track with Whisper for captions, reviews the text or transcript
+// and a few sampled video frames, checks any numbers with the engine, then hands the explainer to
+// a person or publishes it: an author's first explainers and anything flagged wait for an admin;
+// clean ones from authors with a track record publish at once and are spot-checked (12 §4 Q58).
+
+export const explainerPayload = z.object({ explainer_id: z.string().uuid(), user_id: z.string().uuid() });
+
+export const LIMITS = {
+  voiceSeconds: 300,
+  videoSeconds: 180,
+  /** Allowance for container rounding. */
+  slackSeconds: 5,
+  videoBytes: 40 * 1024 * 1024,
+  audioBytes: 12 * 1024 * 1024,
+} as const;
+
+export const BUCKET = "explainers";
+export const framePath = (authorId: string, explainerId: string, i: number) =>
+  `${authorId}/${explainerId}/frame-${i}.jpg`;
+
+/** Container signatures (08 §2.5c: check magic bytes, not names or MIME types). */
+export function mediaType(head: Uint8Array): "webm" | "mp4" | "ogg" | null {
+  if (head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3) return "webm";
+  if (head[4] === 0x66 && head[5] === 0x74 && head[6] === 0x79 && head[7] === 0x70) return "mp4";
+  if (head[0] === 0x4f && head[1] === 0x67 && head[2] === 0x67 && head[3] === 0x53) return "ogg";
+  return null;
+}
+
+type Row = {
+  id: string;
+  authorId: string;
+  conceptId: string;
+  kind: "text" | "voice" | "video";
+  body: string | null;
+  mediaPath: string | null;
+  audioPath: string | null;
+  status: string;
+  /** From an earlier attempt of this job, so a retry doesn't transcribe again. */
+  transcript?: string | null;
+  captions?: TranscribeSegment[] | null;
+  durationS?: number | null;
+};
+
+export type ExplainerRepo = {
+  explainer(id: string): Promise<Row | null>;
+  concept(id: string): Promise<{ title: string; subject: string | null } | null>;
+  /** The object's size and first bytes, or null when it isn't there. */
+  head(path: string): Promise<{ size: number; head: Uint8Array } | null>;
+  download(path: string): Promise<Uint8Array>;
+  /** Frames sampled on the phone at upload, when present. */
+  frames(paths: string[]): Promise<Uint8Array[]>;
+  save(id: string, patch: Database["public"]["Tables"]["explainers"]["Update"]): Promise<void>;
+  /** The author's explainers a person has approved (their track record, 12 §4 Q58). */
+  approvedByPerson(authorId: string): Promise<number>;
+};
+
+export function createSupabaseExplainerRepo(db: SupabaseClient<Database>): ExplainerRepo {
+  const bucket = () => db.storage.from(BUCKET);
+  return {
+    async explainer(id) {
+      const { data } = await db
+        .from("explainers")
+        .select(
+          "id, author_id, concept_id, kind, body_md, media_path, audio_path, status, transcript, captions, duration_s",
+        )
+        .eq("id", id)
+        .maybeSingle();
+      return data
+        ? {
+            id: data.id,
+            authorId: data.author_id,
+            conceptId: data.concept_id,
+            kind: data.kind as Row["kind"],
+            body: data.body_md,
+            mediaPath: data.media_path,
+            audioPath: data.audio_path,
+            status: data.status,
+            transcript: data.transcript,
+            captions: Array.isArray(data.captions) ? (data.captions as TranscribeSegment[]) : null,
+            durationS: data.duration_s === null ? null : Number(data.duration_s),
+          }
+        : null;
+    },
+    async concept(id) {
+      const { data } = await db.from("concepts").select("title, subject").eq("id", id).maybeSingle();
+      return data;
+    },
+    async head(path) {
+      const { data } = await bucket().createSignedUrl(path, 60);
+      if (!data?.signedUrl) return null;
+      const res = await fetch(data.signedUrl, { headers: { range: "bytes=0-15" } });
+      if (!res.ok) return null;
+      const range = res.headers.get("content-range");
+      const size = range ? Number(range.split("/")[1]) : Number(res.headers.get("content-length") ?? 0);
+      return { size, head: new Uint8Array(await res.arrayBuffer()) };
+    },
+    async download(path) {
+      const { data, error } = await bucket().download(path);
+      if (error || !data) throw new Error("Couldn't download the recording");
+      return new Uint8Array(await data.arrayBuffer());
+    },
+    async frames(paths) {
+      const out: Uint8Array[] = [];
+      for (const p of paths) {
+        const { data } = await bucket().download(p);
+        if (data) out.push(new Uint8Array(await data.arrayBuffer()));
+      }
+      return out;
+    },
+    async approvedByPerson(authorId) {
+      const { count } = await db
+        .from("explainers")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", authorId)
+        .eq("status", "approved")
+        .not("approved_by", "is", null);
+      return count ?? 0;
+    },
+    async save(id, patch) {
+      const { error } = await db
+        .from("explainers")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw new Error("Couldn't save the explainer");
+    },
+  };
+}
+
+/**
+ * The engine checks every number the review found (guardrail 2): true when all of them are
+ * confirmed, false when any can't be computed ("Numbers not checked"), null when there are none.
+ * A number the engine computes differently is an accuracy issue for the admin.
+ */
+export function checkNumbers(numbers: ExplainerReviewOutput["numbers"]): { checked: boolean | null; wrong: string[] } {
+  if (!numbers.length) return { checked: null, wrong: [] };
+  let all = true;
+  const wrong: string[] = [];
+  for (const n of numbers) {
+    const v = n.expr ? engineValue(n.expr) : null;
+    if (v === null) all = false;
+    else if (!numericMatches(v, n.value)) wrong.push(`"${n.claim}": the engine gets ${Number(v.toPrecision(4))}.`);
+  }
+  return { checked: wrong.length ? false : all, wrong };
+}
+
+const MSG = { failed: "Ifiok couldn't process your explainer. Try sending it again." } as const;
+
+export type ExplainerDeps = {
+  repo: ExplainerRepo;
+  gateway: Pick<Gateway, "run" | "transcribe">;
+  moderation: () => Promise<ModerationConfig>;
+};
+
+export function createExplainerHandler(deps: ExplainerDeps): JobHandler {
+  const { repo } = deps;
+  const hold = async (id: string, reason: string) => {
+    await repo.save(id, { status: "held", review_reason: reason });
+    return { kind: "done" as const, result: { status: "held", reason } };
+  };
+
+  return {
+    async run(job) {
+      const parsed = explainerPayload.safeParse(job.payload);
+      if (!parsed.success || parsed.data.user_id !== job.ownerId)
+        throw new JobFailure("bad_payload", MSG.failed, false);
+      const p = parsed.data;
+      // Guardrail 7: the job owner's own explainer, sent for review.
+      const ex = await repo.explainer(p.explainer_id);
+      if (!ex || ex.authorId !== p.user_id) throw new JobFailure("payload_owner_mismatch", MSG.failed, false);
+      if (ex.status !== "processing") return { kind: "done", result: { status: ex.status } };
+      const concept = await repo.concept(ex.conceptId);
+      if (!concept) throw new JobFailure("concept_missing", MSG.failed, false);
+
+      let text = ex.body ?? "";
+      let captions: TranscribeSegment[] | null = null;
+      let duration: number | null = null;
+      if (ex.kind !== "text" && ex.transcript && ex.captions?.length) {
+        text = ex.transcript;
+        captions = ex.captions;
+        duration = ex.durationS ?? null;
+      } else if (ex.kind !== "text") {
+        // 08 §2.5c: the server checks type, size and duration; anything else is refused.
+        if (!ex.audioPath) return hold(ex.id, "The recording didn't arrive. Record it again.");
+        const audioHead = await repo.head(ex.audioPath);
+        if (!audioHead || !mediaType(audioHead.head) || audioHead.size > LIMITS.audioBytes)
+          return hold(ex.id, "The audio isn't a supported recording. Record it again in Ifiok.");
+        let mediaBytes: number | null = null;
+        if (ex.kind === "video") {
+          const videoHead = ex.mediaPath ? await repo.head(ex.mediaPath) : null;
+          if (!videoHead || !mediaType(videoHead.head) || videoHead.size > LIMITS.videoBytes)
+            return hold(ex.id, "The video isn't a supported recording or is over 40 MB. Record it again in Ifiok.");
+          mediaBytes = videoHead.size;
+        }
+        let transcript;
+        try {
+          transcript = await deps.gateway.transcribe({
+            userId: p.user_id,
+            audio: await repo.download(ex.audioPath),
+            mime:
+              mediaType(audioHead.head) === "mp4"
+                ? "audio/mp4"
+                : mediaType(audioHead.head) === "ogg"
+                  ? "audio/ogg"
+                  : "audio/webm",
+          });
+        } catch (err) {
+          if (err instanceof GatewayError && (err.code === "quota_exhausted" || err.code === "not_allowed"))
+            throw new JobFailure(err.code, err.message, false);
+          throw new JobFailure(err instanceof GatewayError ? err.code : "transcribe_failed", MSG.failed);
+        }
+        duration = transcript.durationS;
+        const max = (ex.kind === "voice" ? LIMITS.voiceSeconds : LIMITS.videoSeconds) + LIMITS.slackSeconds;
+        if (duration > max)
+          return hold(ex.id, `It's longer than ${ex.kind === "voice" ? "5" : "3"} minutes. Record a shorter one.`);
+        if (!transcript.text.trim())
+          return hold(ex.id, "Ifiok couldn't hear any speech. Record it again somewhere quieter.");
+        text = transcript.text;
+        captions = transcript.segments;
+        await repo.save(ex.id, {
+          transcript: text,
+          captions: captions as unknown as Json,
+          duration_s: Math.round(duration * 10) / 10,
+          audio_bytes: audioHead.size,
+          media_bytes: mediaBytes,
+        });
+      }
+
+      // AI review of the text or transcript, then the frames; both are advice for the admin.
+      // The text review: the primary model, then the backup provider in the same run (04 §3).
+      const reviewInput = { concept, kind: ex.kind, text: text.slice(0, 20_000) };
+      let review: ExplainerReviewOutput;
+      try {
+        try {
+          review = (
+            await deps.gateway.run<ExplainerReviewOutput>("explainer_review", {
+              userId: p.user_id,
+              mode: "job",
+              attempt: 1,
+              input: reviewInput,
+            })
+          ).output;
+        } catch (err) {
+          if (err instanceof GatewayError && (err.code === "quota_exhausted" || err.code === "not_allowed")) throw err;
+          review = (
+            await deps.gateway.run<ExplainerReviewOutput>("explainer_review", {
+              userId: p.user_id,
+              mode: "job",
+              attempt: 2,
+              input: reviewInput,
+            })
+          ).output;
+        }
+      } catch (err) {
+        if (err instanceof GatewayError && (err.code === "quota_exhausted" || err.code === "not_allowed"))
+          throw new JobFailure(err.code, err.message, false);
+        throw new JobFailure(err instanceof GatewayError ? err.code : "review_failed", MSG.failed);
+      }
+
+      // The frame check is advice for the admin: if it can't run, the explainer still goes to a person.
+      let frames: ExplainerFramesOutput | null = null;
+      let framesUnchecked = false;
+      if (ex.kind === "video") {
+        const images = await repo.frames([0, 1, 2].map((i) => framePath(ex.authorId, ex.id, i)));
+        if (images.length) {
+          try {
+            frames = (
+              await deps.gateway.run<ExplainerFramesOutput>("explainer_frames", {
+                userId: p.user_id,
+                mode: "job",
+                attempt: 1,
+                input: { concept: concept.title },
+                images: images.map((data) => ({ mime: "image/jpeg" as const, data })),
+              })
+            ).output;
+          } catch {
+            framesUnchecked = true;
+          }
+        } else framesUnchecked = true;
+      }
+
+      const numbers = checkNumbers(review.numbers);
+      const issues = [
+        ...(review.on_topic ? [] : [`It doesn't seem to explain ${concept.title}.`]),
+        ...(review.accurate ? [] : ["Something it teaches may be wrong."]),
+        ...(review.safe ? [] : ["It may contain unsafe or offensive content."]),
+        ...(review.contact_or_personal ? ["It shares contact details or personal data, or offers paid help."] : []),
+        ...(review.copied ? ["It may be copied from a textbook or slides."] : []),
+        ...numbers.wrong,
+        ...(frames && !frames.safe ? ["A video frame may show unsafe content."] : []),
+        ...(frames?.other_people ? ["Other people appear in the video."] : []),
+        ...(frames?.personal_data ? ["Personal data is visible in the video."] : []),
+        ...(frames?.copied_slides ? ["The video shows slides or book pages."] : []),
+        ...review.issues,
+        ...(frames?.issues ?? []),
+        ...(framesUnchecked ? ["Video frames weren't checked by the AI."] : []),
+      ];
+      const serious = !review.safe || review.contact_or_personal || (frames ? !frames.safe : false);
+      // Layered moderation (12 §4 Q58): clean checks from an author with a track record publish at
+      // once (spot-checked later); new authors' first explainers and anything flagged go to a person.
+      const clean = !serious && issues.length === 0;
+      const trusted =
+        clean && (await repo.approvedByPerson(ex.authorId)) >= (await deps.moderation()).trusted_after_approved;
+      const status = serious ? "held" : trusted ? "approved" : "pending_admin";
+      await repo.save(ex.id, {
+        status,
+        review_reason: serious ? "Waiting for a person to check it." : null,
+        ai_review: { issues, review, frames } as unknown as Json,
+        numbers_checked: numbers.checked,
+        ...(trusted ? { auto_published: true, approved_at: new Date().toISOString() } : {}),
+      });
+      return { kind: "done", result: { status } };
+    },
+  };
+}

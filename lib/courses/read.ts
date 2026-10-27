@@ -175,6 +175,7 @@ export async function getCourseNextUps(viewer: Viewer, courseIds: string[]): Pro
         mastery: (t.concept_id && levels.get(t.concept_id)) || "not_started",
         tried: false, // "Next up" needs only the level
         practice: 0,
+        explainers: 0,
       })),
     );
     result.set(id, {
