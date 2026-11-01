@@ -109,7 +109,7 @@ export function faqGroups(f: FeatureFlags, now: Date): FaqGroups {
     },
     {
       q: "Is Ifiok free?",
-      a: `Yes. Lessons for any topic, your Path, labs, practice, exam patterns and your study plan are free for good. Ifiok Plus (₦500 a month or ₦1,500 a semester) adds unlimited private lessons from your notes, unlimited practice papers and mocks, and priority lesson builds.${
+      a: `Yes. Lessons for any topic, your Path, labs, practice, exam patterns and your study plan are free for good. Ifiok Plus ($1 a month or $3 a semester) adds unlimited private lessons from your notes, unlimited practice papers and mocks, and priority lesson builds.${
         f.plusBilling ? "" : " Plus opens with payments; until then everything is free."
       }`,
     },
@@ -139,11 +139,11 @@ export function faqGroups(f: FeatureFlags, now: Date): FaqGroups {
     },
     {
       q: "How can I make money as a student on Ifiok?",
-      a: "Four ways: uploads other students learn from, explainers, curating AI lessons and tutoring topics you know well. Uploads and explainers earn points toward a monthly pool and Units. Curators get ₦1,500 per accepted review and tutors keep 85% of their price. These are launch rates; cash payouts, curating and tutoring bookings open after launch.",
+      a: "Four ways: uploads other students learn from, explainers, curating AI lessons and tutoring topics you know well. Uploads and explainers earn points toward a monthly pool and Units. Curators get $3 per accepted review and tutors keep 85% of their price. These are launch rates; cash payouts, curating and tutoring bookings open after launch.",
     },
     {
       q: "When do cash payouts start?",
-      a: `After launch, once payments are set up and our terms have had legal review. Cash shares from the contribution pool begin when the pool has reached ₦250,000 a month for two months running. Until then contributors are rewarded in Units. Earnings are held 30 days, and the minimum withdrawal is ₦2,000.${
+      a: `After launch, once payments are set up and our terms have had legal review. Cash shares from the contribution pool begin when the pool has reached $500 a month for two months running. Until then contributors are rewarded in Units. Earnings are held 30 days, and the minimum withdrawal is $4.${
         f.sandboxPayments
           ? " For the PayPal AI Hackathon, payouts are being tested in PayPal sandbox with test money."
           : ""
@@ -362,7 +362,7 @@ export function landingCopy(f: FeatureFlags, now: Date = new Date()) {
     },
     {
       way: "Curating",
-      what: "₦1,500 per accepted review",
+      what: "$3 per accepted review",
       from: "Ifiok's budget",
       status: [openOr(f.curating, "after")],
     },
@@ -382,7 +382,7 @@ export function landingCopy(f: FeatureFlags, now: Date = new Date()) {
   ];
   if (!f.cashPayouts) {
     moneyLines.push(
-      "Cash payouts, curator pay and tutoring bookings open after launch, once payments are set up and the terms have had legal review. Cash shares from the pool start once the pool has reached ₦250,000 a month for two months in a row, so each share is worth withdrawing. Until then, contributors are rewarded in Units.",
+      "Cash payouts, curator pay and tutoring bookings open after launch, once payments are set up and the terms have had legal review. Cash shares from the pool start once the pool has reached $500 a month for two months in a row, so each share is worth withdrawing. Until then, contributors are rewarded in Units.",
     );
   }
   if (f.sandboxPayments) {
@@ -419,7 +419,7 @@ export function landingCopy(f: FeatureFlags, now: Date = new Date()) {
       feature: "Billing",
       free: "Nothing to pay",
       plus: billing,
-      units: f.plusBilling ? "Top up from ₦500" : "Opens with payments",
+      units: f.plusBilling ? "Top up from $1" : "Opens with payments",
     },
   ];
 

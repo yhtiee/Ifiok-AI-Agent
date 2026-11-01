@@ -1,6 +1,7 @@
 // PayPal sandbox check (MVP-07): sends a $1.01 test payout to PAYPAL_TEST_RECEIVER and prints how
 // PayPal reports the batch and item over a few minutes. Test money only; prints no secrets.
 // Usage: node --experimental-transform-types scripts/paypal-check.mts [batchId]  (a batch id: only print its status)
+// PAYPAL_CHECK_RECEIVER=<email> sends to another sandbox account instead of PAYPAL_TEST_RECEIVER.
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { createPaypal } from "@ifiok/core/payments/paypal";
@@ -23,7 +24,7 @@ let batchId = process.argv[2];
 if (!batchId) {
   const out = await paypal.createPayout(`check-${randomUUID()}`, "Ifiok sandbox check", [
     {
-      receiver: env.PAYPAL_TEST_RECEIVER!,
+      receiver: (process.env.PAYPAL_CHECK_RECEIVER ?? env.PAYPAL_TEST_RECEIVER)!,
       amountCents: 101,
       senderItemId: `check:${randomUUID()}`,
       note: "Ifiok check",

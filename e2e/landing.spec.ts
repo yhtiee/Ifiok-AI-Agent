@@ -75,10 +75,11 @@ test.describe("each illustration answers a tap", () => {
     await expect(page.getByTestId("note-snippets")).toHaveAttribute("opacity", "1");
   });
 
-  test("Teach: teaching opens at Mastered", async ({ page }) => {
+  // Teaching needs no mastery (12 §4 Q52): the level is shown to learners, not a gate.
+  test("Teach: learners see your level when you teach", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Familiar", exact: true }).click();
-    await expect(page.getByTestId("teach-note")).toHaveText("Familiar: teaching opens at Mastered.");
+    await expect(page.getByTestId("teach-note")).toHaveText("Familiar: learners see your level when you teach.");
     await expect(page.getByTestId("teach-banner")).toHaveAttribute("opacity", "0");
   });
 
@@ -216,7 +217,9 @@ test("metadata, JSON-LD, robots and sitemap", async ({ page, request }) => {
   await page.goto("/");
   await expect(page).toHaveTitle("Ifiok · AI learning agent for Nigerian university students");
   const meta = (sel: string) => page.locator(sel).getAttribute("content");
-  expect(await meta('meta[name="description"]')).toMatch(/^Interactive lessons for any topic in your course/);
+  expect(await meta('meta[name="description"]')).toMatch(
+    /^Turn your course outline, notes and past questions into lessons/,
+  );
   // The root canonical is the site origin itself (Next drops the trailing slash).
   const canonical = new URL((await page.locator('link[rel="canonical"]').getAttribute("href"))!);
   expect(canonical.pathname).toBe("/");
@@ -231,6 +234,15 @@ test("metadata, JSON-LD, robots and sitemap", async ({ page, request }) => {
   const summaries = await page.locator("#faq summary").allTextContents();
   expect(faq).toEqual(summaries);
   expect(JSON.stringify(ld)).not.toMatch(/aggregateRating|"review"/);
+  // Hackathon demo prices are in US dollars (12 §4 Q64), matching the pricing section.
+  const offers = ld["@graph"][2].offers as { price: number; priceCurrency: string }[];
+  expect(offers.map((o) => [o.price, o.priceCurrency])).toEqual([
+    [0, "USD"],
+    [1, "USD"],
+    [3, "USD"],
+  ]);
+  await expect(page.locator("#pricing")).toContainText("$1 a month or $3 a semester");
+  await expect(page.locator("main")).not.toContainText("₦");
 
   const robots = await (await request.get("/robots.txt")).text();
   expect(robots).toMatch(/Sitemap: .*\/sitemap\.xml/);
@@ -258,7 +270,7 @@ test.describe("without JavaScript", () => {
     }
     await expect(page.getByTestId("journey-dot")).toBeVisible();
     await expect(page.locator("#lp-page-note")).toHaveText("Screen 1 of 3: something to move.");
-    await expect(page.getByTestId("teach-note")).toHaveText("Mastered: write, record a voice note or a short video.");
+    await expect(page.getByTestId("teach-note")).toHaveText("Mastered: shown on what you write, record or film.");
     await expect(page.getByTestId("calc-out")).toContainText("42");
     await expect(page.getByTestId("calc-out")).toContainText("3%");
     await expect(page.getByRole("region", { name: "Start or sign in" })).toBeHidden();

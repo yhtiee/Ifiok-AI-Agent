@@ -18,19 +18,19 @@ export function landingJsonLd({
   const base = siteUrl.replace(/\/$/, "");
   const org = `${base}/#organization`;
   const offers = [
-    { "@type": "Offer", name: "Free", price: 0, priceCurrency: "NGN", availability: "https://schema.org/InStock" },
+    { "@type": "Offer", name: "Free", price: 0, priceCurrency: "USD", availability: "https://schema.org/InStock" },
     {
       "@type": "Offer",
       name: "Ifiok Plus, monthly",
-      price: 500,
-      priceCurrency: "NGN",
+      price: 1,
+      priceCurrency: "USD",
       ...(flags.plusBilling ? { availability: "https://schema.org/InStock" } : {}),
     },
     {
       "@type": "Offer",
       name: "Ifiok Plus, semester",
-      price: 1500,
-      priceCurrency: "NGN",
+      price: 3,
+      priceCurrency: "USD",
       ...(flags.plusBilling ? { availability: "https://schema.org/InStock" } : {}),
     },
   ];

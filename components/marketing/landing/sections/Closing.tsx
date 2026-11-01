@@ -75,33 +75,37 @@ export function Pricing({ copy }: { copy: LandingCopy }) {
     <section id="pricing" className="lp-band-surface" aria-labelledby="pricing-h">
       <div className="lp-wrap">
         <h2 className="lp-h2" id="pricing-h">
-          Free to learn. Plus for ₦500 a month.
+          Free to learn. Plus for $1 a month.
         </h2>
         <p className="lp-lead">{copy.pricing.lead}</p>
+        {/* Hackathon demo (12 §4 Q64): every price is shown in US dollars; naira returns after the hackathon. */}
+        <p className="lp-status-line">
+          Hackathon demo: prices are shown in US dollars, and payments run in the PayPal sandbox.
+        </p>
         <table className="lp-price-table">
           <caption className="lp-sr">What each plan includes</caption>
           <thead>
             <tr>
               <td />
               <th scope="col">
-                Free<small>₦0, for good</small>
+                Free<small>$0, for good</small>
               </th>
               <th scope="col" className="lp-plus-col">
-                Ifiok Plus<small>₦500 a month or ₦1,500 a semester</small>
+                Ifiok Plus<small>$1 a month or $3 a semester</small>
               </th>
               <th scope="col">
-                Units for extras<small>From ₦500</small>
+                Units for extras<small>From $1</small>
               </th>
             </tr>
           </thead>
           <tbody>
             <tr className="lp-price-row-mobile">
               <th scope="row">Price</th>
-              <td data-label="Free">₦0, for good</td>
+              <td data-label="Free">$0, for good</td>
               <td data-label="Plus" className="lp-plus-col">
-                ₦500 a month or ₦1,500 a semester
+                $1 a month or $3 a semester
               </td>
-              <td data-label="Units">From ₦500</td>
+              <td data-label="Units">From $1</td>
             </tr>
             {copy.pricing.rows.map((r) => (
               <tr key={r.feature}>
@@ -119,8 +123,8 @@ export function Pricing({ copy }: { copy: LandingCopy }) {
         </table>
         <div className="lp-price-foot">
           <p className="lp-topup">
-            Top up from ₦500: ₦500 → 50 Units · ₦1,000 → 105 Units · ₦2,000 → 220 Units. Units you buy never expire.
-            Units pay for extras inside Ifiok; they can&apos;t be cashed out or transferred.
+            Top up from $1: $1 → 50 Units · $2 → 105 Units · $4 → 220 Units. Units you buy never expire. Units pay for
+            extras inside Ifiok; they can&apos;t be cashed out or transferred.
           </p>
           <p>
             Exact allowances are shown in the app and may change. · Units you earn last 90 days. · Prices include any

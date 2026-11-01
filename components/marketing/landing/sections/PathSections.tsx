@@ -126,14 +126,14 @@ export function Teach({ copy }: { copy: LandingCopy }) {
           </p>
           <p className="lp-status-line">{copy.teach.tutoringStatus}</p>
           <p className="lp-example-line">
-            <b>Example price:</b> On a ₦2,000 session you receive ₦1,700 and Ifiok keeps ₦300 (15%). Tutors set their
+            <b>Example price:</b> On an $8.00 session you receive $6.80 and Ifiok keeps $1.20 (15%). Tutors set their
             own price.
           </p>
         </PathItem>
         <PathItem title="Curating lessons" badge={copy.teach.curatingBadge}>
           <p>
             Check and fix AI lessons in a subject you know. You apply to curate a subject and an admin reviews and
-            approves you. ₦1,500 for each accepted review, paid monthly.
+            approves you. $3 for each accepted review, paid monthly.
           </p>
         </PathItem>
       </ul>
@@ -160,7 +160,7 @@ const FORMULA = [
   },
   {
     b: "Checks, then a hold.",
-    p: "Unusual patterns are held for review, and the month's top earners are checked by hand. Earnings are held for 30 days, then you can withdraw ₦2,000 or more to an account in your own name.",
+    p: "Unusual patterns are held for review, and the month's top earners are checked by hand. Earnings are held for 30 days, then you can withdraw $4 or more to an account in your own name.",
   },
 ];
 
