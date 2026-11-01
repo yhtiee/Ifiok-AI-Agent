@@ -1,6 +1,5 @@
 import "server-only";
 import { z } from "zod";
-import { mergeChunks } from "@ifiok/core/jobs/exam-extract";
 import { BUCKET as EXPLAINER_BUCKET } from "@ifiok/core/jobs/explainer";
 import { RouteError } from "@/lib/api/route";
 import { isReviewAdmin } from "@/lib/auth/guards";
@@ -8,11 +7,12 @@ import type { Viewer } from "@/lib/auth/viewer";
 import type { MasteryLevel } from "@/lib/courses/path-rules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { LIBRARY_BUCKET } from "./library-upload";
+import { MATERIALS_BUCKET } from "@ifiok/core/materials/kinds";
+import { fileBucket, fileUrls, OLD_LIBRARY_BUCKET, textPages } from "@/lib/materials/files";
 
 // The Library (12 §4 Q58, Q59): one grid of everything in the contribution pool, newest first:
-// explainers (video, voice, written) and documents (notes, lab manuals, worked solutions, past
-// questions). Every item stands alone: an explainer plays on its watch page, a document opens in
+// explainers (video, voice, written) and documents (notes, textbooks, lab manuals, worked solutions,
+// past questions). Every item stands alone: an explainer plays on its watch page, a document opens in
 // Ifiok's viewer. Only live explainers and approved documents appear.
 
 export const LIBRARY_TYPES = [
@@ -21,12 +21,13 @@ export const LIBRARY_TYPES = [
   "voice",
   "text",
   "notes",
+  "textbook_private",
   "lab_manual",
   "solution",
   "past_paper",
 ] as const;
 export type LibraryType = (typeof LIBRARY_TYPES)[number];
-const DOC_KINDS = ["notes", "lab_manual", "solution", "past_paper"] as const;
+const DOC_KINDS = ["notes", "textbook_private", "lab_manual", "solution", "past_paper"] as const;
 type DocKind = (typeof DOC_KINDS)[number];
 
 export type LibraryItem =
@@ -78,7 +79,7 @@ export async function libraryItems(
 
   let docs = admin
     .from("sources")
-    .select("id, title, kind, owner_id, concept_id, shared_concepts, shared_at, page_count, thumb_path")
+    .select("id, title, kind, owner_id, concept_id, shared_concepts, shared_at, page_count, thumb_path, file_mime")
     .eq("visibility", "bank")
     .eq("review", "approved")
     .in("kind", filter.type === "all" ? [...DOC_KINDS] : [filter.type as DocKind])
@@ -111,6 +112,7 @@ export async function libraryItems(
     shared_at: string | null;
     page_count: number | null;
     thumb_path: string | null;
+    file_mime: string | null;
   }[];
 
   const docConcept = (d: (typeof documents)[number]) => d.concept_id ?? d.shared_concepts?.[0] ?? null;
@@ -124,32 +126,42 @@ export async function libraryItems(
   const posters = explainers.flatMap((e) =>
     e.kind === "video" && e.media_path ? [`${e.author_id}/${e.id}/frame-1.jpg`] : [],
   );
-  const thumbs = documents.flatMap((d) => (d.thumb_path ? [d.thumb_path] : []));
-  const [{ data: concepts }, { data: names }, { data: mastery }, posterUrls, thumbUrls] = await Promise.all([
-    conceptIds.length
-      ? admin.from("concepts").select("id, title").in("id", conceptIds)
-      : Promise.resolve({ data: [] as { id: string; title: string }[] }),
-    people.length
-      ? admin.from("profiles").select("id, display_name").in("id", people)
-      : Promise.resolve({ data: [] as { id: string; display_name: string | null }[] }),
-    explainers.length
-      ? admin
-          .from("mastery")
-          .select("user_id, concept_id, level")
-          .in(
-            "user_id",
-            explainers.map((e) => e.author_id),
-          )
-      : Promise.resolve({ data: [] as { user_id: string; concept_id: string; level: string }[] }),
-    posters.length
-      ? admin.storage.from(EXPLAINER_BUCKET).createSignedUrls(posters, 3600)
-      : Promise.resolve({ data: [] }),
-    thumbs.length ? admin.storage.from(LIBRARY_BUCKET).createSignedUrls(thumbs, 3600) : Promise.resolve({ data: [] }),
-  ]);
+  // Files uploaded since 12 §4 Q60 live in `materials`; earlier Library PDFs in `library`.
+  const thumbsIn = (bucket: string) =>
+    documents.flatMap((d) => (d.thumb_path && fileBucket(d.file_mime) === bucket ? [d.thumb_path] : []));
+  const thumbs = thumbsIn(MATERIALS_BUCKET);
+  const oldThumbs = thumbsIn(OLD_LIBRARY_BUCKET);
+  const [{ data: concepts }, { data: names }, { data: mastery }, posterUrls, thumbUrls, oldThumbUrls] =
+    await Promise.all([
+      conceptIds.length
+        ? admin.from("concepts").select("id, title").in("id", conceptIds)
+        : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+      people.length
+        ? admin.from("profiles").select("id, display_name").in("id", people)
+        : Promise.resolve({ data: [] as { id: string; display_name: string | null }[] }),
+      explainers.length
+        ? admin
+            .from("mastery")
+            .select("user_id, concept_id, level")
+            .in(
+              "user_id",
+              explainers.map((e) => e.author_id),
+            )
+        : Promise.resolve({ data: [] as { user_id: string; concept_id: string; level: string }[] }),
+      posters.length
+        ? admin.storage.from(EXPLAINER_BUCKET).createSignedUrls(posters, 3600)
+        : Promise.resolve({ data: [] }),
+      thumbs.length
+        ? admin.storage.from(MATERIALS_BUCKET).createSignedUrls(thumbs, 3600)
+        : Promise.resolve({ data: [] }),
+      oldThumbs.length
+        ? admin.storage.from(OLD_LIBRARY_BUCKET).createSignedUrls(oldThumbs, 3600)
+        : Promise.resolve({ data: [] }),
+    ]);
   const title = new Map((concepts ?? []).map((c) => [c.id, c.title]));
   const name = new Map((names ?? []).map((p) => [p.id, p.display_name ?? "A student"]));
   const signed = new Map(
-    [...(posterUrls.data ?? []), ...(thumbUrls.data ?? [])].flatMap((s) =>
+    [...(posterUrls.data ?? []), ...(thumbUrls.data ?? []), ...(oldThumbUrls.data ?? [])].flatMap((s) =>
       s.path && s.signedUrl ? [[s.path, s.signedUrl]] : [],
     ),
   );
@@ -200,7 +212,12 @@ export type LibraryDoc = {
   concept: { id: string; title: string } | null;
   sharedAt: string | null;
   pdfUrl: string | null;
-  /** Text pages, when there's no PDF (pasted text, or material shared as text). */
+  /** A photo upload, shown as it is. */
+  imageUrl: string | null;
+  /** The original file to download (a Word document is also shown as its text pages). */
+  fileUrl: string | null;
+  fileMime: string | null;
+  /** Text pages, when there's no PDF or photo (Word documents and pasted text). */
   pages: { page: number | null; text: string }[];
 };
 
@@ -212,7 +229,9 @@ export async function libraryDoc(viewer: Viewer, id: string): Promise<LibraryDoc
   const admin = createAdminClient();
   const { data: s } = await admin
     .from("sources")
-    .select("id, title, kind, owner_id, concept_id, shared_concepts, shared_at, visibility, review, storage_path")
+    .select(
+      "id, title, kind, owner_id, concept_id, shared_concepts, shared_at, visibility, review, storage_path, file_mime",
+    )
     .eq("id", id)
     .maybeSingle();
   if (!s || !(DOC_KINDS as readonly string[]).includes(s.kind) || !s.shared_at) return null;
@@ -220,20 +239,14 @@ export async function libraryDoc(viewer: Viewer, id: string): Promise<LibraryDoc
   if (!live && s.owner_id !== viewer.userId && !(await isReviewAdmin())) return null;
 
   const conceptId = s.concept_id ?? s.shared_concepts?.[0] ?? null;
-  const [{ data: owner }, { data: concept }, pdf] = await Promise.all([
+  const [{ data: owner }, { data: concept }, urls] = await Promise.all([
     admin.from("profiles").select("display_name").eq("id", s.owner_id).maybeSingle(),
     conceptId
       ? admin.from("concepts").select("id, title").eq("id", conceptId).maybeSingle()
       : Promise.resolve({ data: null }),
-    s.storage_path ? admin.storage.from(LIBRARY_BUCKET).createSignedUrl(s.storage_path, 600) : Promise.resolve(null),
+    fileUrls(s.storage_path, s.file_mime),
   ]);
-  let pages: LibraryDoc["pages"] = [];
-  if (!pdf?.data?.signedUrl) {
-    const { data: chunks } = await admin.from("chunks").select("page, content").eq("source_id", id).order("id");
-    const byPage = new Map<number | null, { page: number | null; content: string }[]>();
-    for (const c of chunks ?? []) byPage.set(c.page, [...(byPage.get(c.page) ?? []), c]);
-    pages = [...byPage].map(([page, list]) => ({ page, text: mergeChunks(list) }));
-  }
+  const pages = urls.pdfUrl || urls.imageUrl ? [] : await textPages(id);
   return {
     id: s.id,
     title: s.title,
@@ -242,7 +255,7 @@ export async function libraryDoc(viewer: Viewer, id: string): Promise<LibraryDoc
     isYou: s.owner_id === viewer.userId,
     concept: concept ? { id: concept.id, title: concept.title } : null,
     sharedAt: s.shared_at,
-    pdfUrl: pdf?.data?.signedUrl ?? null,
+    ...urls,
     pages,
   };
 }

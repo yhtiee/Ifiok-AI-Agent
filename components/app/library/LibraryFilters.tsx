@@ -24,6 +24,7 @@ const TYPES = [
   ["voice", "Voice"],
   ["text", "Written"],
   ["notes", "Notes"],
+  ["textbook_private", "Textbooks"],
   ["lab_manual", "Manuals"],
   ["past_paper", "Past questions"],
   ["solution", "Solutions"],
@@ -96,7 +97,7 @@ export function LibraryFilters(props: {
                 <Link href="/me/explainers/new">Make an explainer</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/library/upload">Upload notes, a manual or past questions</Link>
+                <Link href="/library/upload">Upload a document</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

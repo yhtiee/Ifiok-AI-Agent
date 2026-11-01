@@ -145,12 +145,11 @@ describe("curate job", () => {
     expect(calls.some((c) => c.startsWith("lesson:"))).toBe(false);
   });
 
-  it("refuses someone else's material, unshared material and textbook pages (guardrail 7)", async () => {
+  it("refuses someone else's material, and unshared material (guardrail 7)", async () => {
     const gateway = { run: vi.fn() };
     for (const source of [
       { ownerId: "someone-else", kind: "notes", courseId: null, concept: null, sha256: null, sharedAt: "x" },
       { ownerId: USER, kind: "notes", courseId: null, concept: null, sha256: null, sharedAt: null },
-      { ownerId: USER, kind: "textbook_private", courseId: null, concept: null, sha256: null, sharedAt: "x" },
     ]) {
       const { r } = repo({ source: async () => source });
       await expect(

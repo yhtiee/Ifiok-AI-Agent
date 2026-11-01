@@ -1,21 +1,17 @@
 import { AppShell } from "@/components/app/AppShell";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
-import { isReviewAdmin, requireOnboardedPage } from "@/lib/auth/guards";
+import { requireOnboardedPage } from "@/lib/auth/guards";
 // Lesson maths (pre-rendered KaTeX HTML) needs its CSS here only, not on the landing page (landing 01 §3.8).
 import "katex/dist/katex.min.css";
 
 // Signed-in student area (Today · Courses · Me). Only adults who finished onboarding get in;
-// everyone else is sent to sign-in or their next onboarding step.
+// everyone else is sent to sign-in or their next onboarding step; admin accounts go to /admin.
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const viewer = await requireOnboardedPage();
-  const admin = await isReviewAdmin();
   return (
     <QueryProvider>
-      <AppShell
-        user={{ name: `${viewer.profile.first_name} ${viewer.profile.last_name}`.trim(), email: viewer.email }}
-        admin={admin}
-      >
+      <AppShell user={{ name: `${viewer.profile.first_name} ${viewer.profile.last_name}`.trim(), email: viewer.email }}>
         {children}
       </AppShell>
       <Toaster />

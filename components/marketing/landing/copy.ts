@@ -155,11 +155,11 @@ export function faqGroups(f: FeatureFlags, now: Date): FaqGroups {
     },
     {
       q: "Can I share notes I didn't write, or past questions?",
-      a: "Share notes you wrote yourself, not someone else's handout. Past questions are fine: Ifiok uses the questions only and never shows the file. Published textbooks are never accepted. Every upload is checked for copyright signs and duplicates, and a duplicate earns nothing.",
+      a: "Share what you have the right to share: notes you wrote yourself, not someone else's handout. Past questions are fine. You confirm you have the right before anything is shared. Every upload is checked for copyright signs and duplicates, and a duplicate earns nothing.",
     },
     {
       q: "Is my textbook uploaded or shared?",
-      a: `${f.upload ? "" : "When uploads open: "}No. Ifiok reads your PDF on your phone and sends only the text of the pages you choose, with personal details removed. Lessons from your materials are for you alone, and textbook pages can never be shared.`,
+      a: `${f.upload ? "" : "When uploads open: "}Uploaded, yes: the file is saved privately, so only you can open it. Shared, only if you choose to share it to the Library. Personal details are removed from the text Ifiok reads, and lessons built from your materials are for you alone.`,
     },
     {
       q: "Who can tutor, and how much do tutors keep?",
@@ -204,7 +204,7 @@ export function faqGroups(f: FeatureFlags, now: Date): FaqGroups {
         },
         {
           q: "Can Ifiok's AI move money on its own?",
-          a: "No. When you keep missing a topic, the study agent can suggest a tutor for it and draft the booking, but only your tap creates the payment. Payout explanations use the ledger's numbers, not the model's.",
+          a: "No. When you ask, Ifiok's tutoring agent looks at the topics you keep missing and the tutors who teach them, and drafts a booking inside the spending limit you set. Only your approval on PayPal creates the payment, and the server checks everything the agent proposes. Payout explanations use the ledger's numbers, not the model's.",
         },
       );
     }
@@ -294,12 +294,12 @@ export function landingCopy(f: FeatureFlags, now: Date = new Date()) {
     f.upload && f.privateLessons
       ? {
           title: "Lessons from your own notes",
-          body: 'Add your lecture notes, textbook pages or course outline. PDFs are read on your phone; you pick the pages and only their text is sent. Lessons built from your notes cite the page, like "From your notes, p. 12", and only you see them.',
+          body: 'Upload your lecture notes or a whole textbook: PDF, Word or photos. When you open a topic, Ifiok finds the pages that cover it and builds the lesson from them, citing the page, like "From your notes, p. 12". Only you see it.',
         }
       : {
           title: "Lessons from your own notes",
           badge: badge("building"),
-          body: "Next: add your lecture notes or textbook pages and get lessons built from them, citing your own pages. PDFs will be read on your phone, and only the pages you pick are sent.",
+          body: "Next: upload your lecture notes or a textbook and get lessons built from the pages that cover each topic, citing your own pages.",
         },
     f.path
       ? {

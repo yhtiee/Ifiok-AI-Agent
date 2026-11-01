@@ -39,6 +39,15 @@ const rawConfig: Record<ConfigKey, unknown> = {
     approved_upload_units: 5,
   },
   moderation: { trusted_after_approved: 3, hide_after_reports: 3, spot_checks: 5 },
+  payouts: { currency: "USD", contributor_cap: 0.2, demo_pool_cents: 5000 },
+  tutoring: {
+    take_rate: 0.15,
+    price_min_cents: 300,
+    price_max_cents: 5000,
+    auto_release_hours: 24,
+    session_minutes: 45,
+  },
+  tutor_agent: { default_limit_cents: 1500, max_weak_topics: 5, max_tutors: 12 },
   audio_prices: [
     { provider: "groq", model: "whisper-large-v3-turbo", usd_per_hour: 0.04, effective_from: "2026-01-01" },
   ],

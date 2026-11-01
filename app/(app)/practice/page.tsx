@@ -9,6 +9,8 @@ import { masteryText } from "@/lib/courses/path-rules";
 import { getPracticeTopics, getWeakAreas } from "@/lib/learning/progress";
 import { nextHref, withCourse } from "@/lib/learning/weak-areas";
 import { getLabs } from "@/lib/labs/service";
+import { TutorAgent } from "@/components/app/payments/TutorAgent";
+import { openProposal, spendLimitCents } from "@/lib/payments/agent";
 
 export const metadata: Metadata = { title: "Practice", robots: { index: false } };
 
@@ -16,9 +18,16 @@ export const metadata: Metadata = { title: "Practice", robots: { index: false } 
 // most common mistake and one next step), then every topic with practice questions. Built only from
 // server-recorded answers (guardrail 6). The one camwood action is the weakest topic's next step.
 // On phones, links lead to Labs and the Library (desktop has them in the sidebar; 12 §4 Q56, Q58).
+// MVP-07: under the weak areas, Ifiok's tutoring agent drafts a tutor booking when the student asks (Q63).
 export default async function PracticePage() {
   const viewer = await requireOnboardedPage();
-  const [weak, topics, labs] = await Promise.all([getWeakAreas(viewer), getPracticeTopics(viewer), getLabs(viewer)]);
+  const [weak, topics, labs, proposal, limitCents] = await Promise.all([
+    getWeakAreas(viewer),
+    getPracticeTopics(viewer),
+    getLabs(viewer),
+    openProposal(viewer).catch(() => null),
+    spendLimitCents(viewer),
+  ]);
   const top = weak[0];
 
   return (
@@ -51,6 +60,7 @@ export default async function PracticePage() {
               body="Answer the questions in your lessons and practice. Topics you're finding hard show up here, with what to do next."
             />
           )}
+          {weak.length ? <TutorAgent proposal={proposal} limitCents={limitCents} /> : null}
         </section>
 
         <section aria-labelledby="practise-topic" className="grid content-start gap-3">

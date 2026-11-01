@@ -44,6 +44,12 @@ export function nextUp(topics: readonly PathTopic[]): PathTopic | null {
 
 export function lessonStateText(t: Pick<PathTopic, "lesson" | "fromNotes" | "covered">): string {
   if (t.lesson === "building") return t.covered ? "Building from your notes" : "Lesson building";
-  if (t.lesson === "ready") return t.fromNotes ? "Lesson from your notes" : "Lesson ready";
+  if (t.lesson === "ready")
+    // Lessons from materials are built when the topic is opened (12 §4 Q60).
+    return t.fromNotes
+      ? "Lesson from your notes"
+      : t.covered
+        ? "Yours from your notes when you open it"
+        : "Lesson ready";
   return t.covered ? "Built from your notes on first open" : "Built on first open";
 }

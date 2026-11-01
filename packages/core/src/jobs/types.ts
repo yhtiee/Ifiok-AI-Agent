@@ -16,6 +16,7 @@ export const QUEUES = [
   "embed",
   "notify",
   "payouts",
+  "tutoring_release",
   "noop",
 ] as const;
 export type QueueName = (typeof QUEUES)[number];

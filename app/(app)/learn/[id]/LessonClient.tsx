@@ -27,11 +27,14 @@ export function LessonClient({ conceptId, initialState, courseId, next, back }: 
 
   // Opening a concept with no lesson starts one (F2-FR4). Generation starts only on this POST,
   // never on page load or link prefetch; the worker picks the job up from the queue.
+  // Opening a topic their materials cover builds the student's own lesson from the parts that
+  // cover it (12 §4 Q60), the shared lesson showing meanwhile.
+  const ask = state.status === "none" || (state.status === "published" && state.notesCover === true);
   useEffect(() => {
-    if (started.current || state.status !== "none") return;
+    if (started.current || !ask) return;
     started.current = true;
     mutate(courseId);
-  }, [state.status, courseId, mutate]);
+  }, [ask, courseId, mutate]);
 
   // Realtime on the job (owner only) refreshes the moment it finishes; polling covers everyone else.
   const watching =

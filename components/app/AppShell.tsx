@@ -11,12 +11,10 @@ import { BottomNav, MainArea, SidebarNav } from "./AppNav";
 
 type AppShellProps = {
   user: { name: string; email: string | null };
-  /** Shows the Admin item in the sidebar (12 §4 Q58). */
-  admin?: boolean;
   children: ReactNode;
 };
 
-export function AppShell({ user, admin = false, children }: AppShellProps) {
+export function AppShell({ user, children }: AppShellProps) {
   const initial = (user.name || user.email || "?").trim().charAt(0).toUpperCase();
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] print:block">
@@ -25,7 +23,7 @@ export function AppShell({ user, admin = false, children }: AppShellProps) {
           <Wordmark className="text-[1.75rem]" />
         </Link>
         <div className="mt-6 flex-1">
-          <SidebarNav admin={admin} />
+          <SidebarNav />
         </div>
         <div className="grid gap-1 border-t border-line pt-4">
           <Link

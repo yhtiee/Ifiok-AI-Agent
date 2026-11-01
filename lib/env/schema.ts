@@ -37,6 +37,11 @@ export const serverEnvSchema = publicEnvSchema.extend({
   GROQ_API_KEY: nonEmpty.optional(), // P3
   /** Shared secret for server-to-server Edge Function calls (embed). Also set in Supabase secrets. */
   INTERNAL_FUNCTION_SECRET: nonEmpty.optional(), // P1-01
+  /** PayPal sandbox app (MVP-07, 12 §4 Q43). Test money only: PAYPAL_ENV must be "sandbox". */
+  PAYPAL_CLIENT_ID: nonEmpty.optional(),
+  PAYPAL_CLIENT_SECRET: nonEmpty.optional(),
+  PAYPAL_WEBHOOK_ID: nonEmpty.optional(),
+  PAYPAL_ENV: z.literal("sandbox").optional(),
   /** "true" once an email provider (Resend SMTP) is connected: turns on email sign-in codes. */
   AUTH_EMAIL_CODES: z.enum(["true", "false"]).optional(),
   /** "true" once an email provider is connected and the recovery template is pushed: turns on password reset. */

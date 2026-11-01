@@ -48,7 +48,7 @@ export default async function AddMaterialsPage({ searchParams }: PageProps<"/mat
     <AppPage
       crumbs={[...crumbs, { label: "Add materials" }]}
       title="Add materials"
-      description="Lecture notes, textbook pages, past questions or a lab manual."
+      description="Lecture notes, a textbook, past questions or a lab manual: PDF, Word or photos."
       width="full"
     >
       <AddMaterialsFlow destinations={destinations} initial={initial} />

@@ -18,12 +18,17 @@ export default function PrivacyPage() {
           <li>The month and year you were born, to check you are 18 or older. Never the day.</li>
           <li>Your university, level and daily study time, if you give them.</li>
           <li>What you do while learning: lessons opened, answers, practice and lab results, and your study plan.</li>
-          <li>What you send us: questions to the tutor, photos of your working, and notes you upload.</li>
+          <li>
+            What you send us: questions to the tutor, photos of your working, and the files you upload (notes,
+            textbooks, past questions, lab manuals). Your files are stored privately; only you can open them unless you
+            share one to the Library.
+          </li>
+          <li>
+            If you add one, the email of your PayPal account, used only to pay you. It isn&apos;t shown to anyone or
+            sent to the AI, and it&apos;s deleted with your account.
+          </li>
         </ul>
-        <p>
-          We don&apos;t ask for your phone number or a photo of you. Textbook PDFs are read on your phone and never
-          uploaded.
-        </p>
+        <p>We don&apos;t ask for your phone number or a photo of you.</p>
       </section>
       <section>
         <h2>Why we use it</h2>
@@ -40,13 +45,14 @@ export default function PrivacyPage() {
           also use providers for hosting, email and error reports. Each works only on our instructions.
         </p>
         <p>
-          <strong>AI.</strong> What you send Ifiok&apos;s AI (questions, photos of your working, notes, course names and
-          topics) is processed by Google&apos;s Gemini API on its free plan, in the United States or elsewhere. On that
-          plan Google uses what it receives, and the answers, to provide and improve its products, and people at Google
-          may read it. Before sending text, Ifiok removes email addresses, phone numbers and ID-like numbers it can
-          detect; it can&apos;t do that for photos. We never send your name, email or account details to Google. If
-          Gemini is unavailable, Anthropic (Claude) may answer instead. You agree to this when you sign up; you can stop
-          at any time by not using the AI features and deleting your account.
+          <strong>AI.</strong> What you send Ifiok&apos;s AI (questions, photos of your working, your notes and other
+          materials, including photos and scanned pages, course names and topics) is processed by Google&apos;s Gemini
+          API on its free plan, in the United States or elsewhere. On that plan Google uses what it receives, and the
+          answers, to provide and improve its products, and people at Google may read it. Before sending text, Ifiok
+          removes email addresses, phone numbers and ID-like numbers it can detect; it can&apos;t do that for photos. We
+          never send your name, email or account details to Google. If Gemini is unavailable, Anthropic (Claude) may
+          answer instead. You agree to this when you sign up; you can stop at any time by not using the AI features and
+          deleting your account.
         </p>
       </section>
       <section>

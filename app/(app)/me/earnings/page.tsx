@@ -3,7 +3,9 @@ import Link from "next/link";
 import { AppPage } from "@/components/app/AppPage";
 import { EmptyState, Panel, SectionHeading } from "@/components/app/Page";
 import { requireOnboardedPage } from "@/lib/auth/guards";
+import { PayoutsPanel } from "@/components/app/payments/PayoutsPanel";
 import { getEarnings } from "@/lib/contribute/earnings";
+import { myPayouts } from "@/lib/payments/payouts";
 
 export const metadata: Metadata = { title: "My earnings", robots: { index: false } };
 
@@ -24,11 +26,11 @@ const EXPLAINER_WORDS: Record<string, string> = {
 const link = "inline-flex min-h-11 items-center text-base text-quantity underline-offset-4 hover:underline";
 const points = (n: number) => `${n} ${n === 1 ? "point" : "points"}`;
 
-// My earnings (06 §0, §2, §4, 10 MVP-06): usage points and Units earned, pending until the wallet
-// opens. No cash moves and no naira amount is shown until a contribution pool exists.
+// My earnings (06 §0, §2, §4, 10 MVP-06, MVP-07): usage points and Units earned (pending until the
+// wallet opens), and payouts from the contribution pool in the PayPal sandbox (test money).
 export default async function EarningsPage() {
   const viewer = await requireOnboardedPage();
-  const e = await getEarnings(viewer);
+  const [e, payouts] = await Promise.all([getEarnings(viewer), myPayouts(viewer)]);
   const month = new Intl.DateTimeFormat("en-GB", { month: "long", timeZone: "UTC" }).format(
     new Date(`${e.month}T00:00:00Z`),
   );
@@ -60,8 +62,12 @@ export default async function EarningsPage() {
               You get a point each month for every student who finishes your explainer or a lesson screen quoting your
               shared material, and 1 Unit for each of those students. An approved share earns 5 Units.
             </p>
-            <p className="text-ink-2">Cash payouts from the contribution pool open after launch.</p>
+            <p className="text-ink-2">
+              Each month, the contribution pool is shared by everyone&apos;s points, and no one gets more than 20% of
+              it. For now it&apos;s paid in the PayPal sandbox, with test money.
+            </p>
           </div>
+          <PayoutsPanel email={payouts.email} lines={payouts.lines} />
         </div>
 
         <div className="grid content-start gap-10">

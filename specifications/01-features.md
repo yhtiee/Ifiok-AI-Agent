@@ -9,7 +9,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`). Stages and 
 |---|---|---|---|
 | Foundation | **F0** Accounts, age gate, onboarding | Built | Email verification, Turnstile (Launch) |
 | 1 · Learn | **F2** Lessons on demand, shared by concept | Built; private lessons from the student's materials (MVP-02) | Curator queue, trusted promotion, refresh (Earn) |
-| 1 · Learn | **F3** Materials read on the device (all PDFs) | Page picker and text extraction (MVP-01) | Private textbook page matching (Grow) |
+| 1 · Learn | **F3** Materials (files stored privately, text read on the device or by OCR; 12 §4 Q60) | File upload, on-device text, OCR, lessons per topic on request (MVP-01/02) | Private textbook page matching (Grow) |
 | 1 · Learn | **F5** Practice and progress | Items, `/api/sync`, mastery, weak areas (MVP-02, MVP-03) | Spaced review FSRS (Grow) |
 | 1 · Learn | **F7** Diagnosis; check my working | Error tags and weak areas (MVP-03) | Snap-and-mark of handwritten working (Grow) |
 | 1 · Learn | **F1** Grounded tutor | Stretch: "Ask about this" | Full tutor (Grow) |
@@ -131,6 +131,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`). Stages and 
 ---
 
 ## F3 · Materials read on the device (textbooks and every PDF)
+> **Superseded in part by `12` §4 Q60 (31 Oct 2026):** materials are now uploaded and stored as files (PDF, Word, photos; ≤ 20 MB; private `materials` bucket, owner only). The phone still reads a PDF's text layer and a Word document's text; photos and scanned pages are read by the `ocr` job. Textbooks may be shared to the Library. A lesson from materials is built when the student opens a topic, from only the chunks that match it. FR1, FR2 and FR5's "never uploaded / only confirmed pages" rules and the network-capture AC no longer apply; FR3–FR4 (on-device page matching) stay in Grow.
 **Purpose:** Turn the topics a student is studying into lessons from their own textbook, without storing or sharing the book. **Stage:** MVP for on-device extraction of every PDF upload (MVP-01, Q38: notes, past questions and lab manuals use the same page picker, so nothing is stored as a file); private textbook page matching in Grow.
 
 **Stories**
@@ -305,7 +306,7 @@ IDs are stable; reference them in commits and tests (e.g. `F5-FR3`). Stages and 
 **Purpose:** Students and lecturers upload notes, past questions, lab manuals and worked solutions so the AI learns each concept better for everyone: grounding for the tutor, sources and citations for lessons, real question styles for practice and exam maps. Contributors are rewarded when their material helps others. **Stage:** MVP (MVP-06, Q42): a student can share their own materials to the contribution pool, where automatic checks approve or hold them and usage is recorded as points and Units; Earn (E-01) adds curators, takedowns and cash shares.
 
 **FR**
-1. Upload kinds: `notes` (students: **your own notes only**, not lecturer handouts), `past_paper`, `lab_manual`, `solution` (worked solutions). **Not allowed:** published textbooks or copyrighted books (attestation checkbox plus detection).
+1. Upload kinds: `notes` (students: **your own notes only**, not lecturer handouts), `past_paper`, `lab_manual`, `solution` (worked solutions), and since `12` §4 Q60 `textbook_private` (the uploader attests they have the right to share it; copyright detection still runs).
    - **Past papers** are used for their extracted questions and statistics only (exam map, item style). The file itself is never shown to other students.
    - Uploads start as private sources; `submit_to_bank(source_id)` (server) moves them into curation. Clients can never set `review`, `visibility` or the lecturer flag (`03` §8).
 2. Pipeline (`curate` queue job): file type/size check (PDF/JPG/PNG, ≤ 20 MB) → text extraction/OCR → checks: readable (OCR confidence), on-topic and **concept tagging** (classifier maps pages to concepts, using the course outline when the upload came from a course), duplicate (SHA-256 + MinHash/embedding similarity ≥ 0.92 against existing), copyright signals (ISBN, publisher names, "All rights reserved", match against a list of known textbook titles) → decision: `approved`, `needs_review` or `rejected` (with a reason shown to the uploader).

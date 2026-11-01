@@ -1,10 +1,11 @@
-import { expect, test, type Page, type Request } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { adminClient, createOnboardedUser, deleteTestUser, hasSupabaseAdmin, signInAs } from "./helpers/supabase";
 
-// MVP-01 materials. (1) The F3 network test (11 §2 item 4): a fixture PDF with a unique marker on
-// every page; after picking pages 2–3, no request carries another page's text and no PDF bytes are
-// sent. (2) Live: an upload becomes Ready and searchable on the hosted project, then is deleted.
-// Fixture: node scripts/make-fixture-pdf.mts (5 pages, page 5 has no text layer).
+// MVP-01 materials, uploaded as files (12 §4 Q60). (1) On the device: the whole PDF goes to its
+// signed URL, the text layer is read on the phone and the scanned page is drawn for OCR. (2) Live:
+// an upload is stored, becomes Ready and searchable on the hosted project, opens in the viewer,
+// and deleting it removes the file. Fixture: node scripts/make-fixture-pdf.mts (5 pages, page 5
+// has no text layer).
 
 const FIXTURE = "e2e/fixtures/marked-pages.pdf";
 const marker = (n: number) => `ZQXPAGE${n}MARK`;
@@ -50,84 +51,103 @@ test.describe("materials: upload and understand", () => {
   });
 
   // The one add flow (app-overhaul §5.7): ?course= preselects the course and opens "What is it?".
-  async function openAddPdf(page: Page) {
+  async function openAddFile(page: Page) {
     await page.goto(`/materials/add?course=${courseId}`);
     await page.getByRole("radio", { name: "Lecture notes" }).check();
-    await page.getByLabel("PDF to add").setInputFiles(FIXTURE);
-    await expect(page.getByRole("button", { name: "Page 1", exact: true })).toBeVisible({ timeout: 30_000 });
+    await page.getByLabel("File to add").setInputFiles(FIXTURE);
+    // Read on the phone first: the text pages and the scanned page are counted.
+    await expect(page.getByText(/4 pages of text read on your phone\. 1 scanned page will be read/)).toBeVisible({
+      timeout: 30_000,
+    });
   }
 
-  test("only the picked pages' text leaves the device, never the PDF (F3)", async ({ page, context, baseURL }) => {
+  test("the whole file uploads; its text is read on the phone and the scan is sent for OCR (Q60)", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
     await signInAs(context, emails.get("ada")!, baseURL!);
-    // Keep this test about the device: answer the materials API locally.
-    let posted: unknown = null;
+    // Keep this test about the device: answer the materials API and storage locally.
+    const id = "00000000-0000-4000-8000-000000000001";
+    let posted: { pages: { page: number; text: string }[]; file: { mime: string }; ocr_pages: unknown[] } | null = null;
+    const stored = new Map<string, Buffer>();
+    let completed = false;
     await page.route("**/api/materials?**", (route) => route.fulfill({ json: { materials: [] } }));
     await page.route("**/api/materials", async (route) => {
       posted = route.request().postDataJSON();
+      const sign = (name: string) => ({ path: `u/${id}/${name}`, token: name });
       await route.fulfill({
         status: 201,
         json: {
-          material: { id: "00000000-0000-4000-8000-000000000001", title: "x", pageCount: 2, chunks: 2 },
+          material: { id, title: "x", pageCount: 5, chunks: 4 },
           jobId: "j",
+          uploads: { file: sign("file.pdf"), thumb: sign("thumb.jpg"), ocr: [{ page: 5, ...sign("ocr-5.jpg") }] },
           redacted: 0,
           skippedPages: 0,
         },
       });
     });
+    await page.route("**/storage/v1/object/upload/sign/materials/**", async (route) => {
+      const url = new URL(route.request().url());
+      stored.set(url.pathname.split("/").pop()!, route.request().postDataBuffer() ?? Buffer.alloc(0));
+      await route.fulfill({ json: { Key: url.pathname } });
+    });
+    await page.route(`**/api/materials/${id}/complete`, async (route) => {
+      completed = true;
+      await route.fulfill({ json: { attached: true, reading: 1 } });
+    });
 
-    const requests: Request[] = [];
-    page.on("request", (r) => requests.push(r));
-
-    await openAddPdf(page);
-    // The scanned page is marked and can't be picked.
-    await page.getByRole("button", { name: "Page 5", exact: false }).scrollIntoViewIfNeeded();
-    await expect(page.getByRole("button", { name: "Page 5, no readable text" })).toBeDisabled({ timeout: 15_000 });
-
-    await page.getByLabel("Pages", { exact: true }).fill("2-3");
-    await page.getByRole("button", { name: "Select", exact: true }).click();
-    await expect(page.getByText(/2 of \d+ pages picked/)).toBeVisible();
-    await shot(page, "01-picker");
-    await page.getByRole("button", { name: "Add 2 pages" }).click();
-    // Back on the course's Materials tab, with the notice as a toast.
-    await expect(page.getByText(/^Added "x": 2 pages/)).toBeVisible({ timeout: 30_000 });
+    await openAddFile(page);
+    await shot(page, "01-picked");
+    await page.getByRole("button", { name: "Upload", exact: true }).click();
+    await expect(page.getByText(/^Added "x"/)).toBeVisible({ timeout: 30_000 });
     await expect(page).toHaveURL(new RegExp(`/courses/${courseId}\\?tab=materials$`));
-    await shot(page, "02-added");
 
-    const body = JSON.stringify(posted);
-    expect(body).toContain(marker(2));
-    expect(body).toContain(marker(3));
-    for (const n of [1, 4]) expect(body).not.toContain(marker(n));
-
-    for (const r of requests) {
-      const data = r.postDataBuffer();
-      if (!data) continue;
-      const text = data.toString("latin1");
-      expect(text.startsWith("%PDF"), `${r.url()} sent a PDF`).toBe(false);
-      expect(text, `${r.url()} sent the PDF's raw bytes`).not.toContain("%PDF-");
-      for (const n of [1, 4]) expect(text, `${r.url()} sent unpicked page ${n}`).not.toContain(marker(n));
-    }
+    // Text of every page with a text layer, the scan for OCR, and the file's type.
+    const body = posted!;
+    expect(body.pages.map((p) => p.page)).toEqual([1, 2, 3, 4]);
+    for (const n of [1, 2, 3, 4]) expect(JSON.stringify(body.pages)).toContain(marker(n));
+    expect(body.ocr_pages).toEqual([{ page: 5 }]);
+    expect(body.file.mime).toBe("application/pdf");
+    // The PDF itself, a JPEG thumbnail and a JPEG of the scanned page went to storage; then complete.
+    // (Playwright doesn't capture a file streamed from disk, so the part's type is checked here;
+    // the live test checks the stored bytes through the server's magic-byte check.)
+    expect(stored.get("file.pdf")?.toString("latin1")).toContain("Content-Type: application/pdf");
+    expect(stored.get("ocr-5.jpg")?.includes(Buffer.from([0xff, 0xd8, 0xff]))).toBe(true);
+    expect(stored.has("thumb.jpg")).toBe(true);
+    expect(completed).toBe(true);
   });
 
   test("an upload becomes Ready and searchable, and can be deleted (live)", async ({ page, context, baseURL }) => {
     await signInAs(context, emails.get("ada")!, baseURL!);
-    await openAddPdf(page);
+    await openAddFile(page);
     await page.getByLabel("Name").fill("Projectile notes");
-    await page.getByLabel("Pages", { exact: true }).fill("1-4");
-    await page.getByRole("button", { name: "Select", exact: true }).click();
-    await page.getByRole("button", { name: "Add 4 pages" }).click();
-    await expect(page.getByText('Added "Projectile notes": 4 pages')).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Upload", exact: true }).click();
+    await expect(page.getByText('Added "Projectile notes".')).toBeVisible({ timeout: 60_000 });
     await expect(page.getByRole("tab", { name: /Materials/, selected: true })).toBeVisible();
 
     // Keyword search works at once (chunks are saved before embedding).
     await page.getByLabel("Find in your materials").fill(marker(3));
     await expect(page.getByRole("list", { name: "Matches" })).toContainText("p. 3", { timeout: 20_000 });
 
-    // The embed job fills the vectors; the list polls until it reads Ready (Done when: within 2 minutes).
+    // The embed and ocr jobs finish; the list polls until it reads Ready (Done when: within 2 minutes).
     await expect(page.getByText("Ready", { exact: true })).toBeVisible({ timeout: 120_000 });
-    // No file is stored for an upload (F3): text-only sources.
-    const { data: stored } = await adminClient().from("sources").select("storage_path").eq("course_id", courseId);
+    // The file is stored privately, checked from its bytes (Q60).
+    const { data: stored } = await adminClient()
+      .from("sources")
+      .select("id, storage_path, file_mime, thumb_path")
+      .eq("course_id", courseId);
     expect(stored?.length).toBe(1);
-    expect(stored![0]!.storage_path).toBeNull();
+    const source = stored![0]!;
+    expect(source.storage_path).toMatch(/\/file\.pdf$/);
+    expect(source.file_mime).toBe("application/pdf");
+    expect(source.thumb_path).toMatch(/\/thumb\.jpg$/);
+
+    // It opens in Ifiok's viewer for its owner.
+    await page.getByRole("link", { name: /Projectile notes/ }).click();
+    await expect(page.getByRole("list", { name: /Projectile notes, 5 pages/ })).toBeVisible({ timeout: 30_000 });
+    await shot(page, "02-viewer");
+    await page.goBack();
 
     await page.getByRole("button", { name: "Delete Projectile notes" }).click();
     // Asked first, in a dialog.
@@ -139,6 +159,10 @@ test.describe("materials: upload and understand", () => {
       .select("id", { count: "exact", head: true })
       .eq("course_id", courseId);
     expect(count).toBe(0);
+    // Its files went with it.
+    const folder = source.storage_path!.split("/").slice(0, 2).join("/");
+    const { data: left } = await adminClient().storage.from("materials").list(folder);
+    expect(left ?? []).toHaveLength(0);
   });
 
   test("Add materials with one course goes straight to What is it?", async ({ page, context, baseURL }) => {
@@ -149,7 +173,7 @@ test.describe("materials: upload and understand", () => {
     await expect(page.getByRole("group", { name: "What is it?" })).toBeVisible();
     await expect(page.getByRole("radio")).toHaveCount(5);
     await expect(page.getByRole("radio", { name: "Course outline" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Choose a PDF" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Choose a file" })).toBeVisible();
     await shot(page, "03-add-page");
 
     // Pasted text needs a sentence or two before it can be added.

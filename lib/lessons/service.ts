@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/types";
 import { citedChunkIds, TOPIC_MIN_SCREENS } from "./pipeline";
-import { activePrivateJob, citationLabels, findPrivateLesson, startPrivateLesson } from "./private";
+import { activePrivateJob, citationLabels, findPrivateLesson, notesCover, startPrivateLesson } from "./private";
 import type { ConceptRow, GetLessonResult, LessonFlagInput, LessonRow, LessonStatus, LessonTrust } from "./types";
 
 // Shared lessons in Next: where a concept's lesson stands, starting generation (the worker Edge
@@ -89,7 +89,12 @@ export async function getLessonState(
     getSharedLessonState(conceptId),
     activePrivateJob(ctx.viewer, conceptId, courseId),
   ]);
-  if (!building) return shared;
+  if (!building) {
+    // Lessons from materials are built on request (12 §4 Q60): say so, and the client asks.
+    if (shared.status === "published" && (await notesCover(ctx.viewer, conceptId, courseId)))
+      return { ...shared, notesCover: true };
+    return shared;
+  }
   if (shared.status === "published") return { ...shared, notesBuilding: { jobId: building } };
   if ("concept" in shared) {
     return { status: "generating", jobId: building, concept: shared.concept, quickExplainer: shared.quickExplainer };

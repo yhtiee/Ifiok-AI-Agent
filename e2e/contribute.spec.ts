@@ -295,7 +295,7 @@ test.describe("contribute, teach and earn", () => {
     expect(count).toBe(1);
   });
 
-  test("uploading a PDF straight to the Library: only the picked pages are kept, and it opens as a document", async ({
+  test("uploading a PDF straight to the Library: the whole file is kept, and it opens as a document (Q60)", async ({
     page,
     context,
     baseURL,
@@ -329,33 +329,33 @@ test.describe("contribute, teach and earn", () => {
     await signInAs(context, ada.email, baseURL!);
     await page.goto("/library");
     await page.getByRole("button", { name: "Upload" }).click({ timeout: 30_000 });
-    await page.getByRole("menuitem", { name: "Upload notes, a manual or past questions" }).click();
+    await page.getByRole("menuitem", { name: "Upload a document" }).click();
     await expect(page).toHaveURL(/\/library\/upload$/, { timeout: 30_000 });
     await page.getByRole("button", { name: "Lab manual" }).click();
     await page.getByLabel("Title").fill("Verifying Kirchhoff's laws (lab)");
-    await page.getByLabel("PDF to upload").setInputFiles(pdfPath);
-    await expect(page.getByRole("button", { name: "Page 1", exact: true })).toBeVisible({ timeout: 30_000 });
-    await page.getByLabel("Pages", { exact: true }).fill("1-2");
-    await page.getByRole("button", { name: "Select", exact: true }).click();
-    await page.getByRole("button", { name: "Share 2 pages" }).click();
+    await page.getByLabel("File to upload").setInputFiles(pdfPath);
+    await expect(page.getByText("3 pages of text read on your phone.")).toBeVisible({ timeout: 30_000 });
+    const share = page.getByRole("button", { name: "Share to the library" });
+    await share.click();
     await expect(page.getByText("Tick the box to confirm it's yours to share.")).toBeVisible();
-    await page.getByRole("checkbox", { name: /my own work/ }).check();
+    await page.getByRole("checkbox", { name: /I have the right to share this/ }).check();
     await shot(page, "06-library-upload");
-    await page.getByRole("button", { name: "Share 2 pages" }).click();
+    await share.click();
     await expect(page).toHaveURL(/\/me\/earnings$/, { timeout: 60_000 });
 
-    // Shared, never linked to a course, no lab built from it, and the stored PDF has only the 2 picked pages.
+    // Shared, never linked to a course, no lab built from it, and the whole PDF is stored.
     const { data: src } = await db
       .from("sources")
-      .select("id, course_id, concept_id, shared_at, storage_path, thumb_path")
+      .select("id, course_id, concept_id, shared_at, storage_path, thumb_path, file_mime")
       .eq("owner_id", ada.id)
       .eq("title", "Verifying Kirchhoff's laws (lab)")
       .single();
     expect(src).toMatchObject({ course_id: null, concept_id: conceptId });
     expect(src!.shared_at).not.toBeNull();
     expect(src!.thumb_path).toMatch(/thumb\.jpg$/);
-    const { data: stored } = await db.storage.from("library").download(src!.storage_path!);
-    expect((await PDFDocument.load(await stored!.arrayBuffer())).getPageCount()).toBe(2);
+    expect(src!.file_mime).toBe("application/pdf");
+    const { data: stored } = await db.storage.from("materials").download(src!.storage_path!);
+    expect((await PDFDocument.load(await stored!.arrayBuffer())).getPageCount()).toBe(3);
     const { count: labJobs } = await db
       .from("jobs")
       .select("id", { count: "exact", head: true })
@@ -368,7 +368,7 @@ test.describe("contribute, teach and earn", () => {
       })
       .toBe("approved");
 
-    // Another student finds it in the Library grid and reads it in the viewer: 2 pages, no lesson.
+    // Another student finds it in the Library grid and reads it in the viewer: all 3 pages, no lesson.
     const bolaCtx = await browser.newContext();
     const bolaPage = await bolaCtx.newPage();
     await signInAs(bolaCtx, bola.email, baseURL!);
@@ -378,14 +378,19 @@ test.describe("contribute, teach and earn", () => {
       .getByRole("link", { name: /Verifying Kirchhoff's laws \(lab\)/ })
       .click({ timeout: 30_000 });
     await expect(bolaPage).toHaveURL(new RegExp(`/library/doc/${src!.id}`), { timeout: 30_000 });
-    await expect(bolaPage.getByLabel("Page 2 of 2")).toBeVisible({ timeout: 30_000 });
+    await expect(bolaPage.getByRole("list", { name: /3 pages$/ })).toBeVisible({ timeout: 30_000 });
+    await expect(bolaPage.getByLabel("Page 1 of 3")).toBeVisible({ timeout: 30_000 });
     await expect(bolaPage.locator('a[href^="/learn/"]')).toHaveCount(0);
     await expectInsideContentArea(bolaPage, "library document");
     await shot(bolaPage, "07-library-doc");
     await bolaCtx.close();
   });
 
-  test("tutor profile, My earnings without naira, and the pages fit the screen", async ({ page, context, baseURL }) => {
+  test("tutor profile, My earnings without naira (sandbox payouts), and the pages fit the screen", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
     await signInAs(context, ada.email, baseURL!);
     await page.goto("/me/tutor");
     await page.getByRole("checkbox", { name: "Kirchhoff's laws" }).check({ timeout: 30_000 });
@@ -402,7 +407,8 @@ test.describe("contribute, teach and earn", () => {
 
     await page.goto("/me/earnings");
     await expect(page.getByRole("heading", { level: 1, name: "My earnings" })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText("Cash payouts from the contribution pool open after launch.")).toBeVisible();
+    // MVP-07: payouts run in the PayPal sandbox, in test dollars, never naira.
+    await expect(page.getByRole("region", { name: "Payouts" }).getByText("Sandbox: test money")).toBeVisible();
     expect(await page.locator("main").innerText()).not.toMatch(/₦|NGN|naira/i);
     await expectInsideContentArea(page, "my earnings");
     await shot(page, "05-earnings");

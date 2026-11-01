@@ -50,6 +50,9 @@ describe("lessonStateText", () => {
   it("says where the lesson comes from", () => {
     expect(lessonStateText({ lesson: "ready", fromNotes: true, covered: true })).toBe("Lesson from your notes");
     expect(lessonStateText({ lesson: "ready", fromNotes: false, covered: false })).toBe("Lesson ready");
+    expect(lessonStateText({ lesson: "ready", fromNotes: false, covered: true })).toBe(
+      "Yours from your notes when you open it",
+    );
     expect(lessonStateText({ lesson: "building", fromNotes: false, covered: true })).toBe("Building from your notes");
     expect(lessonStateText({ lesson: "not_started", fromNotes: false, covered: false })).toBe("Built on first open");
   });

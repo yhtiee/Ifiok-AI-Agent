@@ -1,5 +1,6 @@
-// PDFs read on the device with pdf.js (F3-FR1, 10 MVP-01). The file never leaves the phone: pages
-// are rendered as small previews and only the text of pages the student picks is sent. pdf.js is
+// PDFs read on the device with pdf.js (F3-FR1, 10 MVP-01, 12 §4 Q60): the text layer of an upload
+// before it goes up, previews and the text of picked pages for course outlines, and Ifiok's
+// viewer for stored files. pdf.js is
 // imported lazily (it is large) and parses in a Web Worker so the page stays responsive. The legacy
 // build carries the polyfills older Android browsers need.
 import { MATERIAL_LIMITS } from "@ifiok/core/materials/kinds";

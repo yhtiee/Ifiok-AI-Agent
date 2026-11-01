@@ -1,28 +1,30 @@
 "use client";
 
-import { ClipboardTextIcon, FilePdfIcon } from "@phosphor-icons/react";
+import { ClipboardTextIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod/mini";
 import { ActionBar } from "@/components/app/Page";
-import { PagePicker, type PickedPage } from "@/components/app/materials/PagePicker";
+import { FilePicked } from "@/components/app/materials/FilePicked";
 import { Button } from "@/components/ui/button";
 import { Input, fieldClass } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { PrepareError, titleOf, uploadPrepared, type PreparedFile } from "@/lib/materials/prepare";
+import { fileFields } from "@/lib/queries/materials";
 import { apiFetch, ApiError } from "@/lib/query/api";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { MATERIAL_LIMITS } from "@ifiok/core/materials/kinds";
+import { FILE_ACCEPT, MATERIAL_LIMITS } from "@ifiok/core/materials/kinds";
 
-// Upload to the Library (12 §4 Q58, Q59): one page, one job. Your own notes, lab manual, worked
+// Upload to the Library (12 §4 Q58–Q60): one page, one job. Notes, a textbook, a lab manual, worked
 // solutions or past questions, for one topic, shared straight to the contribution pool (no course
-// in between). PDFs are read on the phone; a new PDF of just the picked pages and a page-1
-// thumbnail are made there, so pages you didn't pick never leave it (F3).
+// in between). The whole file (PDF, Word or photo, up to 20 MB) is uploaded and stored; its text
+// is read on the phone, or by Ifiok for photos and scanned pages.
 
-type Kind = "notes" | "lab_manual" | "solutions" | "past_questions";
+type Kind = "notes" | "textbook" | "lab_manual" | "solutions" | "past_questions";
 const KINDS: { value: Kind; label: string }[] = [
   { value: "notes", label: "Notes" },
+  { value: "textbook", label: "Textbook" },
   { value: "lab_manual", label: "Lab manual" },
   { value: "past_questions", label: "Past questions" },
   { value: "solutions", label: "Worked solutions" },
@@ -34,23 +36,16 @@ const uploaded = z.object({
   materialId: z.string(),
   redacted: z.number(),
   skippedPages: z.number(),
-  uploads: z.nullable(z.object({ pdf: target, thumb: target })),
+  uploads: z.nullable(
+    z.object({
+      file: target,
+      thumb: z.nullable(target),
+      ocr: z.array(z.object({ page: z.nullable(z.number()), path: z.string(), token: z.string() })),
+    }),
+  ),
 });
 
-/** The picked pages as a new PDF, and a thumbnail of the first one, made on the phone. */
-async function pdfFiles(file: File, pages: number[]) {
-  const [{ subsetPdf, pageThumbnail }, { openPdf }] = await Promise.all([
-    import("@/lib/pdf/subset"),
-    import("@/lib/pdf/reader"),
-  ]);
-  const bytes = await subsetPdf(file, pages);
-  const doc = await openPdf(file);
-  try {
-    return { bytes, thumb: await pageThumbnail(doc, pages[0]!) };
-  } finally {
-    await doc.destroy();
-  }
-}
+type Content = { pages: { page: number | null; text: string }[] } | { prepared: PreparedFile };
 
 export function LibraryUploadForm({ topics }: { topics: UploadTopic[] }) {
   const router = useRouter();
@@ -59,58 +54,40 @@ export function LibraryUploadForm({ topics }: { topics: UploadTopic[] }) {
   const [topic, setTopic] = useState(topics[0]?.conceptId ?? "");
   const [kind, setKind] = useState<Kind>("notes");
   const [title, setTitle] = useState("");
-  const [mode, setMode] = useState<"choose" | "pdf" | "paste">("choose");
-  const [pdf, setPdf] = useState<File | null>(null);
+  const [mode, setMode] = useState<"choose" | "file" | "paste">("choose");
+  const [picked, setPicked] = useState<File | null>(null);
   const [text, setText] = useState("");
   const [own, setOwn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const groups = [...new Set(topics.map((t) => t.group))];
 
-  const send = async (pages: { page: number | null; text: string }[]) => {
+  const send = async (content: Content) => {
     setError(null);
     if (!topic) return setError("Pick the topic it explains.");
     if (!title.trim()) return setError("Give it a title.");
     if (!own) return setError("Tick the box to confirm it's yours to share.");
     setBusy(true);
     try {
-      const files = pdf
-        ? await pdfFiles(
-            pdf,
-            pages.flatMap((p) => (p.page ? [p.page] : [])),
-          )
-        : null;
       const r = await apiFetch("/api/library/upload", {
         method: "POST",
         body: {
           concept_id: topic,
           kind,
           title: title.trim(),
-          pages,
           attest: true,
-          ...(files ? { pdf_bytes: files.bytes.byteLength } : {}),
+          ...("prepared" in content ? fileFields(content.prepared) : { pages: content.pages }),
         },
         schema: uploaded,
       });
-      if (files && r.uploads) {
-        const bucket = createClient().storage.from("library");
-        const pdfUp = await bucket.uploadToSignedUrl(
-          r.uploads.pdf.path,
-          r.uploads.pdf.token,
-          new Blob([new Uint8Array(files.bytes)], { type: "application/pdf" }),
-          { contentType: "application/pdf" },
-        );
-        if (files.thumb)
-          await bucket.uploadToSignedUrl(r.uploads.thumb.path, r.uploads.thumb.token, files.thumb, {
-            contentType: "image/jpeg",
-          });
-        // Attach the file (the server checks it's a real PDF); if anything failed it shows as text.
-        if (!pdfUp.error)
-          await apiFetch(`/api/library/upload/${r.materialId}/complete`, {
-            method: "POST",
-            body: {},
-            schema: z.object({ attached: z.boolean() }),
-          }).catch(() => null);
+      if ("prepared" in content && r.uploads) {
+        try {
+          await uploadPrepared(r.materialId, content.prepared, r.uploads);
+        } catch (err) {
+          // Without its file the upload is no use: remove it so trying again starts clean.
+          await apiFetch(`/api/materials/${r.materialId}`, { method: "DELETE", schema: z.unknown() }).catch(() => {});
+          throw err;
+        }
       }
       toast(
         [
@@ -122,7 +99,7 @@ export function LibraryUploadForm({ topics }: { topics: UploadTopic[] }) {
       );
       router.push("/me/earnings");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "That didn't upload. Try again.");
+      setError(err instanceof ApiError || err instanceof PrepareError ? err.message : "That didn't upload. Try again.");
     } finally {
       setBusy(false);
     }
@@ -190,8 +167,8 @@ export function LibraryUploadForm({ topics }: { topics: UploadTopic[] }) {
           className="mt-1 h-5 w-5"
         />
         <span>
-          It&apos;s my own work, not pages from a published book, and I let Ifiok share it with students as described in
-          the contributor terms. I can withdraw it later.
+          I have the right to share this, and I let Ifiok share it with students as described in the contributor terms.
+          I can withdraw it later.
         </span>
       </label>
 
@@ -200,35 +177,34 @@ export function LibraryUploadForm({ topics }: { topics: UploadTopic[] }) {
           <input
             ref={file}
             type="file"
-            accept="application/pdf"
+            accept={FILE_ACCEPT}
             className="sr-only"
-            aria-label="PDF to upload"
+            aria-label="File to upload"
             onChange={(e) => {
               const f = e.target.files?.[0];
+              e.target.value = "";
               if (!f) return;
-              if (f.size > MATERIAL_LIMITS.maxFileBytes) return setError("That PDF is too large. Pick a smaller one.");
-              setPdf(f);
-              setMode("pdf");
-              if (!title.trim()) setTitle(f.name.replace(/\.pdf$/i, ""));
+              setPicked(f);
+              setMode("file");
+              if (!title.trim()) setTitle(titleOf(f));
             }}
           />
           <Button type="button" variant="outline" onClick={() => file.current?.click()}>
-            <FilePdfIcon size={20} aria-hidden="true" /> Choose a PDF
+            <UploadSimpleIcon size={20} aria-hidden="true" /> Choose a file
           </Button>
           <Button type="button" variant="outline" onClick={() => setMode("paste")}>
             <ClipboardTextIcon size={20} aria-hidden="true" /> Paste text
           </Button>
         </div>
-      ) : mode === "pdf" && pdf ? (
-        <PagePicker
-          file={pdf}
-          maxPages={MATERIAL_LIMITS.maxPages}
-          confirmLabel={(n) => (n ? `Share ${n} ${n === 1 ? "page" : "pages"}` : "Share pages")}
+      ) : mode === "file" && picked ? (
+        <FilePicked
+          file={picked}
+          confirmLabel="Share to the library"
+          busyLabel="Uploading…"
           busy={busy}
-          busyLabel="Sharing…"
-          onConfirm={(pages: PickedPage[]) => void send(pages)}
+          onConfirm={(prepared) => void send({ prepared })}
           onCancel={() => {
-            setPdf(null);
+            setPicked(null);
             setMode("choose");
           }}
         />
@@ -247,7 +223,7 @@ export function LibraryUploadForm({ topics }: { topics: UploadTopic[] }) {
           <ActionBar>
             <Button
               type="button"
-              onClick={() => void send([{ page: null, text: text.trim() }])}
+              onClick={() => void send({ pages: [{ page: null, text: text.trim() }] })}
               disabled={busy || text.trim().length < MATERIAL_LIMITS.minPageChars}
               aria-busy={busy}
             >
@@ -258,8 +234,8 @@ export function LibraryUploadForm({ topics }: { topics: UploadTopic[] }) {
       )}
 
       <p className="text-sm text-ink-2">
-        Ifiok checks every upload. Other students see short quotes in lessons, never your file, and you earn Units when
-        it helps them.
+        PDF, Word or photos, up to 20 MB. Ifiok checks every upload; once approved, students can open it in the Library
+        and lessons can quote it. You earn Units when it helps them.
       </p>
       {error ? (
         <p role="alert" className="text-base text-bad">

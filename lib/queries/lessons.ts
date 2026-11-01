@@ -20,6 +20,7 @@ const lessonState = z.discriminatedUnion("status", [
     lesson: lessonRow,
     fromNotes: z.optional(z.object({ citations: z.record(z.string(), z.string()) })),
     notesBuilding: z.optional(z.object({ jobId: z.string() })),
+    notesCover: z.optional(z.boolean()),
   }),
   z.object({ status: z.literal("none"), concept, quickExplainer: z.string() }),
   z.object({ status: z.literal("generating"), jobId: z.string(), concept, quickExplainer: z.string() }),

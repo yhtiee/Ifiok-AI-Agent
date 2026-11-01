@@ -49,6 +49,8 @@ export type GetLessonResult =
       fromNotes?: { citations: Record<string, string> };
       /** The shared lesson is shown while a lesson from the student's materials is being built. */
       notesBuilding?: { jobId: string };
+      /** The student's materials cover this topic: the client asks (POST) to build their own lesson (12 §4 Q60). */
+      notesCover?: boolean;
     }
   /** No lesson and no job yet: the client asks to start one (POST). */
   | { status: "none"; concept: ConceptSummary; quickExplainer: string }

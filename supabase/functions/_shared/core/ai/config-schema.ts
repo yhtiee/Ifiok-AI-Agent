@@ -122,6 +122,34 @@ export const moderationSchema = z.object({
 });
 export type ModerationConfig = z.output<typeof moderationSchema>;
 
+/** Contributor payouts (06 §3, §15): sandbox test money in USD cents (12 §4 Q61). */
+export const payoutsSchema = z.object({
+  currency: z.literal("USD").default("USD"),
+  /** The most one contributor gets of a month's pool. */
+  contributor_cap: z.number().min(0).max(1).default(0.2),
+  /** What the platform's sandbox account funds the demo pool with. */
+  demo_pool_cents: z.number().int().min(0).default(5000),
+});
+export type PayoutsConfig = z.output<typeof payoutsSchema>;
+
+/** Tutoring (F17, 06 §12): commission, price band and auto-release. */
+export const tutoringSchema = z.object({
+  take_rate: z.number().min(0).max(0.5).default(0.15),
+  price_min_cents: z.number().int().min(100).default(300),
+  price_max_cents: z.number().int().min(100).default(5000),
+  auto_release_hours: z.number().min(0).default(24),
+  session_minutes: z.number().int().min(15).max(180).default(45),
+});
+export type TutoringConfig = z.output<typeof tutoringSchema>;
+
+/** The tutoring agent (12 §4 Q63): its default spending limit and how much it looks at. */
+export const tutorAgentSchema = z.object({
+  default_limit_cents: z.number().int().min(100).default(1500),
+  max_weak_topics: z.number().int().min(1).max(10).default(5),
+  max_tutors: z.number().int().min(1).max(30).default(12),
+});
+export type TutorAgentConfig = z.output<typeof tutorAgentSchema>;
+
 export const CONFIG_SCHEMAS = {
   ai_routes: aiRoutesSchema,
   ai_prices: aiPricesSchema,
@@ -135,6 +163,9 @@ export const CONFIG_SCHEMAS = {
   usage: usageSchema,
   audio_prices: audioPricesSchema,
   moderation: moderationSchema,
+  payouts: payoutsSchema,
+  tutoring: tutoringSchema,
+  tutor_agent: tutorAgentSchema,
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_SCHEMAS;

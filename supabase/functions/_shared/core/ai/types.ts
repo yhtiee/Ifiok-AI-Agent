@@ -15,6 +15,8 @@ export const SKILLS = [
   "topic_resolve",
   "page_match_rerank",
   "ocr_pages",
+  "payout_explain",
+  "tutor_agent",
   "transcribe_working",
   "explain_error",
   "exam_extract",
@@ -38,7 +40,10 @@ export type ProviderName = z.infer<typeof providerNameSchema>;
 export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>;
 
 /** An image or PDF sent with a prompt (vision skills: scheme_extract, transcribe_working, ocr_pages). */
-export type ImageInput = { mime: "image/jpeg" | "image/png" | "image/webp" | "application/pdf"; data: Uint8Array };
+export type ImageInput = {
+  mime: "image/jpeg" | "image/png" | "image/webp" | "image/heic" | "application/pdf";
+  data: Uint8Array;
+};
 
 /** One model call, provider-neutral. */
 export type ProviderRequest = {

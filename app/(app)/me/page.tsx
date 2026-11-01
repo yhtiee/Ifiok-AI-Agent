@@ -3,9 +3,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AppPage } from "@/components/app/AppPage";
 import { Row, RowList, SectionHeading } from "@/components/app/Page";
-import { ChalkboardTeacherIcon, CoinsIcon, PresentationChartIcon, ShieldCheckIcon } from "@phosphor-icons/react/ssr";
+import { CalendarCheckIcon, ChalkboardTeacherIcon, CoinsIcon, PresentationChartIcon } from "@phosphor-icons/react/ssr";
 import { Button } from "@/components/ui/button";
-import { isReviewAdmin, requireOnboardedPage } from "@/lib/auth/guards";
+import { requireOnboardedPage } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { NameForm } from "./NameForm";
 
@@ -25,7 +25,6 @@ export default async function MePage() {
     const { data } = await supabase.from("universities").select("name").eq("id", profile.university_id).maybeSingle();
     university = data?.name ?? university;
   }
-  const isAdmin = await isReviewAdmin();
   const level = profile.level ? (LEVEL_LABEL[profile.level] ?? `${profile.level} level`) : "Not set";
 
   return (
@@ -67,7 +66,7 @@ export default async function MePage() {
                 icon={<CoinsIcon size={22} />}
                 tone="add"
                 title="My earnings"
-                meta="Usage points and Units from what you share and explain"
+                meta="Points, Units and PayPal payouts (sandbox) from what you share and explain"
               />
               <Row
                 href="/me/explainers"
@@ -81,17 +80,15 @@ export default async function MePage() {
                 icon={<ChalkboardTeacherIcon size={22} />}
                 tone="course"
                 title="Tutor profile"
-                meta="Offer to tutor topics; bookings open after launch"
+                meta="Offer to tutor topics and set your price"
               />
-              {isAdmin ? (
-                <Row
-                  href="/admin"
-                  icon={<ShieldCheckIcon size={22} />}
-                  tone="plain"
-                  title="Review"
-                  meta="Explainers and held shares waiting for an admin"
-                />
-              ) : null}
+              <Row
+                href="/me/bookings"
+                icon={<CalendarCheckIcon size={22} />}
+                tone="topic"
+                title="Tutoring sessions"
+                meta="Sessions you booked and the ones you teach"
+              />
             </RowList>
           </section>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardTextIcon, FilePdfIcon } from "@phosphor-icons/react";
+import { ClipboardTextIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,19 +17,23 @@ import { RadioGroup, RadioGroupRow } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useAddMaterial,
+  useUploadMaterial,
   type AddMaterialInput,
   type AddMaterialResult,
   type MaterialScope,
 } from "@/lib/queries/materials";
+import { PrepareError, titleOf } from "@/lib/materials/prepare";
 import { ApiError } from "@/lib/query/api";
-import { MATERIAL_LABELS, MATERIAL_LIMITS } from "@ifiok/core/materials/kinds";
-import { PagePicker, type PickedPage } from "./PagePicker";
+import { FILE_ACCEPT, MATERIAL_LABELS, MATERIAL_LIMITS } from "@ifiok/core/materials/kinds";
+import { FilePicked } from "./FilePicked";
 import { MaterialsList } from "./MaterialsList";
 
 // Add materials (app-overhaul §5.7, 10 MVP-01): the only way to add them, one step per view.
 // Where (a course or a topic; skipped when preset or when there is only one) → What is it? →
-// pick PDF pages on the device (only their text is sent) or paste text → back to the course's
-// Materials tab or the topic's lesson, with a toast. Outlines are added on the outline page.
+// choose a file (PDF, Word or photo, up to 20 MB; uploaded and stored privately, 12 §4 Q60) or
+// paste text → back to the course's Materials tab or the topic's lesson, with a toast. Lessons are
+// built when the student opens a topic, from the parts of the materials that cover it. Outlines are
+// added on the outline page.
 
 export type Destination =
   | { kind: "course"; id: string; label: string; detail: string }
@@ -43,20 +47,24 @@ type Step = { kind: "where" } | { kind: "what" } | { kind: "pick"; file: File } 
 const scopeOf = (d: Destination): MaterialScope => (d.kind === "course" ? { courseId: d.id } : { conceptId: d.id });
 const keyOf = (d: Destination) => `${d.kind}:${d.id}`;
 const homeOf = (d: Destination) => (d.kind === "course" ? `/courses/${d.id}` : `/learn/${d.id}`);
-const errorText = (err: unknown) => (err instanceof ApiError ? err.message : "That didn't work. Try again.");
+const errorText = (err: unknown) =>
+  err instanceof ApiError || err instanceof PrepareError ? err.message : "That didn't work. Try again.";
 
+const FILE_NOTE =
+  "A PDF, Word document or photo, up to 20 MB. The whole file is saved, private to you; you can share it to the Library later.";
 const KIND_NOTE: Record<Kind, string> = {
-  notes: `Up to ${MATERIAL_LIMITS.maxPages} pages at a time. Only the text of the pages you pick is sent; the PDF stays on your phone. Scanned pages can't be read yet.`,
-  textbook: "Textbook pages stay private to you and are never shared. Only the text of the pages you pick is sent.",
-  past_questions: `Up to ${MATERIAL_LIMITS.maxPages} pages at a time. Only the text of the pages you pick is sent; the PDF stays on your phone. Scanned pages can't be read yet.`,
-  lab_manual: `Up to ${MATERIAL_LIMITS.maxPages} pages at a time. Only the text of the pages you pick is sent; the PDF stays on your phone. Scanned pages can't be read yet.`,
-  solutions: `Your own worked solutions. Up to ${MATERIAL_LIMITS.maxPages} pages at a time; only the text of the pages you pick is sent.`,
+  notes: FILE_NOTE,
+  textbook: `The whole book is fine. When you open a topic, Ifiok finds the pages that cover it and builds the lesson from them. ${FILE_NOTE}`,
+  past_questions: `${FILE_NOTE} Ifiok reads the questions for Exam prep.`,
+  lab_manual: `${FILE_NOTE} Ifiok turns its practicals into labs.`,
+  solutions: `Your own worked solutions. ${FILE_NOTE}`,
 };
 
 function addedNotice(r: AddMaterialResult) {
   return [
-    `Added "${r.material.title}": ${r.material.pageCount} ${r.material.pageCount === 1 ? "page" : "pages"}. It's searchable now and ready for lessons in a minute or two.`,
-    r.skippedPages > 0 ? `${r.skippedPages} pages had no readable text and were skipped.` : null,
+    r.material.chunks
+      ? `Added "${r.material.title}". It's searchable in a minute or two; open a topic to build its lesson from it.`
+      : `Added "${r.material.title}". Ifiok is reading it now; it's searchable in a few minutes.`,
     r.redacted > 0 ? `Ifiok removed ${r.redacted} phone numbers, emails or ID numbers.` : null,
   ]
     .filter(Boolean)
@@ -154,43 +162,37 @@ function AddSteps({ destination, onChange }: { destination: Destination; onChang
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const add = useAddMaterial(scopeOf(destination));
+  const upload = useUploadMaterial(scopeOf(destination));
   const home = homeOf(destination);
 
+  const done = {
+    onSuccess: (r: AddMaterialResult) => {
+      // Past questions in a course: Exam prep shows them being read, then asks for a review (MVP-04).
+      // A lab manual: its practicals become labs; follow them in the course's Labs tab or Practice (MVP-05).
+      if (r.labJobId) {
+        toast(`${addedNotice(r)} Ifiok is turning its practicals into labs.`);
+        router.push(destination.kind === "course" ? `${home}?tab=labs` : "/labs");
+        return;
+      }
+      if (r.examJobId) {
+        toast(`${addedNotice(r)} Ifiok is reading the questions; review them in Exam prep.`);
+        router.push(`${home}?tab=exam`);
+        return;
+      }
+      toast(addedNotice(r));
+      router.push(destination.kind === "course" ? `${home}?tab=materials` : home);
+    },
+    onError: (err: unknown) => setError(errorText(err)),
+  };
   const send = (input: AddMaterialInput) => {
     setError(null);
-    add.mutate(input, {
-      onSuccess: (r) => {
-        // Past questions in a course: Exam prep shows them being read, then asks for a review (MVP-04).
-        // A lab manual: its practicals become labs; follow them in the course's Labs tab or Practice (MVP-05).
-        if (r.labJobId) {
-          toast(`${addedNotice(r)} Ifiok is turning its practicals into labs.`);
-          router.push(destination.kind === "course" ? `${home}?tab=labs` : "/labs");
-          return;
-        }
-        if (r.examJobId) {
-          toast(`${addedNotice(r)} Ifiok is reading the questions; review them in Exam prep.`);
-          router.push(`${home}?tab=exam`);
-          return;
-        }
-        toast(addedNotice(r));
-        router.push(destination.kind === "course" ? `${home}?tab=materials` : home);
-      },
-      onError: (err) => setError(errorText(err)),
-    });
+    add.mutate(input, done);
   };
 
   const onFile = (file: File | undefined) => {
     if (!file) return;
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Choose a PDF, or paste the text.");
-      return;
-    }
-    if (file.size > MATERIAL_LIMITS.maxFileBytes) {
-      setError("That PDF is over 100 MB. Split it into smaller files and add the part you need.");
-      return;
-    }
     setError(null);
-    setTitle(file.name.replace(/\.pdf$/i, "").slice(0, MATERIAL_LIMITS.titleMax));
+    setTitle(titleOf(file));
     setStep({ kind: "pick", file });
   };
 
@@ -230,12 +232,15 @@ function AddSteps({ destination, onChange }: { destination: Destination; onChang
             onChange={(e) => setTitle(e.target.value)}
           />
         </div>
-        <PagePicker
+        <FilePicked
           file={step.file}
-          maxPages={MATERIAL_LIMITS.maxPages}
-          confirmLabel={(n) => (n ? `Add ${n} ${n === 1 ? "page" : "pages"}` : "Add pages")}
-          busy={add.isPending}
-          onConfirm={(pages: PickedPage[]) => send({ kind, title: title.trim() || MATERIAL_LABELS[kind], pages })}
+          confirmLabel="Upload"
+          busyLabel="Uploading…"
+          busy={upload.isPending}
+          onConfirm={(prepared) => {
+            setError(null);
+            upload.mutate({ kind, title: title.trim() || MATERIAL_LABELS[kind], prepared }, done);
+          }}
           onCancel={() => {
             setError(null);
             setStep({ kind: "what" });
@@ -296,7 +301,7 @@ function AddSteps({ destination, onChange }: { destination: Destination; onChang
           <ClipboardTextIcon size={20} aria-hidden="true" className="max-sm:hidden" /> Paste text
         </Button>
         <Button onClick={() => fileRef.current?.click()} className="px-4">
-          <FilePdfIcon size={20} aria-hidden="true" className="max-sm:hidden" /> Choose a PDF
+          <UploadSimpleIcon size={20} aria-hidden="true" className="max-sm:hidden" /> Choose a file
         </Button>
         <Button asChild variant="ghost" className="hidden lg:order-3 lg:inline-flex">
           <Link href={home}>Cancel</Link>
@@ -305,10 +310,10 @@ function AddSteps({ destination, onChange }: { destination: Destination; onChang
       <input
         ref={fileRef}
         type="file"
-        accept="application/pdf,.pdf"
+        accept={FILE_ACCEPT}
         className="sr-only"
         tabIndex={-1}
-        aria-label="PDF to add"
+        aria-label="File to add"
         onChange={(e) => {
           onFile(e.target.files?.[0]);
           e.target.value = "";

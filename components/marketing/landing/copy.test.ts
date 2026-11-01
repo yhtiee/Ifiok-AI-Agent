@@ -19,7 +19,7 @@ const before = new Date("2026-10-19T12:00:00Z");
 const after = new Date("2026-11-20T12:00:00Z");
 
 describe("flags", () => {
-  it("everything through contribute, teach and earn is open today", () => {
+  it("everything through contribute, teach and earn, plus the sandbox payments test run, is open today", () => {
     const open = Object.entries(FEATURES)
       .filter(([, v]) => v.open)
       .map(([k]) => k)
@@ -35,6 +35,7 @@ describe("flags", () => {
       "path",
       "practice",
       "privateLessons",
+      "sandboxPayments",
       "share",
       "sharedLessons",
       "topic",
@@ -75,22 +76,29 @@ describe("landing copy against today's flags (04 §5)", () => {
     );
   });
 
-  it("tutoring offers the profile now and keeps bookings and payments for after launch", () => {
-    expect(copy.teach.tutoringStatus).toBe("Set up your tutor profile now. Bookings open after launch.");
-    expect(copy.earnRows.find((r) => r.way === "Tutoring")!.status[0]!.label).toBe("After launch");
-    expect(copy.moneyLines).toHaveLength(2);
-    expect(copy.moneyLines.join(" ")).not.toMatch(/sandbox/i);
+  it("tutoring bookings run as a PayPal sandbox test; real payments stay after launch (MVP-07)", () => {
+    expect(copy.teach.tutoringStatus).toMatch(/^Test run · PayPal sandbox: bookings are being tested with test money./);
+    expect(copy.earnRows.find((r) => r.way === "Tutoring")!.status[0]!.label).toBe("Test run · PayPal sandbox");
+    // Real cash still waits for launch; the sandbox line says no real money moves.
+    expect(copy.moneyLines).toHaveLength(3);
+    expect(copy.moneyLines[1]).toMatch(/open after launch/);
+    expect(copy.moneyLines[2]).toMatch(/No real money moves.$/);
   });
 
   it("answers the textbook question by the upload flag and gates the judges' sandbox questions", () => {
     const faq = faqGroups(today, before);
     expect(faq.main.find((f) => f.q.startsWith("Is my textbook"))!.a).toMatch(
-      /^No\. Ifiok reads your PDF on your phone/,
+      /^Uploaded, yes: the file is saved privately/,
     );
     const closed = faqGroups({ ...today, upload: false }, before);
-    expect(closed.main.find((f) => f.q.startsWith("Is my textbook"))!.a).toMatch(/^When uploads open: No\./);
-    expect(faq.judges.map((f) => f.q)).toEqual(["How does Ifiok use AI?"]);
-    expect(faqGroups(today, after).judges).toEqual([]);
+    expect(closed.main.find((f) => f.q.startsWith("Is my textbook"))!.a).toMatch(/^When uploads open: Uploaded, yes/);
+    expect(faq.judges.map((f) => f.q)).toEqual([
+      "How does Ifiok use AI?",
+      "How do payments work in the hackathon demo?",
+      "Can Ifiok's AI move money on its own?",
+    ]);
+    // After the deadline the judges' questions stay while the sandbox test run is on.
+    expect(faqGroups({ ...today, sandboxPayments: false }, after).judges).toEqual([]);
     expect(JUDGES_UNTIL.toISOString()).toBe("2026-11-12T20:00:00.000Z");
   });
 

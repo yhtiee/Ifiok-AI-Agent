@@ -62,7 +62,7 @@ export function ReviewPaper(props: ReviewProps) {
     return props.status === "failed" ? (
       <EmptyState
         title="Ifiok couldn't read questions from these pages"
-        body="Check the pages have the questions as text (scanned pages can't be read yet), then add them again."
+        body="Check the file shows the questions clearly (a sharp photo or scan works), then add it again."
       />
     ) : (
       <div className="grid gap-2" aria-busy="true">

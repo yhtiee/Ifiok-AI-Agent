@@ -57,7 +57,7 @@ export const FEATURES: Record<FeatureKey, Feature> = {
   earnings: { href: "/me/earnings", open: true, spec: "06 §2–§4 · MVP-06" },
   tutorProfiles: { href: "/me/tutor", open: true, spec: "F17 · MVP-06" },
   /** Hackathon only: PayPal sandbox payouts and bookings with test money (MVP-07, 12 §4 Q43). */
-  sandboxPayments: { href: "/me/earnings", open: false, spec: "MVP-07" },
+  sandboxPayments: { href: "/me/earnings", open: true, spec: "MVP-07" },
   curating: { href: "/me/curate", open: false, spec: "06 §13 · E-02" },
   plusBilling: { href: "/me/plan", open: false, spec: "06 §2 · E-03" },
   tutoringBookings: { href: "/me/tutor", open: false, spec: "F17 · E-05" },

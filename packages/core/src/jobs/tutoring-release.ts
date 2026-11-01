@@ -1,0 +1,38 @@
+import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../db/types";
+import type { Paypal } from "../payments/paypal";
+import { autoReleaseAt, loadBooking, releaseBooking } from "../payments/tutoring";
+import { JobFailure, type JobHandler } from "./types";
+
+// tutoring_release (F17-FR4, 06 §12): a held booking the learner hasn't confirmed or disputed is
+// released 24 h after the session ends. Queued when the booking is authorised; the job waits
+// (defers) until it's due, at most 6 h at a time, then captures and pays the tutor.
+
+export const tutoringReleasePayload = z.object({ booking_id: z.string().uuid() });
+const MAX_WAIT_S = 6 * 3600;
+
+export function createTutoringReleaseHandler(deps: {
+  db: SupabaseClient<Database>;
+  paypal: () => Paypal;
+  autoReleaseHours: () => Promise<number>;
+  now?: () => Date;
+}): JobHandler {
+  return {
+    async run(job) {
+      const p = tutoringReleasePayload.safeParse(job.payload);
+      if (!p.success) throw new JobFailure("bad_payload", "This booking couldn't be released.", false);
+      const b = await loadBooking(deps.db, p.data.booking_id);
+      // Guardrail 7: the job's owner is the booking's learner.
+      if (!b || b.learner_id !== job.ownerId)
+        throw new JobFailure("owner_mismatch", "This booking couldn't be released.", false);
+      // Confirmed, voided or disputed meanwhile: nothing to do.
+      if (b.status !== "authorized") return { kind: "done", result: { skipped: b.status } };
+      const due = autoReleaseAt(b, await deps.autoReleaseHours()).getTime() - (deps.now?.() ?? new Date()).getTime();
+      if (due > 0)
+        return { kind: "defer", seconds: Math.min(Math.ceil(due / 1000), MAX_WAIT_S), result: { waiting: "release" } };
+      const outcome = await releaseBooking({ db: deps.db, paypal: deps.paypal() }, b.id, "auto");
+      return { kind: "done", result: { released: outcome } };
+    },
+  };
+}

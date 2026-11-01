@@ -20,9 +20,11 @@ export function createAnthropicProvider(apiKey: string | undefined): Provider {
       const content: Anthropic.ContentBlockParam[] = [
         ...(req.images ?? []).map((img): Anthropic.ContentBlockParam => {
           const data = Buffer.from(img.data).toString("base64");
-          return img.mime === "application/pdf"
-            ? { type: "document", source: { type: "base64", media_type: "application/pdf", data } }
-            : { type: "image", source: { type: "base64", media_type: img.mime, data } };
+          if (img.mime === "application/pdf")
+            return { type: "document", source: { type: "base64", media_type: "application/pdf", data } };
+          // Anthropic doesn't take HEIC photos; only Gemini reads them (OCR routes to Gemini).
+          if (img.mime === "image/heic") throw new ProviderError("Anthropic can't read HEIC images", "config");
+          return { type: "image", source: { type: "base64", media_type: img.mime, data } };
         }),
         { type: "text", text: req.user },
       ];

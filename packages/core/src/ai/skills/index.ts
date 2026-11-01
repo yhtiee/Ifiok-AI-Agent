@@ -9,6 +9,9 @@ import { itemSolve, itemsGenerate } from "./items";
 import { lessonGenerate } from "./lesson-generate";
 import { lessonRepair } from "./lesson-repair";
 import { moderate } from "./moderate";
+import { ocrPages } from "./ocr";
+import { payoutExplain } from "./payouts";
+import { tutorAgent } from "./tutoring";
 import type { SkillDefinition } from "./types";
 
 // Skill registry (04 §4). Each ticket adds its skills here: P1-01 topic_resolve and
@@ -31,6 +34,9 @@ export const SKILL_REGISTRY: Partial<Record<SkillName, SkillDefinition>> = {
   curate_classify: curateClassify as unknown as SkillDefinition,
   explainer_review: explainerReview as unknown as SkillDefinition,
   explainer_frames: explainerFrames as unknown as SkillDefinition,
+  ocr_pages: ocrPages as unknown as SkillDefinition,
+  payout_explain: payoutExplain as unknown as SkillDefinition,
+  tutor_agent: tutorAgent as unknown as SkillDefinition,
 };
 
 /** Skills that spend the library generation budget rather than the per-learner cap (04 §5). */

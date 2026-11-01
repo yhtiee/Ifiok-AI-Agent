@@ -123,7 +123,7 @@ The Nigeria Data Protection Act 2023 is enforced by the Nigeria Data Protection 
 |---|---|---|
 | Lawful basis per purpose | Contract (providing the service), consent (AI processing disclosure, marketing, lecturer recordings), legitimate interest (fraud prevention, security). Recorded in a processing register (`docs/ops/ropa.md`, private). | P0 |
 | Transparent notice | Plain-language privacy notice (what, why, who processes it, where, how long, rights), linked at signup and in settings. Consent versions in `consents`. | P0 |
-| Data minimisation | DOB year/month only; no phone number; no photo; private textbooks processed on-device; only confirmed page text stored. | P0 |
+| Data minimisation | DOB year/month only; no phone number; no photo; uploaded materials stored privately for their owner only (12 §4 Q60), with personal details stripped from the text Ifiok reads. | P0 |
 | Registration as a data controller of major importance | NDPC tiers (data subjects processed in 6 months): Ordinary-High > 200 (₦10,000, annual), Extra-High > 1,000 (₦100,000, plus annual compliance audit returns through a licensed DPCO), Ultra-High > 5,000 (₦250,000, plus annual returns). Sources disagree on GAID's figures, so take the stricter reading: a 300-student pilot is already above 200, so **register at Ordinary-High before the pilot opens** **[confirm with a DPCO]**. | P1 exit |
 | Data Protection Officer | Required for controllers of major importance. Name a DPO contact at registration (founder as interim, `privacy@` mailbox); appoint a qualified DPO (can be outsourced) before Extra-High. | P1 exit / P2 |
 | Compliance audit returns | Annual filing (by 31 March) via a licensed DPCO once Extra-High (> 1,000). Budget the DPCO fee in P2 (`09` §7). | P2+ |
@@ -169,8 +169,8 @@ The Nigeria Data Protection Act 2023 is enforced by the Nigeria Data Protection 
 - **Data:** transcripts and media are personal data of the author; they are covered by export and deletion (§6) and by the retention table (§5).
 
 ## 8. Copyright and takedown
-- Private textbooks never leave the device as files; only the text of confirmed pages is sent and stored, for the owner only (F3). This is personal study use; no redistribution.
-- The bank rejects published textbooks (attestation + detection, F11). Uploaders grant a non-exclusive licence (F11-FR5).
+- Uploaded files (textbooks included) are stored in the private `materials` bucket, readable by the owner only through 10-minute signed URLs; type and size are checked on the server from the file's bytes (12 §4 Q60). This is personal study use.
+- A textbook reaches the bank only when its owner shares it and attests they have the right to (F11); copyright detection still runs. Uploaders grant a non-exclusive licence (F11-FR5).
 - **Takedown:** a public form (`/takedown`) → creates a report with the claimant's details → item hidden within 24 hours → review within 7 days → restore or remove, notify both sides. Repeat infringers (3 upheld takedowns) lose upload rights.
 - Lesson `source_quote` blocks are capped at 40 words, which keeps quotes short and attributed.
 
@@ -178,6 +178,6 @@ The Nigeria Data Protection Act 2023 is enforced by the Nigeria Data Protection 
 Lecturers are not served for now; the earlier design (lecturer-only microphone, consent screen, transcript review, raw audio deleted after 7 days) stays in `archive/10-build-plan-v1.md` context and returns with F12. Student voice and video explainers follow §2.5c and §7b instead.
 
 ## 10. Security checklist per stage (exit gates)
-- **Stage 1 · MVP:** RLS on every table (CI query: `select relname from pg_class … where relrowsecurity = false` returns no public tables), service-role grep check, env validation, under-18 tests passing, no stored PDFs, private materials never retrievable by another user (pgTAP), no prompts or content in logs; shared uploads stripped of personal data before approval; explainer media private until reviewed and approved (§2.5c, §7b), signed URLs only; textbook pages never shareable.
+- **Stage 1 · MVP:** RLS on every table (CI query: `select relname from pg_class … where relrowsecurity = false` returns no public tables), service-role grep check, env validation, under-18 tests passing, stored files private to their owner (12 §4 Q60), private materials never retrievable by another user (pgTAP), no prompts or content in logs; shared uploads stripped of personal data before approval; explainer media private until reviewed and approved (§2.5c, §7b), signed URLs only; textbooks shared only with the owner's attestation (12 §4 Q60).
 - **Stage 2 · Launch:** NDPC Ordinary-High registration filed and DPO contact named, CSP enforced, Turnstile on auth, admin MFA, rate-limit rules live, nightly backups with one restore drill, DPIA written, privacy notice and terms published, breach runbook, data export and deletion working.
 - **Stage 3 · Earn:** Supabase Pro, Paystack webhook signature and replay tests, escrow partner callback tests, ledger pgTAP invariants, withdrawal name-match, explainer review before publication (tests), media deletion on withdrawal, NDPC tier upgraded (Extra-High) before 1,000 users, accountant review of Units/VAT and tutor income, lawyer review of contributor, explainer and tutor terms, takedown form live, admin audit review weekly.

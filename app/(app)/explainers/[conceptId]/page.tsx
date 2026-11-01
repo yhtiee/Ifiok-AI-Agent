@@ -9,6 +9,7 @@ import { requireOnboardedPage } from "@/lib/auth/guards";
 import { explainersForConcept } from "@/lib/contribute/explainers";
 import { tutorsForConcept } from "@/lib/contribute/tutor";
 import { mathHtmlFor } from "@/lib/exam/math";
+import { SANDBOX_LABEL, usd } from "@/lib/payments/money";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Student explainers", robots: { index: false } };
@@ -16,8 +17,8 @@ export const metadata: Metadata = { title: "Student explainers", robots: { index
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MASTERY_WORDS: Record<string, string> = { familiar: "Familiar", proficient: "Proficient", mastered: "Mastered" };
 
-// A topic's student explainers and tutors (F18-FR6, F17-FR1, 10 MVP-06). Only approved explainers
-// show; tutors are profiles only until bookings open after launch.
+// A topic's student explainers and tutors (F18-FR6, F17-FR1, 10 MVP-06, MVP-07). Only approved
+// explainers show; a tutor with a price can be booked (PayPal sandbox, test money).
 export default async function TopicExplainersPage({ params }: PageProps<"/explainers/[conceptId]">) {
   const viewer = await requireOnboardedPage();
   const { conceptId } = await params;
@@ -53,22 +54,36 @@ export default async function TopicExplainersPage({ params }: PageProps<"/explai
           <SectionHeading id="tutors">Students who tutor this</SectionHeading>
           {tutors.length ? (
             <ul className="grid gap-3">
-              {tutors.map((t, i) => (
-                <li key={i} className="grid gap-0.5 border-t border-line pt-3">
+              {tutors.map((t) => (
+                <li key={t.tutorId} className="grid gap-0.5 border-t border-line pt-3">
                   <span className="text-base font-semibold">
                     {t.isYou ? "You" : t.name}
                     {t.mastery ? (
                       <span className="font-normal text-ink-2"> · {MASTERY_WORDS[t.mastery]} on Ifiok</span>
                     ) : null}
                   </span>
-                  <span className="text-sm text-ink-2">Free: {t.availability}</span>
+                  <span className="text-sm text-ink-2">
+                    Free: {t.availability}
+                    {t.priceCents ? ` · ${usd(t.priceCents)} a session` : ""}
+                  </span>
+                  {!t.isYou && t.priceCents ? (
+                    <Link
+                      href={`/tutoring/new?tutor=${t.tutorId}&concept=${conceptId}`}
+                      aria-label={`Book ${t.name} for ${concept.title}`}
+                      className="inline-flex min-h-11 items-center justify-self-start text-base font-semibold text-quantity underline-offset-4 hover:underline"
+                    >
+                      Book a session
+                    </Link>
+                  ) : null}
                 </li>
               ))}
             </ul>
           ) : (
             <p className="text-base text-ink-2">No one has offered to tutor this topic yet.</p>
           )}
-          <p className="text-sm text-ink-2">Tutoring bookings open after launch.</p>
+          <p className="text-sm text-ink-2">
+            {SANDBOX_LABEL}. You pay through PayPal; it&apos;s held until you confirm the session happened.
+          </p>
           <Link
             href="/me/tutor"
             className="inline-flex min-h-11 items-center justify-self-start text-base text-quantity underline-offset-4 hover:underline"

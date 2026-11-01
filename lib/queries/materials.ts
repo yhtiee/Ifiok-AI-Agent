@@ -2,11 +2,13 @@
 
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod/mini";
+import { uploadPrepared, type PreparedFile } from "@/lib/materials/prepare";
 import { apiFetch } from "@/lib/query/api";
 import { queryKeys } from "@/lib/query/keys";
 
-// A student's own materials (MVP-01): list with status, add (text of picked pages only), delete,
-// search, and outline text for scheme_extract. Shapes checked with zod/mini.
+// A student's own materials (MVP-01, 12 §4 Q60): list with status, upload a file (stored as it is,
+// its text read on the phone or by the ocr job) or paste text, delete, search, and outline text for
+// scheme_extract. Shapes checked with zod/mini.
 
 export type MaterialScope = { courseId: string } | { conceptId: string };
 
@@ -49,7 +51,16 @@ export function useMaterials(scope: MaterialScope) {
 
 const createResponse = z.object({
   material: z.object({ id: z.string(), title: z.string(), pageCount: z.number(), chunks: z.number() }),
-  jobId: z.string(),
+  jobId: z.nullable(z.string()),
+  uploads: z.optional(
+    z.nullable(
+      z.object({
+        file: z.object({ path: z.string(), token: z.string() }),
+        thumb: z.nullable(z.object({ path: z.string(), token: z.string() })),
+        ocr: z.array(z.object({ page: z.nullable(z.number()), path: z.string(), token: z.string() })),
+      }),
+    ),
+  ),
   examJobId: z.optional(z.nullable(z.string())),
   labJobId: z.optional(z.nullable(z.string())),
   redacted: z.number(),
@@ -67,6 +78,37 @@ export function useAddMaterial(scope: MaterialScope) {
   return useMutation({
     mutationFn: (input: AddMaterialInput) =>
       apiFetch("/api/materials", { method: "POST", body: { ...scope, ...input }, schema: createResponse }),
+    meta: { invalidates: [queryKeys.materials.list(scopeKey(scope))] },
+  });
+}
+
+/** The body fields that describe a prepared file (see lib/materials/prepare.ts). */
+export const fileFields = (f: PreparedFile) => ({
+  pages: f.pages,
+  file: f.file,
+  ocr_pages: f.ocr.map((o) => ({ page: o.page })),
+});
+
+/** Upload a file: create the material, send the file to its signed URLs, then have it checked. */
+export function useUploadMaterial(scope: MaterialScope) {
+  return useMutation({
+    mutationFn: async (input: { kind: AddMaterialInput["kind"]; title: string; prepared: PreparedFile }) => {
+      const r = await apiFetch("/api/materials", {
+        method: "POST",
+        body: { ...scope, kind: input.kind, title: input.title, ...fileFields(input.prepared) },
+        schema: createResponse,
+      });
+      if (r.uploads) {
+        try {
+          await uploadPrepared(r.material.id, input.prepared, r.uploads);
+        } catch (err) {
+          // A material without its file is no use: remove it so adding again starts clean.
+          await apiFetch(`/api/materials/${r.material.id}`, { method: "DELETE", schema: z.unknown() }).catch(() => {});
+          throw err;
+        }
+      }
+      return r;
+    },
     meta: { invalidates: [queryKeys.materials.list(scopeKey(scope))] },
   });
 }

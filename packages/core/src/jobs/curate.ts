@@ -89,12 +89,17 @@ export function createSupabaseCurateRepo(db: SupabaseClient<Database>): CurateRe
         : null;
     },
     async pendingEmbeddings(id) {
-      const { count } = await db
-        .from("chunks")
-        .select("id", { count: "exact", head: true })
-        .eq("source_id", id)
-        .is("embedding", null);
-      return count ?? 0;
+      // Chunks waiting for embeddings, plus one while a photo or scan is still being read (12 §4 Q60).
+      const [{ count }, { count: reading }] = await Promise.all([
+        db.from("chunks").select("id", { count: "exact", head: true }).eq("source_id", id).is("embedding", null),
+        db
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("queue", "ocr")
+          .eq("payload->>source_id", id)
+          .in("status", ["queued", "running"]),
+      ]);
+      return (count ?? 0) + (reading ?? 0);
     },
     async chunks(id) {
       const { data, error } = await db.from("chunks").select("page, content").eq("source_id", id).order("id");
@@ -231,9 +236,9 @@ export function createCurateHandler(deps: CurateDeps): JobHandler {
       if (!parsed.success || parsed.data.user_id !== job.ownerId)
         throw new JobFailure("bad_payload", MSG.failed, false);
       const p = parsed.data;
-      // Guardrail 7: the job owner's own material, which they chose to share; never textbook pages.
+      // Guardrail 7: the job owner's own material, which they chose to share (textbooks too, 12 §4 Q60).
       const source = await repo.source(p.source_id);
-      if (!source || source.ownerId !== p.user_id || !source.sharedAt || source.kind === "textbook_private")
+      if (!source || source.ownerId !== p.user_id || !source.sharedAt)
         throw new JobFailure("not_shareable", MSG.failed, false);
 
       // Embeddings come from the embed job; wait for them rather than judge half the material.

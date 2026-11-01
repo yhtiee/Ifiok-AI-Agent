@@ -24,7 +24,7 @@ export async function shareMaterial(viewer: Viewer, sourceId: string): Promise<{
   if (!source || source.owner_id !== viewer.userId)
     throw new RouteError(404, "Those materials don't exist any more.", "not_found");
   if (!(SHAREABLE_SOURCE_KINDS as readonly string[]).includes(source.kind))
-    throw new RouteError(422, "Textbook pages stay private to you; they can't be shared.", "not_shareable");
+    throw new RouteError(422, "This kind of material can't be shared.", "not_shareable");
   if (source.shared_at && source.review === "approved")
     throw new RouteError(409, "This is already in the library.", "already_shared");
   if (source.shared_at && source.review === "pending")

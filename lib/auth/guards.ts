@@ -1,5 +1,5 @@
 import "server-only";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { RouteError } from "@/lib/api/route";
 import { createClient } from "@/lib/supabase/server";
 import { STEP_PATHS, canOpenStep, requiredStep, type OnboardingStep } from "./onboarding";
@@ -52,10 +52,22 @@ export async function isReviewAdmin(): Promise<boolean> {
 
 // ---- Pages: redirect instead of throwing ----
 
-/** For signed-in app pages: signed out → sign-in; not finished onboarding → the right step. */
+/** An admin account (12 §4 Q63): not a student, so it only ever sees the admin interface. */
+export const isAdminAccount = (viewer: Viewer) => viewer.profile.role === "admin" && viewer.profile.status === "active";
+
+/** For admin pages: signed out → sign-in; anyone who isn't an admin gets a 404. No student onboarding. */
+export async function requireAdminPage(): Promise<Viewer> {
+  const viewer = await getViewer();
+  if (!viewer) redirect("/sign-in");
+  if (!isAdminAccount(viewer)) notFound();
+  return viewer;
+}
+
+/** For signed-in app pages: signed out → sign-in; admins → /admin; not finished onboarding → the right step. */
 export async function requireOnboardedPage(): Promise<Viewer> {
   const viewer = await getViewer();
   if (!viewer) redirect("/sign-in");
+  if (isAdminAccount(viewer)) redirect("/admin");
   const step = requiredStep(viewer);
   if (step) redirect(STEP_PATHS[step]);
   return viewer;
@@ -65,6 +77,7 @@ export async function requireOnboardedPage(): Promise<Viewer> {
 export async function requireOnboardingStep(step: OnboardingStep): Promise<Viewer> {
   const viewer = await getViewer();
   if (!viewer) redirect("/sign-in");
+  if (isAdminAccount(viewer)) redirect("/admin");
   if (!canOpenStep(step, viewer)) {
     const required = requiredStep(viewer);
     redirect(required ? STEP_PATHS[required] : "/today");

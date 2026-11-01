@@ -42,10 +42,18 @@ try {
   const secretsFile = join(tmp, "worker.env");
   writeFileSync(
     secretsFile,
-    ["INTERNAL_FUNCTION_SECRET", "GEMINI_API_KEY", "GROQ_API_KEY"].map((k) => `${k}=${env[k]}`).join("\n") + "\n",
+    [
+      "INTERNAL_FUNCTION_SECRET",
+      "GEMINI_API_KEY",
+      "GROQ_API_KEY",
+      // Tutoring auto-release (MVP-07); set once the PayPal sandbox app exists.
+      ...["PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "PAYPAL_ENV"].filter((k) => env[k]),
+    ]
+      .map((k) => `${k}=${env[k]}`)
+      .join("\n") + "\n",
   );
   supabase(["secrets", "set", "--env-file", secretsFile]);
-  console.log("✓ function secrets set: INTERNAL_FUNCTION_SECRET, GEMINI_API_KEY, GROQ_API_KEY");
+  console.log("✓ function secrets set: INTERNAL_FUNCTION_SECRET, GEMINI_API_KEY, GROQ_API_KEY (+ PayPal when present)");
 
   // 2. Vault secrets for pg_net / pg_cron
   const lit = (s: string) => `'${s.replace(/'/g, "''")}'`;

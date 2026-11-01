@@ -85,6 +85,26 @@ export async function citationLabels(refs: number[]): Promise<Record<string, str
 }
 
 /**
+ * The student's materials cover this topic and no lesson of theirs for it was tried in the last day
+ * (so a failed build isn't retried on every visit).
+ */
+export async function notesCover(viewer: Viewer, conceptId: string, courseId: string | null): Promise<boolean> {
+  const priv = privateLessonRepo();
+  const cfg = await priv.config();
+  const coverage = await priv.coverage({ userId: viewer.userId, courseId }, conceptId, cfg);
+  if ((coverage.get(conceptId) ?? 0) < cfg.min_chunks) return false;
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { count } = await (
+    await createClient()
+  )
+    .from("jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("dedupe_key", privateLessonDedupe(viewer.userId, conceptId, courseId))
+    .gte("created_at", since);
+  return (count ?? 0) === 0;
+}
+
+/**
  * Starts the student's private lesson when their materials cover the topic and they have none:
  * one allowance, refunded if the job already existed. Null when not covered or the allowance is used up.
  */

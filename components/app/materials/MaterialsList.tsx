@@ -36,8 +36,8 @@ import {
 import { ApiError } from "@/lib/query/api";
 import { SOURCE_KIND_LABELS } from "@ifiok/core/materials/kinds";
 
-// A course's Materials tab (app-overhaul §5.4, 10 MVP-01): each material's status in words, delete
-// (asked first), and find things in them. Adding happens on /materials/add only. MVP-06: share your
+// A course's Materials tab (app-overhaul §5.4, 10 MVP-01): each material's status in words, open it
+// (the stored file, 12 §4 Q60), delete (asked first), and find things in them. Adding happens on /materials/add only. MVP-06: share your
 // own material to the library (with the licence attestation) and see how its check went.
 
 const errorText = (err: unknown) => (err instanceof ApiError ? err.message : "That didn't work. Try again.");
@@ -96,7 +96,7 @@ export function MaterialsList({ scope, addHref }: { scope: MaterialScope; addHre
       <div className="grid gap-2">
         <EmptyState
           title="No materials yet"
-          body="Add lecture notes, textbook pages, past questions or a lab manual. Lessons for the topics they cover are built from them."
+          body="Add lecture notes, a textbook, past questions or a lab manual: a PDF, Word document or photos. When you open a topic, its lesson is built from the parts that cover it."
         />
         {add}
       </div>
@@ -128,6 +128,7 @@ function MaterialRow({ material: m }: { material: Material }) {
   return (
     <Row
       title={m.title}
+      href={`/materials/${m.id}`}
       meta={
         <span className="grid gap-0.5">
           <span className="flex flex-wrap items-center gap-x-2">
@@ -155,7 +156,7 @@ function MaterialRow({ material: m }: { material: Material }) {
         </span>
       }
       trailing={
-        <span className="flex items-center">
+        <span className="flex items-center gap-1">
           {canShare ? <ShareDialog title={m.title} busy={share.isPending} onShare={() => share.mutate(m.id)} /> : null}
           {m.share.state === "approved" ? null : (
             <AlertDialog>
@@ -197,28 +198,25 @@ function ShareDialog(props: { title: string; busy: boolean; onShare: () => void 
     <AlertDialog onOpenChange={(open) => !open && setOwn(false)}>
       <AlertDialogTrigger asChild>
         <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Share ${props.title}`}
+          variant="outline"
+          size="sm"
+          aria-label={`Share ${props.title} to the library`}
           disabled={props.busy}
           aria-busy={props.busy}
         >
-          <ShareNetworkIcon size={20} aria-hidden="true" />
+          <ShareNetworkIcon size={18} aria-hidden="true" />
+          <span className="max-sm:sr-only">Share to library</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogTitle>Share “{props.title}” with other students?</AlertDialogTitle>
         <AlertDialogDescription>
-          Ifiok checks it first. Once it&apos;s in the library, lessons for its topics can quote it for students at any
-          university; they see short quotes, never your file. You earn Units when it helps others, and you can withdraw
-          it later.
+          Ifiok checks it first. Once it&apos;s in the library, students at any university can open it, and lessons for
+          its topics can quote it. You earn Units when it helps others, and you can withdraw it later.
         </AlertDialogDescription>
         <label className="flex min-h-11 items-start gap-3 text-base">
           <input type="checkbox" checked={own} onChange={(e) => setOwn(e.target.checked)} className="mt-1 h-5 w-5" />
-          <span>
-            These are my own notes, past questions, lab manual or solutions, not pages from a published book, and I let
-            Ifiok use them as described in the contributor terms.
-          </span>
+          <span>I have the right to share this, and I let Ifiok use it as described in the contributor terms.</span>
         </label>
         <AlertDialogFooter>
           <AlertDialogCancel>Not now</AlertDialogCancel>

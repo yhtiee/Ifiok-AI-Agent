@@ -14,14 +14,17 @@ import { createEmbedHandler } from "../_shared/core/jobs/embed.ts";
 import { createExamExtractHandler, createSupabaseExamRepo } from "../_shared/core/jobs/exam-extract.ts";
 import { createLabExtractHandler, createSupabaseLabRepo } from "../_shared/core/jobs/lab-extract.ts";
 import { createCurateHandler, createSupabaseCurateRepo } from "../_shared/core/jobs/curate.ts";
+import { createOcrHandler, createSupabaseOcrRepo } from "../_shared/core/jobs/ocr.ts";
 import { createExplainerHandler, createSupabaseExplainerRepo } from "../_shared/core/jobs/explainer.ts";
 import { createItemsGenHandler, createSupabaseItemsRepo } from "../_shared/core/jobs/items-gen.ts";
 import { createLessonGenHandler } from "../_shared/core/jobs/lesson-gen.ts";
 import { noopHandler } from "../_shared/core/jobs/noop.ts";
+import { createTutoringReleaseHandler } from "../_shared/core/jobs/tutoring-release.ts";
+import { createPaypal } from "../_shared/core/payments/paypal.ts";
 import { runWorker } from "../_shared/core/jobs/runner.ts";
 import { createSupabaseWorkerQueue } from "../_shared/core/jobs/supabase-queue.ts";
 import { QUEUES, type QueueName } from "../_shared/core/jobs/types.ts";
-import { createSupabasePrivateLessonRepo, queuePrivateLessons } from "../_shared/core/lessons/private.ts";
+import { createSupabasePrivateLessonRepo } from "../_shared/core/lessons/private.ts";
 import { createSupabaseLessonRepo } from "../_shared/core/lessons/repo.ts";
 import { createEmbedder } from "../_shared/core/materials/embed-client.ts";
 import { createSupabaseMaterialsRepo } from "../_shared/core/materials/repo.ts";
@@ -83,6 +86,7 @@ function buildWorker() {
       items_gen: createItemsGenHandler({ items: createSupabaseItemsRepo(db), lessons, privateLessons, gateway }),
       exam_extract: createExamExtractHandler({ repo: createSupabaseExamRepo(db), gateway }),
       lab_extract: createLabExtractHandler({ repo: createSupabaseLabRepo(db), gateway }),
+      ocr: createOcrHandler({ repo: createSupabaseOcrRepo(db), gateway }),
       curate: createCurateHandler({ repo: createSupabaseCurateRepo(db), gateway, usage: () => config("usage") }),
       explainer: createExplainerHandler({
         repo: createSupabaseExplainerRepo(db),
@@ -92,9 +96,18 @@ function buildWorker() {
       embed: createEmbedHandler({
         repo: createSupabaseMaterialsRepo(db),
         embed: createEmbedder({ supabaseUrl: url, secret }),
-        // MVP-02: once materials are ready, build a private lesson for each topic they cover.
-        onReady: (source) =>
-          queuePrivateLessons(privateLessons, { userId: source.ownerId, courseId: source.courseId }, source.conceptId),
+        // Lessons from materials are built only when a student opens a topic (12 §4 Q60), not on upload.
+      }),
+      // Sandbox test money only; createPaypal refuses anything but PAYPAL_ENV=sandbox (08 §2.7c).
+      tutoring_release: createTutoringReleaseHandler({
+        db,
+        paypal: () =>
+          createPaypal({
+            clientId: Deno.env.get("PAYPAL_CLIENT_ID") ?? "",
+            clientSecret: Deno.env.get("PAYPAL_CLIENT_SECRET") ?? "",
+            env: Deno.env.get("PAYPAL_ENV"),
+          }),
+        autoReleaseHours: async () => (await config("tutoring")).auto_release_hours,
       }),
     },
   };

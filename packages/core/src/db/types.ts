@@ -56,6 +56,97 @@ export type Database = {
           },
         ]
       }
+      agent_proposals: {
+        Row: {
+          booking_id: string | null
+          concept_id: string
+          considered: Json
+          created_at: string
+          decided_by: string
+          id: string
+          price_cents: number
+          reason: string
+          spend_limit_cents: number
+          starts_at: string
+          status: string
+          tutor_id: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          concept_id: string
+          considered?: Json
+          created_at?: string
+          decided_by: string
+          id?: string
+          price_cents: number
+          reason: string
+          spend_limit_cents: number
+          starts_at: string
+          status?: string
+          tutor_id: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          concept_id?: string
+          considered?: Json
+          created_at?: string
+          decided_by?: string
+          id?: string
+          price_cents?: number
+          reason?: string
+          spend_limit_cents?: number
+          starts_at?: string
+          status?: string
+          tutor_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_proposals_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "tutoring_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_proposals_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_proposals_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_proposals_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_proposals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_proposals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_calls: {
         Row: {
           cost_micros: number
@@ -1927,6 +2018,175 @@ export type Database = {
           },
         ]
       }
+      payout_accounts: {
+        Row: {
+          environment: string
+          paypal_email: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          environment?: string
+          paypal_email: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          environment?: string
+          paypal_email?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_lines: {
+        Row: {
+          amount_cents: number
+          capped: boolean
+          explanation: string | null
+          id: string
+          paypal_item_id: string | null
+          period_id: string
+          points: number
+          receiver: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          capped?: boolean
+          explanation?: string | null
+          id?: string
+          paypal_item_id?: string | null
+          period_id: string
+          points: number
+          receiver?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          capped?: boolean
+          explanation?: string | null
+          id?: string
+          paypal_item_id?: string | null
+          period_id?: string
+          points?: number
+          receiver?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_lines_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payout_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_lines_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_lines_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_periods: {
+        Row: {
+          attempt: number
+          carried_cents: number
+          created_at: string
+          currency: string
+          environment: string
+          id: string
+          month: string
+          paypal_batch_id: string | null
+          pool_cents: number
+          sent_at: string | null
+          split_cents: number
+          status: string
+          total_points: number
+        }
+        Insert: {
+          attempt?: number
+          carried_cents?: number
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          month: string
+          paypal_batch_id?: string | null
+          pool_cents: number
+          sent_at?: string | null
+          split_cents?: number
+          status?: string
+          total_points: number
+        }
+        Update: {
+          attempt?: number
+          carried_cents?: number
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          month?: string
+          paypal_batch_id?: string | null
+          pool_cents?: number
+          sent_at?: string | null
+          split_cents?: number
+          status?: string
+          total_points?: number
+        }
+        Relationships: []
+      }
+      paypal_events: {
+        Row: {
+          environment: string
+          event_id: string
+          event_type: string
+          received_at: string
+        }
+        Insert: {
+          environment?: string
+          event_id: string
+          event_type: string
+          received_at?: string
+        }
+        Update: {
+          environment?: string
+          event_id?: string
+          event_type?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
       plan_events: {
         Row: {
           created_at: string
@@ -2303,6 +2563,7 @@ export type Database = {
           course_id: string | null
           created_at: string
           file_bytes: number | null
+          file_mime: string | null
           id: string
           is_lecturer_source: boolean
           kind: Database["public"]["Enums"]["source_kind"]
@@ -2324,6 +2585,7 @@ export type Database = {
           course_id?: string | null
           created_at?: string
           file_bytes?: number | null
+          file_mime?: string | null
           id?: string
           is_lecturer_source?: boolean
           kind: Database["public"]["Enums"]["source_kind"]
@@ -2345,6 +2607,7 @@ export type Database = {
           course_id?: string | null
           created_at?: string
           file_bytes?: number | null
+          file_mime?: string | null
           id?: string
           is_lecturer_source?: boolean
           kind?: Database["public"]["Enums"]["source_kind"]
@@ -2680,18 +2943,21 @@ export type Database = {
         Row: {
           active: boolean
           availability: string
+          price_cents: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           active?: boolean
           availability: string
+          price_cents?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           active?: boolean
           availability?: string
+          price_cents?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -2759,6 +3025,160 @@ export type Database = {
             foreignKeyName: "tutor_threads_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tutoring_bookings: {
+        Row: {
+          agent_reason: string | null
+          concept_id: string
+          created_at: string
+          currency: string
+          environment: string
+          id: string
+          learner_id: string
+          minutes: number
+          note: string | null
+          paypal_authorization_id: string | null
+          paypal_capture_id: string | null
+          paypal_order_id: string | null
+          price_cents: number
+          proposal_id: string | null
+          proposed_by: string
+          released_by: string | null
+          starts_at: string
+          status: string
+          take_rate_bp: number
+          tutor_id: string
+          tutor_payout_item_id: string | null
+          tutor_payout_status: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_reason?: string | null
+          concept_id: string
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          learner_id: string
+          minutes: number
+          note?: string | null
+          paypal_authorization_id?: string | null
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          price_cents: number
+          proposal_id?: string | null
+          proposed_by?: string
+          released_by?: string | null
+          starts_at: string
+          status?: string
+          take_rate_bp: number
+          tutor_id: string
+          tutor_payout_item_id?: string | null
+          tutor_payout_status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_reason?: string | null
+          concept_id?: string
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          learner_id?: string
+          minutes?: number
+          note?: string | null
+          paypal_authorization_id?: string | null
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          price_cents?: number
+          proposal_id?: string | null
+          proposed_by?: string
+          released_by?: string | null
+          starts_at?: string
+          status?: string
+          take_rate_bp?: number
+          tutor_id?: string
+          tutor_payout_item_id?: string | null
+          tutor_payout_status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutoring_bookings_concept_id_fkey"
+            columns: ["concept_id"]
+            isOneToOne: false
+            referencedRelation: "concepts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutoring_bookings_learner_id_fkey"
+            columns: ["learner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutoring_bookings_learner_id_fkey"
+            columns: ["learner_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutoring_bookings_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "agent_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutoring_bookings_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutoring_bookings_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tutoring_preferences: {
+        Row: {
+          spend_limit_cents: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          spend_limit_cents: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          spend_limit_cents?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutoring_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tutoring_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
@@ -2968,6 +3388,19 @@ export type Database = {
         Args: { p_source: string; p_threshold?: number }
         Returns: number
       }
+      booking_step: {
+        Args: {
+          p_booking: string
+          p_note?: string
+          p_ref?: string
+          p_to: string
+        }
+        Returns: boolean
+      }
+      compute_period: {
+        Args: { p_month: string; p_pool_cents: number }
+        Returns: string
+      }
       consume_quota: {
         Args: { p_feature: string; p_limit: number; p_user: string }
         Returns: boolean
@@ -3022,6 +3455,10 @@ export type Database = {
       is_member: { Args: { p_course: string }; Returns: boolean }
       is_qualified_consumer: { Args: { p_user: string }; Returns: boolean }
       is_review_admin: { Args: never; Returns: boolean }
+      mark_period_sent: {
+        Args: { p_batch_id: string; p_period: string }
+        Returns: number
+      }
       match_chunks: {
         Args: {
           p_concept: string
@@ -3082,6 +3519,18 @@ export type Database = {
       merge_concepts: {
         Args: { p_admin: string; p_loser: string; p_survivor: string }
         Returns: undefined
+      }
+      paypal_event_once: {
+        Args: { p_event_id: string; p_type: string }
+        Returns: boolean
+      }
+      prepare_payout: {
+        Args: { p_period: string }
+        Returns: {
+          amount_cents: number
+          line_id: string
+          receiver: string
+        }[]
       }
       private_lesson_sources: {
         Args: {
@@ -3150,6 +3599,10 @@ export type Database = {
           m: number
         }[]
       }
+      record_payout_item: {
+        Args: { p_item_id: string; p_line: string; p_paypal_status: string }
+        Returns: boolean
+      }
       record_screen: {
         Args: {
           p_completed_at: string
@@ -3160,6 +3613,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_tutor_payout: {
+        Args: { p_booking: string; p_item_id: string; p_paypal_status: string }
+        Returns: boolean
+      }
       record_usage: {
         Args: { p_consumer: string; p_kind: string; p_resource: string }
         Returns: boolean
@@ -3168,6 +3625,7 @@ export type Database = {
         Args: { p_feature: string; p_user: string }
         Returns: undefined
       }
+      reopen_failed_payouts: { Args: { p_period: string }; Returns: number }
       report_explainer: {
         Args: { p_explainer: string; p_reason: string; p_reporter: string }
         Returns: number
@@ -3191,6 +3649,10 @@ export type Database = {
       set_chunk_embeddings: {
         Args: { p_embeddings: string[]; p_ids: number[]; p_source: string }
         Returns: number
+      }
+      set_payout_explanation: {
+        Args: { p_line: string; p_text: string }
+        Returns: undefined
       }
       shared_lesson_sources: {
         Args: { p_concept: string; p_limit?: number }

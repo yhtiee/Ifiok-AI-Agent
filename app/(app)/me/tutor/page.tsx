@@ -7,13 +7,18 @@ import { Button } from "@/components/ui/button";
 import { requireOnboardedPage } from "@/lib/auth/guards";
 import { myTopicOptions } from "@/lib/contribute/topics";
 import { getTutorProfile } from "@/lib/contribute/tutor";
+import { getConfig } from "@/lib/config";
 
 export const metadata: Metadata = { title: "Tutor profile", robots: { index: false } };
 
-// Become a tutor (F17-FR1, profile only, 10 MVP-06): topics and availability; no bookings yet.
+// Become a tutor (F17-FR1, 10 MVP-06, MVP-07): topics, availability and a price per session.
 export default async function TutorProfilePage() {
   const viewer = await requireOnboardedPage();
-  const [topics, profile] = await Promise.all([myTopicOptions(viewer), getTutorProfile(viewer)]);
+  const [topics, profile, band] = await Promise.all([
+    myTopicOptions(viewer),
+    getTutorProfile(viewer),
+    getConfig("tutoring"),
+  ]);
   // Topics already offered stay listed even if they're no longer in the student's courses.
   const all = [
     ...topics,
@@ -31,11 +36,18 @@ export default async function TutorProfilePage() {
       {all.length ? (
         <TutorForm
           topics={all}
+          band={{
+            minCents: band.price_min_cents,
+            maxCents: band.price_max_cents,
+            takeRate: band.take_rate,
+            minutes: band.session_minutes,
+          }}
           initial={
             profile
               ? {
                   availability: profile.availability,
                   active: profile.active,
+                  priceCents: profile.priceCents,
                   conceptIds: profile.concepts.map((c) => c.id),
                 }
               : null

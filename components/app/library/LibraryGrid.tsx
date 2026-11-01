@@ -21,6 +21,7 @@ export const KIND_WORDS = {
   voice: "Voice note",
   text: "Written",
   notes: "Notes",
+  textbook_private: "Textbook",
   lab_manual: "Lab manual",
   solution: "Worked solutions",
   past_paper: "Past questions",

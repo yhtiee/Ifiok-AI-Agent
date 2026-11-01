@@ -65,7 +65,7 @@ export function useWithdrawExplainer() {
 
 export function useSaveTutor() {
   return useMutation({
-    mutationFn: (body: { availability: string; concept_ids: string[]; active: boolean }) =>
+    mutationFn: (body: { availability: string; concept_ids: string[]; active: boolean; price_cents?: number }) =>
       apiFetch("/api/tutor", { method: "PUT", body, schema: z.object({ saved: z.boolean() }) }),
     meta: { invalidates: [queryKeys.contribute.all()] },
   });

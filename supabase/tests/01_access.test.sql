@@ -51,7 +51,8 @@ insert into chunks (source_id,owner_id,course_id,concept_id,visibility,page,cont
  ('50000000-0000-0000-0000-000000000005','00000000-0000-0000-0000-00000000000b','20000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','bank',1,'Q3 evaluate the limit of a function as x tends to 2');
 
 select plan(39);
-select throws_ok($$insert into sources (owner_id,course_id,kind,visibility,title) values ('00000000-0000-0000-0000-00000000000a','20000000-0000-0000-0000-000000000001','textbook_private','bank','x')$$, '23514', null, 'private textbook cannot be bank');
+-- Q60: textbooks may be stored and shared; stored files are limited to PDF, Word and photos.
+select throws_ok($$insert into sources (owner_id,course_id,kind,visibility,title,file_mime) values ('00000000-0000-0000-0000-00000000000a','20000000-0000-0000-0000-000000000001','notes','private','x','application/x-msdownload')$$, '23514', null, 'only PDF, Word and photo files can be stored');
 
 set local role authenticated;
 -- Lecturer L

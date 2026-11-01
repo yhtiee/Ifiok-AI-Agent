@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppPage } from "@/components/app/AppPage";
 import { SectionHeading } from "@/components/app/Page";
-import { DocViewer, TextDocument } from "@/components/app/library/DocViewer";
+import { StoredFile } from "@/components/app/library/StoredFile";
 import { KIND_WORDS } from "@/components/app/library/LibraryGrid";
 import { ReportButton } from "@/components/app/library/ReportButton";
 import { requireOnboardedPage } from "@/lib/auth/guards";
@@ -37,7 +37,7 @@ export default async function LibraryDocPage({ params }: PageProps<"/library/doc
     >
       <div className="grid grid-cols-1 gap-10 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] xl:gap-16">
         <div className="grid grid-cols-1 content-start gap-4">
-          {doc.pdfUrl ? <DocViewer url={doc.pdfUrl} title={doc.title} /> : <TextDocument pages={doc.pages} />}
+          <StoredFile {...doc} />
           {doc.isYou ? null : <ReportButton endpoint={`/api/library/doc/${doc.id}/report`} />}
         </div>
         {doc.concept ? (

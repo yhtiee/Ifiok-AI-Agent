@@ -60,7 +60,7 @@ export function Prepare({ copy }: { copy: LandingCopy }) {
 const CONTRIBUTE_ITEMS = [
   {
     title: "What you can share",
-    body: "Notes you wrote, past questions, lab manuals and worked solutions. Published textbooks can never be shared, and textbook pages you add for yourself stay private.",
+    body: "Notes you wrote, textbooks, past questions, lab manuals and worked solutions: anything you have the right to share. What you upload for yourself stays private until you share it.",
   },
   {
     title: "What happens before anyone sees it",

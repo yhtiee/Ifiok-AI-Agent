@@ -54,6 +54,11 @@ const contribute = {
   all: () => ["contribute"] as const,
 };
 
+/** Get paid (MVP-07): payout account and lines, tutoring bookings. Screens are server-rendered. */
+const payments = {
+  all: () => ["payments"] as const,
+};
+
 const jobs = {
   all: () => ["jobs"] as const,
   detail: (jobId: string) => [...jobs.all(), "detail", jobId] as const,
@@ -69,5 +74,6 @@ export const queryKeys = {
   materials,
   labs,
   contribute,
+  payments,
   jobs,
 };

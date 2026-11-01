@@ -11,6 +11,7 @@ type Result = { data: unknown; error: unknown };
 const state = vi.hoisted(() => ({
   calls: [] as { table: string; ops: { method: string; args: unknown[] }[] }[],
   rpcs: [] as { fn: string; args: Record<string, unknown> }[],
+  removed: [] as string[],
   respond: (() => ({ data: null, error: null })) as (call: {
     table: string;
     ops: { method: string; args: unknown[] }[];
@@ -45,6 +46,15 @@ function fakeClient() {
     rpc(fn: string, args: Record<string, unknown>) {
       state.rpcs.push({ fn, args });
       return Promise.resolve(state.rpc(fn, args));
+    },
+    storage: {
+      from: () => ({
+        list: async () => ({ data: [{ name: "file.pdf" }], error: null }),
+        remove: async (paths: string[]) => {
+          state.removed.push(...paths);
+          return { data: null, error: null };
+        },
+      }),
     },
   };
 }
@@ -91,6 +101,7 @@ const inserted = (table: string) =>
 beforeEach(() => {
   state.calls = [];
   state.rpcs = [];
+  state.removed = [];
   world();
 });
 
@@ -103,8 +114,8 @@ describe("createMaterialBody", () => {
     expect(createMaterialBody.safeParse({ ...base, conceptId: COURSE }).success).toBe(false);
   });
 
-  it("caps pages at 80 and refuses outlines (they go to scheme_extract)", () => {
-    const pages = Array.from({ length: 81 }, (_, i) => page(i + 1));
+  it("reads at most 150 pages and refuses outlines (they go to scheme_extract)", () => {
+    const pages = Array.from({ length: 151 }, (_, i) => page(i + 1));
     expect(createMaterialBody.safeParse({ ...base, pages }).success).toBe(false);
     expect(createMaterialBody.safeParse({ ...base, kind: "outline" }).success).toBe(false);
   });
@@ -206,5 +217,7 @@ describe("deleteMaterial", () => {
     await deleteMaterial(viewer, SOURCE);
     const del = state.calls.find((c) => c.ops.some((o) => o.method === "delete"))!;
     expect(del.ops).toContainEqual({ method: "eq", args: ["owner_id", USER] });
+    // The stored file goes with it (12 §4 Q60).
+    expect(state.removed).toEqual([`${USER}/${SOURCE}/file.pdf`]);
   });
 });
