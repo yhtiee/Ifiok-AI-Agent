@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Wordmark } from "@/components/marketing/Brand";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // The admin interface (12 §4 Q58, Q63): admins aren't students, so it has only admin work: the
 // review queues, contributor payouts and tutoring bookings. Desktop: a left sidebar; phones: a
@@ -51,6 +52,10 @@ export function AdminShell({ email, children }: { email: string | null; children
         </nav>
         <div className="grid gap-1 border-t border-line pt-4">
           {email ? <span className="truncate px-3 text-xs text-ink-2">{email}</span> : null}
+          <ThemeToggle
+            withLabel
+            className="flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-input)] px-3 text-sm text-ink-2 hover:bg-paper hover:text-ink"
+          />
           <form action="/auth/sign-out" method="post">
             <button
               type="submit"

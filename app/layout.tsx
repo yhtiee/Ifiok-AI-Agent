@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { getSiteUrl } from "@/lib/env";
+import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 // specifications/07-brand-ui-ux.md §3.3 typography: display, text, instrument readings only.
@@ -82,7 +83,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-NG" className={`${bricolage.variable} ${atkinson.variable} ${jetbrains.variable} h-full`}>
+    // suppressHydrationWarning: THEME_SCRIPT may set data-theme on <html> before React hydrates.
+    <html
+      lang="en-NG"
+      className={`${bricolage.variable} ${atkinson.variable} ${jetbrains.variable} h-full`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* The saved light/dark choice, applied before first paint (12 §4 Q65). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

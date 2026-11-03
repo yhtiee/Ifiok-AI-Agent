@@ -293,6 +293,26 @@ html:has(.lp) {
 .lp-header-actions .lp-btn-outline {
   display: none;
 }
+/* Light/dark switch (12 §4 Q65): a 44 px icon button in ink, no fill until hovered. */
+.lp-header-actions .lp-theme {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.lp-header-actions .lp-theme:hover {
+  background: var(--paper);
+}
+.lp-header-actions .lp-theme:focus-visible {
+  outline: 2px solid var(--quantity);
+  outline-offset: 2px;
+}
 @media (min-width: 640px) {
   .lp-descriptor {
     display: inline;

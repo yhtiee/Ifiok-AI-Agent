@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { AppPage } from "@/components/app/AppPage";
 import { Row, RowList, SectionHeading } from "@/components/app/Page";
 import { CalendarCheckIcon, ChalkboardTeacherIcon, CoinsIcon, PresentationChartIcon } from "@phosphor-icons/react/ssr";
+import { ThemeChoices } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { requireOnboardedPage } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
@@ -90,6 +91,11 @@ export default async function MePage() {
                 meta="Sessions you booked and the ones you teach"
               />
             </RowList>
+          </section>
+
+          <section aria-labelledby="appearance" className="grid gap-3">
+            <SectionHeading id="appearance">Appearance</SectionHeading>
+            <ThemeChoices />
           </section>
 
           <section aria-labelledby="account" className="grid gap-3">

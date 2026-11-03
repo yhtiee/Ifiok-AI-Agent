@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ifiok thumbnail</title>
+    <!-- Devpost thumbnail (3:2). Rendered to PNG by scripts/render-thumbnail.mts. Brand tokens and
+         self-hosted fonts from app/; no third-party logos (hackathon rules). -->
+    <style>
+      @font-face {
+        font-family: "Bricolage";
+        src: url("../app/fonts/bricolage-grotesque-latin-800.woff2") format("woff2");
+        font-weight: 800;
+      }
+      @font-face {
+        font-family: "Bricolage";
+        src: url("../app/fonts/bricolage-grotesque-latin-600.woff2") format("woff2");
+        font-weight: 600;
+      }
+      @font-face {
+        font-family: "Atkinson";
+        src: url("../app/fonts/atkinson-hyperlegible-next-latin-400.woff2") format("woff2");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "Atkinson";
+        src: url("../app/fonts/atkinson-hyperlegible-next-latin-600.woff2") format("woff2");
+        font-weight: 600;
+      }
+      :root {
+        --paper: #f2f4f7;
+        --surface: #fbfcfd;
+        --ink: #131b26;
+        --ink-2: #4a5563;
+        --line: #dde2e8;
+        --quantity: #2650b8;
+        --quantity-soft: #e2eafb;
+        --change: #b0500f;
+        --change-soft: #f8e8db;
+        --built: #1c7a5a;
+        --built-soft: #ddf2e9;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        width: 1500px;
+        height: 1000px;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Atkinson", sans-serif;
+      }
+      .frame {
+        position: relative;
+        width: 1500px;
+        height: 1000px;
+        display: grid;
+        grid-template-columns: 1fr 600px;
+        gap: 64px;
+        padding: 96px 96px 88px;
+        overflow: hidden;
+      }
+      /* The Ink Line: one quiet rule along the bottom, the brand's single line motif. */
+      .frame::after {
+        content: "";
+        position: absolute;
+        left: 96px;
+        right: 96px;
+        bottom: 56px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--ink);
+        opacity: 0.08;
+      }
+      .left {
+        display: flex;
+        flex-direction: column;
+      }
+      .word {
+        font-family: "Bricolage", sans-serif;
+        font-weight: 800;
+        font-size: 200px;
+        line-height: 0.9;
+        letter-spacing: -0.04em;
+        display: inline-flex;
+        align-items: baseline;
+      }
+      .i {
+        position: relative;
+        display: inline-block;
+      }
+      .i::after {
+        content: "";
+        position: absolute;
+        top: 0.02em;
+        left: 56%;
+        width: 0.2em;
+        height: 0.2em;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: var(--change);
+      }
+      .tag {
+        margin-top: 36px;
+        font-family: "Bricolage", sans-serif;
+        font-weight: 600;
+        font-size: 50px;
+        line-height: 1.12;
+        letter-spacing: -0.01em;
+        max-width: 690px;
+      }
+      .points {
+        margin-top: 44px;
+        display: grid;
+        gap: 20px;
+        list-style: none;
+        padding: 0;
+        font-size: 30px;
+        line-height: 1.25;
+        color: var(--ink);
+      }
+      .points li {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        flex: none;
+      }
+      .foot {
+        margin-top: auto;
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--ink-2);
+        letter-spacing: 0.01em;
+      }
+      .right {
+        display: grid;
+        align-content: center;
+        gap: 28px;
+      }
+      .card {
+        background: var(--surface);
+        border: 2px solid var(--line);
+        border-radius: 28px;
+        padding: 32px 34px;
+      }
+      .label {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--ink-2);
+      }
+      .plot {
+        margin-top: 14px;
+        display: block;
+      }
+      .reading {
+        margin-top: 12px;
+        font-size: 22px;
+        color: var(--ink-2);
+      }
+      .reading b {
+        color: var(--change);
+        font-weight: 600;
+      }
+      .agent-title {
+        font-family: "Bricolage", sans-serif;
+        font-weight: 600;
+        font-size: 30px;
+        line-height: 1.15;
+        margin-top: 8px;
+      }
+      .agent-meta {
+        margin-top: 10px;
+        font-size: 22px;
+        line-height: 1.35;
+        color: var(--ink-2);
+      }
+      .row {
+        margin-top: 22px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .btn {
+        background: var(--change);
+        color: #fff;
+        font-weight: 600;
+        font-size: 24px;
+        padding: 16px 26px;
+        border-radius: 12px;
+      }
+      .held {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--built);
+        background: var(--built-soft);
+        padding: 8px 14px;
+        border-radius: 999px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <div class="left">
+        <h1 class="word" aria-label="Ifiok"><span class="i">ı</span><span>fiok</span></h1>
+        <p class="tag">The AI learning agent for Nigerian university students</p>
+        <ul class="points">
+          <li><span class="dot" style="background: var(--quantity)"></span>Lessons you can move, checked by maths</li>
+          <li><span class="dot" style="background: var(--change)"></span>Practice that finds your weak spots</li>
+          <li><span class="dot" style="background: var(--built)"></span>Earn when you help others, paid by PayPal</li>
+        </ul>
+        <p class="foot">PayPal AI Hackathon 2026 · Sandbox demo</p>
+      </div>
+
+      <div class="right">
+        <div class="card">
+          <p class="label">Slope of a curve · screen 2 of 5</p>
+          <svg class="plot" width="530" height="250" viewBox="0 0 530 250" aria-hidden="true">
+            <line x1="20" y1="225" x2="515" y2="225" stroke="#dde2e8" stroke-width="3" />
+            <line x1="40" y1="15" x2="40" y2="235" stroke="#dde2e8" stroke-width="3" />
+            <!-- f(x) = x²/2 and its exact tangent at x = 2 (slope 2) -->
+            <polyline
+              points="40.0,225.0 55.7,224.8 71.3,224.1 87.0,222.9 102.7,221.4 118.3,219.3 134.0,216.8 149.7,213.8 165.3,210.4 181.0,206.6 196.7,202.2 212.3,197.4 228.0,192.2 243.7,186.5 259.3,180.4 275.0,173.8 290.7,166.7 306.3,159.2 322.0,151.2 337.7,142.8 353.3,133.9 369.0,124.5 384.7,114.8 400.3,104.5 416.0,93.8 431.7,82.6 447.3,71.0 463.0,58.9 478.7,46.4 494.3,33.4 510.0,20.0"
+              fill="none"
+              stroke="#2650b8"
+              stroke-width="7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <line x1="196.7" y1="225.0" x2="510.0" y2="42.8" stroke="#b0500f" stroke-width="5" stroke-linecap="round" />
+            <circle cx="353.3" cy="133.9" r="13" fill="#b0500f" />
+            <circle cx="353.3" cy="133.9" r="6" fill="#fbfcfd" />
+          </svg>
+          <p class="reading">Slide the point: at x = 2, slope <b>2.00</b></p>
+        </div>
+
+        <div class="card">
+          <p class="label">Ifiok's tutoring agent</p>
+          <p class="agent-title">Kirchhoff's laws with Tunde B.</p>
+          <p class="agent-meta">Mastered on Ifiok · Tue 6 pm · $8.00<br />Within your $15.00 limit</p>
+          <div class="row">
+            <span class="btn">Approve with PayPal</span>
+            <span class="held">Held until the session</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

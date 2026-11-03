@@ -1,4 +1,5 @@
 import { SIGN_IN_HREF, SIGN_UP_HREF } from "../copy";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { LandingWordmark } from "../parts";
 
 // 04 §5.0, 05 §4.0. Never camwood in the header: "Start free" is the outline secondary.
@@ -19,6 +20,7 @@ export function Header() {
           <a href="#pricing">Pricing</a>
         </nav>
         <div className="lp-header-actions">
+          <ThemeToggle className="lp-theme" />
           <a className="lp-signin" href={SIGN_IN_HREF}>
             Sign in
           </a>

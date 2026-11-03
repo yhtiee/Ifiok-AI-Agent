@@ -2,6 +2,7 @@ import { SignOutIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Wordmark } from "@/components/marketing/Brand";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { BottomNav, MainArea, SidebarNav } from "./AppNav";
 
 // The signed-in app frame (P0-06, app-overhaul §3.1). Laptops and desktops: a fixed left sidebar
@@ -41,6 +42,10 @@ export function AppShell({ user, children }: AppShellProps) {
               {user.email ? <span className="truncate text-xs text-ink-2">{user.email}</span> : null}
             </span>
           </Link>
+          <ThemeToggle
+            withLabel
+            className="flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-input)] px-3 text-sm text-ink-2 hover:bg-paper hover:text-ink"
+          />
           <form action="/auth/sign-out" method="post">
             <button
               type="submit"

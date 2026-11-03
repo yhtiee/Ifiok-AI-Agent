@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ifiok on a phone</title>
+    <!-- Devpost gallery image (3:2): three real phone screens from e2e/gallery.spec.ts, side by side.
+         Rendered by scripts/render-thumbnail.mts. Brand tokens and fonts from app/. -->
+    <style>
+      @font-face {
+        font-family: "Bricolage";
+        src: url("../app/fonts/bricolage-grotesque-latin-600.woff2") format("woff2");
+        font-weight: 600;
+      }
+      :root {
+        --paper: #f2f4f7;
+        --ink: #131b26;
+        --ink-2: #4a5563;
+        --line: #dde2e8;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        width: 1500px;
+        height: 1000px;
+        background: var(--paper);
+        color: var(--ink);
+      }
+      .row {
+        height: 1000px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 72px;
+      }
+      figure {
+        display: grid;
+        gap: 18px;
+        justify-items: center;
+      }
+      figcaption {
+        font-family: "Bricolage", sans-serif;
+        font-weight: 600;
+        font-size: 30px;
+        color: var(--ink-2);
+      }
+      img {
+        display: block;
+        height: 820px;
+        width: auto;
+        border-radius: 36px;
+        border: 3px solid var(--line);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <figure>
+        <img src="gallery/phone-today.png" alt="Today on a phone" />
+        <figcaption>Today</figcaption>
+      </figure>
+      <figure>
+        <img src="gallery/phone-lesson.png" alt="A lesson on a phone" />
+        <figcaption>A lesson</figcaption>
+      </figure>
+      <figure>
+        <img src="gallery/phone-agent.png" alt="The tutoring agent on a phone" />
+        <figcaption>The tutoring agent</figcaption>
+      </figure>
+    </div>
+  </body>
+</html>
